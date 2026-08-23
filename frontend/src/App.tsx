@@ -1,0 +1,216 @@
+import React, { useState } from 'react';
+import { Sidebar } from './components/Sidebar';
+import { Header } from './components/Header';
+import { LandingPage } from './pages/LandingPage';
+import { DashboardView } from './pages/DashboardView';
+import { ResumeUploadView } from './pages/ResumeUploadView';
+import { MatchingView } from './pages/MatchingView';
+import { InterviewAssistantView } from './pages/InterviewAssistantView';
+import { VoiceScreeningView } from './pages/VoiceScreeningView';
+import { PipelineView } from './pages/PipelineView';
+import { CandidateComparisonView } from './pages/CandidateComparisonView';
+import { SettingsView } from './pages/SettingsView';
+import { useRecruitmentStore } from './store/useRecruitmentStore';
+
+export const App: React.FC = () => {
+  const [inApp, setInApp] = useState(true);
+  const [currentTab, setCurrentTab] = useState('dashboard');
+  const [showNewJobModal, setShowNewJobModal] = useState(false);
+
+  // Central Reactive Recruitment Store
+  const store = useRecruitmentStore();
+
+  // New Job Form State
+  const [jobTitle, setJobTitle] = useState('');
+  const [jobDepartment, setJobDepartment] = useState('');
+  const [jobSkills, setJobSkills] = useState('');
+
+  if (!inApp) {
+    return <LandingPage onEnterApp={() => setInApp(true)} />;
+  }
+
+  const handleCreateJob = () => {
+    if (!jobTitle.trim()) return alert("Please enter job title.");
+    store.addJob({
+      title: jobTitle,
+      department: jobDepartment || 'Engineering',
+      location: 'San Francisco, CA (Hybrid)',
+      employmentType: 'Full-time',
+      minSalary: 140000,
+      maxSalary: 190000,
+      description: 'Role responsible for core backend and system architecture.',
+      requiredSkills: jobSkills ? jobSkills.split(',').map(s => s.trim()) : ['Python', 'Java', 'React'],
+      preferredSkills: ['Docker', 'AWS'],
+      minExperienceYears: 3,
+      educationRequirement: 'BS in Computer Science',
+      status: 'ACTIVE'
+    });
+    setShowNewJobModal(false);
+    setJobTitle('');
+    setJobDepartment('');
+    setJobSkills('');
+    alert("New Job Requirement Posting Created Successfully!");
+  };
+
+  const getHeaderInfo = () => {
+    switch (currentTab) {
+      case 'dashboard':
+        return { title: 'AI Recruitment Copilot', subtitle: 'Automate candidate screening and improve hiring efficiency with AI' };
+      case 'resume-upload':
+        return { title: 'Resume Parsing & Candidate Profiling', subtitle: 'Upload and process resumes to create structured candidate profiles' };
+      case 'candidates':
+        return { title: 'Candidate Comparison Matrix', subtitle: 'Side-by-side technical evaluation of candidate profiles' };
+      case 'matching':
+        return { title: 'Matching & Skill Analysis', subtitle: 'Candidate-job matching and skill-gap analysis' };
+      case 'interview-assistant':
+        return { title: 'Interview Assistance & ATS Integration', subtitle: 'Generate interview questions, simulate interviews, and manage candidates' };
+      case 'voice-screening':
+        return { title: 'Voice Screening & Deployment', subtitle: 'Recruitment analytics, voice screening, and system status' };
+      case 'pipeline':
+        return { title: 'Recruitment Kanban Pipeline', subtitle: 'Drag & drop candidates across hiring stages' };
+      case 'analytics':
+        return { title: 'Recruitment Analytics', subtitle: 'Track funnel metrics, pass rates, and time-to-hire' };
+      case 'settings':
+        return { title: 'System Settings', subtitle: 'Configure ATS API credentials, AI LLM endpoints, and scoring weights' };
+      default:
+        return { title: 'Recruitment Copilot', subtitle: 'AI Hiring Intelligence Platform' };
+    }
+  };
+
+  const headerInfo = getHeaderInfo();
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex text-slate-800 font-sans antialiased">
+      {/* Sidebar */}
+      <Sidebar 
+        currentTab={currentTab} 
+        setCurrentTab={setCurrentTab} 
+        userProfile={store.userProfile}
+      />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <Header 
+          title={headerInfo.title}
+          subtitle={headerInfo.subtitle}
+          userProfile={store.userProfile}
+          onNewJobClick={() => setShowNewJobModal(true)}
+          onExportClick={() => alert('Exporting recruitment analytics report as PDF...')}
+          onProfileClick={() => setCurrentTab('settings')}
+        />
+
+        <main className="flex-1 overflow-y-auto">
+          {currentTab === 'dashboard' && (
+            <DashboardView 
+              onNavigate={setCurrentTab} 
+              candidates={store.candidates}
+              jobs={store.jobs}
+            />
+          )}
+          {currentTab === 'resume-upload' && (
+            <ResumeUploadView 
+              candidates={store.candidates}
+              onAddCandidate={store.addCandidate}
+              onNavigateToMatching={() => setCurrentTab('matching')}
+            />
+          )}
+          {currentTab === 'candidates' && (
+            <CandidateComparisonView candidates={store.candidates} />
+          )}
+          {currentTab === 'matching' && (
+            <MatchingView 
+              jobs={store.jobs}
+              candidates={store.candidates}
+              activeJobId={store.activeJobId}
+              setActiveJobId={store.setActiveJobId}
+              activeCandidateId={store.activeCandidateId}
+              setActiveCandidateId={store.setActiveCandidateId}
+              onNavigateToUpload={() => setCurrentTab('resume-upload')}
+            />
+          )}
+          {currentTab === 'job-postings' && (
+            <DashboardView 
+              onNavigate={setCurrentTab} 
+              candidates={store.candidates}
+              jobs={store.jobs}
+            />
+          )}
+          {currentTab === 'interview-assistant' && (
+            <InterviewAssistantView candidates={store.candidates} />
+          )}
+          {currentTab === 'voice-screening' && (
+            <VoiceScreeningView 
+              candidates={store.candidates}
+              jobs={store.jobs}
+              activeCandidateId={store.activeCandidateId}
+            />
+          )}
+          {currentTab === 'pipeline' && (
+            <PipelineView candidates={store.candidates} />
+          )}
+          {currentTab === 'analytics' && (
+            <VoiceScreeningView 
+              candidates={store.candidates}
+              jobs={store.jobs}
+              activeCandidateId={store.activeCandidateId}
+            />
+          )}
+          {currentTab === 'settings' && (
+            <SettingsView 
+              atsProviders={store.atsProviders} 
+              userProfile={store.userProfile}
+              onUpdateUserProfile={store.updateUserProfile}
+            />
+          )}
+        </main>
+      </div>
+
+      {/* New Job Modal */}
+      {showNewJobModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-lg shadow-2xl space-y-4">
+            <h3 className="text-lg font-extrabold text-slate-900">Create New Job Requirement Profile</h3>
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Job Title</label>
+                <input 
+                  type="text" 
+                  value={jobTitle}
+                  onChange={e => setJobTitle(e.target.value)}
+                  placeholder="e.g. Senior Machine Learning Engineer" 
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-blue-500" 
+                />
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Department</label>
+                <input 
+                  type="text" 
+                  value={jobDepartment}
+                  onChange={e => setJobDepartment(e.target.value)}
+                  placeholder="e.g. AI & Data Science" 
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-blue-500" 
+                />
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Required Technical Skills (comma separated)</label>
+                <input 
+                  type="text" 
+                  value={jobSkills}
+                  onChange={e => setJobSkills(e.target.value)}
+                  placeholder="Python, TensorFlow, MLOps, AWS, Docker" 
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-blue-500" 
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button onClick={() => setShowNewJobModal(false)} className="px-4 py-2 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50">Cancel</button>
+              <button onClick={handleCreateJob} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20">Create Job</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;
