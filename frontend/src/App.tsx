@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { LandingPage } from './pages/LandingPage';
+import { LoginPage } from './pages/LoginPage';
 import { DashboardView } from './pages/DashboardView';
 import { ResumeUploadView } from './pages/ResumeUploadView';
 import { MatchingView } from './pages/MatchingView';
@@ -11,23 +12,56 @@ import { PipelineView } from './pages/PipelineView';
 import { CandidateComparisonView } from './pages/CandidateComparisonView';
 import { SettingsView } from './pages/SettingsView';
 import { useRecruitmentStore } from './store/useRecruitmentStore';
+import type { UserProfile } from './types';
 
 export const App: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('rc_is_authenticated') === 'true';
+  });
   const [inApp, setInApp] = useState(true);
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [showNewJobModal, setShowNewJobModal] = useState(false);
-
-  // Central Reactive Recruitment Store
-  const store = useRecruitmentStore();
 
   // New Job Form State
   const [jobTitle, setJobTitle] = useState('');
   const [jobDepartment, setJobDepartment] = useState('');
   const [jobSkills, setJobSkills] = useState('');
 
+  // Central Reactive Recruitment Store
+  const store = useRecruitmentStore();
+
+  const handleLogin = (profile: UserProfile & { userType: 'ADMIN' | 'USER'; status: 'APPROVED' | 'PENDING' | 'REJECTED' }) => {
+    store.updateUserProfile({
+      name: profile.name,
+      role: profile.role,
+      email: profile.email,
+      userType: profile.userType,
+      status: profile.status
+    });
+    setIsAuthenticated(true);
+    localStorage.setItem('rc_is_authenticated', 'true');
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.setItem('rc_is_authenticated', 'false');
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <LoginPage 
+        userAccounts={store.userAccounts} 
+        onLogin={handleLogin} 
+        onRegister={store.registerUser} 
+      />
+    );
+  }
+
+
   if (!inApp) {
     return <LandingPage onEnterApp={() => setInApp(true)} />;
   }
+
 
   const handleCreateJob = () => {
     if (!jobTitle.trim()) return alert("Please enter job title.");
@@ -39,12 +73,13 @@ export const App: React.FC = () => {
       minSalary: 140000,
       maxSalary: 190000,
       description: 'Role responsible for core backend and system architecture.',
-      requiredSkills: jobSkills ? jobSkills.split(',').map(s => s.trim()) : ['Python', 'Java', 'React'],
+      requiredSkills: jobSkills ? jobSkills.split(',').map((s: string) => s.trim()) : ['Python', 'Java', 'React'],
       preferredSkills: ['Docker', 'AWS'],
       minExperienceYears: 3,
       educationRequirement: 'BS in Computer Science',
       status: 'ACTIVE'
     });
+
     setShowNewJobModal(false);
     setJobTitle('');
     setJobDepartment('');
@@ -97,7 +132,9 @@ export const App: React.FC = () => {
           onNewJobClick={() => setShowNewJobModal(true)}
           onExportClick={() => alert('Exporting recruitment analytics report as PDF...')}
           onProfileClick={() => setCurrentTab('settings')}
+          onLogout={handleLogout}
         />
+
 
         <main className="flex-1 overflow-y-auto">
           {currentTab === 'dashboard' && (
@@ -160,8 +197,12 @@ export const App: React.FC = () => {
               atsProviders={store.atsProviders} 
               userProfile={store.userProfile}
               onUpdateUserProfile={store.updateUserProfile}
+              userAccounts={store.userAccounts}
+              onApproveUser={store.approveUser}
+              onRejectUser={store.rejectUser}
             />
           )}
+
         </main>
       </div>
 

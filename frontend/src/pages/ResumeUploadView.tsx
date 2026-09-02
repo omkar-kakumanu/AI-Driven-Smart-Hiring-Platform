@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { UploadCloud, CheckCircle2, FileText, Sparkles, UserCheck, ArrowRight, Camera, Trash2 } from 'lucide-react';
 import type { Candidate } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
 
@@ -40,21 +39,53 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
     }
   };
 
-  const processFile = (selectedFile: File) => {
+  const processFile = async (selectedFile: File) => {
     setIsParsing(true);
-    setParsingProgress(15);
+    setParsingProgress(25);
 
     const fileNameNoExt = selectedFile.name.split('.')[0].replace(/[-_]/g, ' ');
     const formattedName = fileNameNoExt.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
-    setTimeout(() => setParsingProgress(45), 300);
-    setTimeout(() => setParsingProgress(85), 600);
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      setParsingProgress(60);
+      const res = await fetch('http://localhost:8000/api/ai/parse-resume', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const profile = data.parsed_profile;
+
+        setParsingProgress(100);
+        setIsParsing(false);
+        setParsed(true);
+
+        setFullName(profile.full_name || formattedName);
+        setEmail(profile.email || `${selectedFile.name.toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`);
+        setPhone(profile.phone || '+1 (555) 392-1049');
+        setLocation(profile.location || 'San Francisco, CA');
+        setCurrentRole(profile.experience?.[0] || 'Software Engineer');
+        setExperienceYears(profile.total_experience_years || 4);
+        setDegree(profile.education?.degree || 'BS Computer Science');
+        setInstitution(profile.education?.institution || 'State University');
+        setSkills(profile.skills && profile.skills.length > 0 ? profile.skills : ['Python', 'SQL', 'Machine Learning']);
+        return;
+      }
+    } catch (err) {
+      console.warn("Backend API unavailable, using client-side fallback parsing", err);
+    }
+
+    // Fallback client extraction if API unavailable
+    setTimeout(() => setParsingProgress(85), 300);
     setTimeout(() => {
       setParsingProgress(100);
       setIsParsing(false);
       setParsed(true);
 
-      // Auto-extract candidate profile fields
       setFullName(formattedName || 'Candidate Profile');
       setEmail(`${selectedFile.name.toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`);
       setPhone('+1 (555) 392-1049');
@@ -64,7 +95,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
       setDegree('BS Computer Science');
       setInstitution('Stanford University');
       setSkills(['Python', 'React', 'TypeScript', 'SQL', 'Docker', 'REST APIs']);
-    }, 900);
+    }, 600);
   };
 
   const handleAddSkill = () => {
@@ -118,7 +149,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
             onClick={loadSampleResume}
             className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-all border border-slate-300"
           >
-            ⚡ Load Sample Resume
+            Load Sample Resume
           </button>
           <span className="px-3 py-1 bg-blue-600 text-white rounded-md text-xs font-bold uppercase tracking-wider shadow-sm">
             Milestone 1
@@ -131,17 +162,17 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
         {/* Upload Dropzone Box */}
         <div className="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-6">
           <div>
-            <div className="flex items-center gap-2 font-bold text-slate-900 text-base mb-4">
-              <FileText className="w-5 h-5 text-blue-600" /> Resume Upload Zone
+            <div className="font-bold text-slate-900 text-base mb-4">
+              Resume Upload Zone
             </div>
             
             <label className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all bg-slate-50/50 hover:bg-blue-50/20 group">
-              <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 group-hover:scale-110 transition-all flex items-center justify-center mb-4 shadow-inner">
-                <UploadCloud className="w-8 h-8" />
+              <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 font-bold text-sm flex items-center justify-center mb-4 border border-blue-200">
+                DOC
               </div>
               <p className="text-sm font-bold text-slate-800">Drag and drop resume here</p>
               <p className="text-xs text-slate-500 mt-1">or click to browse your file system</p>
-              <span className="mt-4 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 transition-all">
+              <span className="mt-4 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all">
                 Browse File
               </span>
               <p className="text-[11px] text-slate-400 mt-3 font-medium">Supported formats: PDF, DOCX, TXT (Max 25MB)</p>
@@ -162,7 +193,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                     <p className="text-[10px] text-slate-500 font-medium">{(file.size / 1024).toFixed(1)} KB • Ready for extraction</p>
                   </div>
                 </div>
-                {parsed && <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />}
+                {parsed && <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded">Processed</span>}
               </div>
 
               {isParsing && (
@@ -183,8 +214,8 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
         {/* Extracted Candidate Information Editor */}
         <div className="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2 font-bold text-slate-900 text-base">
-              <Sparkles className="w-5 h-5 text-indigo-600" /> Extracted Candidate Profile
+            <div className="font-bold text-slate-900 text-base">
+              Extracted Candidate Profile
             </div>
             {parsed && (
               <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full border border-emerald-200">
@@ -195,7 +226,6 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
 
           {!parsed ? (
             <div className="py-16 text-center text-slate-400 space-y-3">
-              <FileText className="w-12 h-12 text-slate-300 mx-auto" />
               <p className="text-sm font-semibold text-slate-600">No Resume Processed Yet</p>
               <p className="text-xs text-slate-400 max-w-sm mx-auto">Upload a resume file on the left or click "Load Sample Resume" to test automated parsing.</p>
             </div>
@@ -264,8 +294,8 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                 <div className="flex items-center gap-4 bg-slate-50 border border-slate-300 rounded-xl p-3">
                   <UserAvatar name={fullName || 'Candidate'} avatar={candidateAvatar} size="md" />
                   <div className="flex items-center gap-2">
-                    <label className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-lg cursor-pointer transition-colors flex items-center gap-1.5 shadow-sm">
-                      <Camera className="w-3.5 h-3.5 text-indigo-600" /> Choose Image File
+                    <label className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-lg cursor-pointer transition-colors shadow-sm">
+                      Choose Image File
                       <input
                         type="file"
                         accept="image/*"
@@ -284,9 +314,9 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                       <button
                         type="button"
                         onClick={() => setCandidateAvatar('')}
-                        className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg border border-rose-200 transition-colors flex items-center gap-1"
+                        className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg border border-rose-200 transition-colors"
                       >
-                        <Trash2 className="w-3 h-3" /> Clear
+                        Clear
                       </button>
                     )}
                   </div>
@@ -320,9 +350,9 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
               <div className="pt-3 flex items-center justify-end gap-3">
                 <button 
                   onClick={handleSaveCandidate}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2"
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition-all"
                 >
-                  Save to Database & Match <ArrowRight className="w-4 h-4" />
+                  Save to Database & Match →
                 </button>
               </div>
             </div>
@@ -333,12 +363,12 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
       {/* Candidate Records Table */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-slate-900 text-base">
-            <UserCheck className="w-5 h-5 text-emerald-600" /> Candidate Directory ({candidates.length})
+          <div className="font-bold text-slate-900 text-base">
+            Candidate Directory ({candidates.length})
           </div>
           {candidates.length > 0 && (
-            <button onClick={onNavigateToMatching} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
-              View Candidate Matching Engine <ArrowRight className="w-3.5 h-3.5" />
+            <button onClick={onNavigateToMatching} className="text-xs font-bold text-blue-600 hover:underline">
+              View Candidate Matching Engine →
             </button>
           )}
         </div>
@@ -388,7 +418,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-right">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
                         {cand.status}
                       </span>
                     </td>
@@ -402,3 +432,4 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
     </div>
   );
 };
+

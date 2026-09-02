@@ -39,12 +39,11 @@
 
 ```
 /recruitment-copilot
-├── frontend/             # React 18 + TypeScript + Vite + Tailwind CSS v4 Dashboard
-├── backend/              # Python 3.11 + FastAPI REST APIs & SQLAlchemy ORM
-├── ai-service/           # Python 3.11 + FastAPI NLP, Matching & Interview Engine
-├── database/             # DDL Scripts (V1__init_recruitment_copilot.sql) & SQLite/PostgreSQL
-├── docker/               # Docker Compose & Container Configuration
-└── docs/                 # Architectural, API, Database, AI, Deployment & Security Guides
+├── frontend/             # React 18 + TypeScript + Vite + CSS Dashboard
+├── backend/              # Python + FastAPI REST APIs & SQLAlchemy ORM
+├── ai-service/           # Python + FastAPI NLP, PyMuPDF, spaCy Parsing & Matching Engine
+├── database/             # Database Schemas & SQLite/PostgreSQL setup
+└── docs/                 # Architectural, API, and Database Documentation
 ```
 
 ---
@@ -57,7 +56,7 @@ cd frontend
 npm install
 npm run dev
 ```
-Open browser at `http://localhost:5173` to explore all tabs and milestone views immediately!
+Open browser at `http://localhost:5173` to explore the dashboard views immediately!
 
 To verify production bundle build:
 ```bash
@@ -80,10 +79,6 @@ python main.py
 ```
 FastAPI server starts at `http://localhost:8000` (OpenAPI Docs at `http://localhost:8000/docs`).
 
-### 4. Run Everything via Docker Compose
-```bash
-docker compose -f docker/docker-compose.yml up --build
-```
 
 ---
 

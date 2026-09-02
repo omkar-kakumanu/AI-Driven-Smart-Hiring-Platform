@@ -97,10 +97,23 @@ export interface ATSProvider {
   candidateCount: number;
 }
 
+export interface UserAccount {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  userType: 'ADMIN' | 'USER';
+  status: 'APPROVED' | 'PENDING' | 'REJECTED';
+  createdAt: string;
+}
+
 export interface UserProfile {
   name: string;
   role: string;
   email: string;
+  userType?: 'ADMIN' | 'USER';
+  status?: 'APPROVED' | 'PENDING' | 'REJECTED';
   avatar?: string;
 }
+
 

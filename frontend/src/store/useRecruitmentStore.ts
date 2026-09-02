@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import type { Job, Candidate, InterviewQuestion, ATSProvider, UserProfile } from '../types';
+import type { Job, Candidate, InterviewQuestion, ATSProvider, UserProfile, UserAccount } from '../types';
+
 import { INITIAL_JOBS, INITIAL_QUESTIONS, INITIAL_ATS_PROVIDERS } from '../services/mockData';
 
 export function useRecruitmentStore() {
@@ -13,12 +14,49 @@ export function useRecruitmentStore() {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const INITIAL_USERS: UserAccount[] = [
+    {
+      id: 'usr-admin-1',
+      name: 'Alex Vance (Admin)',
+      email: 'admin@copilot.com',
+      role: 'System Administrator & Hiring Director',
+      userType: 'ADMIN',
+      status: 'APPROVED',
+      createdAt: '2026-01-10'
+    },
+    {
+      id: 'usr-recruiter-1',
+      name: 'Sarah Jenkins',
+      email: 'recruiter@copilot.com',
+      role: 'Talent Acquisition Specialist',
+      userType: 'USER',
+      status: 'APPROVED',
+      createdAt: '2026-02-01'
+    },
+    {
+      id: 'usr-pending-1',
+      name: 'Michael Chang',
+      email: 'michael.chang@company.com',
+      role: 'Junior Technical Recruiter',
+      userType: 'USER',
+      status: 'PENDING',
+      createdAt: '2026-08-30'
+    }
+  ];
+
+  const [userAccounts, setUserAccounts] = useState<UserAccount[]>(() => {
+    const saved = localStorage.getItem('rc_user_accounts');
+    return saved ? JSON.parse(saved) : INITIAL_USERS;
+  });
+
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('rc_user_profile');
     return saved ? JSON.parse(saved) : {
       name: 'Sarah Jenkins',
-      role: 'Lead Recruiter (Admin)',
-      email: 'sarah.jenkins@company.com'
+      role: 'Talent Acquisition Specialist',
+      email: 'recruiter@copilot.com',
+      userType: 'USER',
+      status: 'APPROVED'
     };
   });
 
@@ -39,12 +77,43 @@ export function useRecruitmentStore() {
   }, [candidates]);
 
   useEffect(() => {
+    localStorage.setItem('rc_user_accounts', JSON.stringify(userAccounts));
+  }, [userAccounts]);
+
+  useEffect(() => {
     localStorage.setItem('rc_user_profile', JSON.stringify(userProfile));
   }, [userProfile]);
 
   const updateUserProfile = (updates: Partial<UserProfile>) => {
     setUserProfile(prev => ({ ...prev, ...updates }));
   };
+
+  const approveUser = (userId: string) => {
+    setUserAccounts(prev => prev.map(u => u.id === userId ? { ...u, status: 'APPROVED' as const } : u));
+  };
+
+  const rejectUser = (userId: string) => {
+    setUserAccounts(prev => prev.map(u => u.id === userId ? { ...u, status: 'REJECTED' as const } : u));
+  };
+
+  const registerUser = (name: string, email: string, role: string) => {
+    const existing = userAccounts.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (existing) return existing;
+
+    const newUser: UserAccount = {
+      id: `usr-${Date.now()}`,
+      name,
+      email,
+      role: role || 'Recruiter',
+      userType: 'USER',
+      status: 'PENDING',
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+
+    setUserAccounts(prev => [...prev, newUser]);
+    return newUser;
+  };
+
 
   const addCandidate = (newCandidate: Omit<Candidate, 'id' | 'status' | 'matchScore'>) => {
     const candidateId = `cand-${Date.now()}`;
@@ -98,6 +167,10 @@ export function useRecruitmentStore() {
     candidates,
     userProfile,
     updateUserProfile,
+    userAccounts,
+    approveUser,
+    rejectUser,
+    registerUser,
     questions,
     atsProviders,
     activeJobId,
@@ -110,4 +183,5 @@ export function useRecruitmentStore() {
     deleteCandidate
   };
 }
+
 
