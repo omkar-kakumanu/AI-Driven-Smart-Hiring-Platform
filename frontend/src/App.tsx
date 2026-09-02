@@ -5,14 +5,10 @@ import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardView } from './pages/DashboardView';
 import { ResumeUploadView } from './pages/ResumeUploadView';
-import { MatchingView } from './pages/MatchingView';
-import { InterviewAssistantView } from './pages/InterviewAssistantView';
-import { VoiceScreeningView } from './pages/VoiceScreeningView';
-import { PipelineView } from './pages/PipelineView';
-import { CandidateComparisonView } from './pages/CandidateComparisonView';
 import { SettingsView } from './pages/SettingsView';
 import { useRecruitmentStore } from './store/useRecruitmentStore';
 import type { UserProfile } from './types';
+
 
 export const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -148,48 +144,14 @@ export const App: React.FC = () => {
             <ResumeUploadView 
               candidates={store.candidates}
               onAddCandidate={store.addCandidate}
-              onNavigateToMatching={() => setCurrentTab('matching')}
+              onNavigateToMatching={() => setCurrentTab('candidates')}
             />
           )}
           {currentTab === 'candidates' && (
-            <CandidateComparisonView candidates={store.candidates} />
-          )}
-          {currentTab === 'matching' && (
-            <MatchingView 
-              jobs={store.jobs}
+            <ResumeUploadView 
               candidates={store.candidates}
-              activeJobId={store.activeJobId}
-              setActiveJobId={store.setActiveJobId}
-              activeCandidateId={store.activeCandidateId}
-              setActiveCandidateId={store.setActiveCandidateId}
-              onNavigateToUpload={() => setCurrentTab('resume-upload')}
-            />
-          )}
-          {currentTab === 'job-postings' && (
-            <DashboardView 
-              onNavigate={setCurrentTab} 
-              candidates={store.candidates}
-              jobs={store.jobs}
-            />
-          )}
-          {currentTab === 'interview-assistant' && (
-            <InterviewAssistantView candidates={store.candidates} />
-          )}
-          {currentTab === 'voice-screening' && (
-            <VoiceScreeningView 
-              candidates={store.candidates}
-              jobs={store.jobs}
-              activeCandidateId={store.activeCandidateId}
-            />
-          )}
-          {currentTab === 'pipeline' && (
-            <PipelineView candidates={store.candidates} />
-          )}
-          {currentTab === 'analytics' && (
-            <VoiceScreeningView 
-              candidates={store.candidates}
-              jobs={store.jobs}
-              activeCandidateId={store.activeCandidateId}
+              onAddCandidate={store.addCandidate}
+              onNavigateToMatching={() => setCurrentTab('candidates')}
             />
           )}
           {currentTab === 'settings' && (
@@ -202,8 +164,8 @@ export const App: React.FC = () => {
               onRejectUser={store.rejectUser}
             />
           )}
-
         </main>
+
       </div>
 
       {/* New Job Modal */}

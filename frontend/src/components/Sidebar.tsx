@@ -11,16 +11,11 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, userProfile }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard' },
-    { id: 'resume-upload', label: 'Resume Upload', badge: 'M1' },
-    { id: 'candidates', label: 'Candidates Directory' },
-    { id: 'matching', label: 'Matching & Skills', badge: 'M2' },
-    { id: 'job-postings', label: 'Job Requirements' },
-    { id: 'interview-assistant', label: 'Interview Assistant', badge: 'M3' },
-    { id: 'voice-screening', label: 'Voice Screening', badge: 'M4' },
-    { id: 'pipeline', label: 'Pipeline Board' },
-    { id: 'analytics', label: 'Recruitment Analytics' },
-    { id: 'settings', label: 'System Settings' },
+    { id: 'resume-upload', label: 'Resume Upload & Parsing', badge: 'Milestone 1' },
+    { id: 'candidates', label: 'Candidate Profiles' },
+    { id: 'settings', label: 'System Settings & Approvals' },
   ];
+
 
   return (
     <aside className="w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col h-screen sticky top-0">
