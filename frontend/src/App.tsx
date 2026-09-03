@@ -6,6 +6,7 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardView } from './pages/DashboardView';
 import { ResumeUploadView } from './pages/ResumeUploadView';
 import { SettingsView } from './pages/SettingsView';
+import { MatchingView } from './pages/MatchingView';
 import { useRecruitmentStore } from './store/useRecruitmentStore';
 import type { UserProfile } from './types';
 
@@ -152,6 +153,12 @@ export const App: React.FC = () => {
               candidates={store.candidates}
               onAddCandidate={store.addCandidate}
               onNavigateToMatching={() => setCurrentTab('candidates')}
+            />
+          )}
+          {currentTab === 'matching' && (
+            <MatchingView 
+              candidates={store.candidates}
+              jobs={store.jobs}
             />
           )}
           {currentTab === 'settings' && (

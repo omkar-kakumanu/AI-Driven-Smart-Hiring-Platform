@@ -11,7 +11,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, userProfile }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard' },
-    { id: 'resume-upload', label: 'Resume Upload & Parsing', badge: 'Milestone 1' },
+    { id: 'resume-upload', label: 'Resume Upload' },
     { id: 'candidates', label: 'Candidate Profiles' },
     { id: 'settings', label: 'System Settings & Approvals' },
   ];
@@ -39,17 +39,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, use
             <button
               key={item.id}
               onClick={() => setCurrentTab(item.id)}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
-                isActive
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${isActive
                   ? 'bg-blue-600 text-white font-semibold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-              }`}
+                }`}
             >
               <span>{item.label}</span>
               {item.badge && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold ${
-                  isActive ? 'bg-white/20 text-white' : 'bg-slate-800 text-blue-400 border border-slate-700'
-                }`}>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold ${isActive ? 'bg-white/20 text-white' : 'bg-slate-800 text-blue-400 border border-slate-700'
+                  }`}>
                   {item.badge}
                 </span>
               )}
@@ -59,16 +57,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, use
       </nav>
 
       {/* User Footer */}
-      <div 
+      <div
         onClick={() => setCurrentTab('settings')}
         className="p-4 border-t border-slate-800 bg-slate-900/50 hover:bg-slate-800/80 cursor-pointer transition-all flex items-center gap-3 group"
         title="Click to manage profile & settings"
       >
-        <UserAvatar 
-          name={userProfile?.name || 'Sarah Jenkins'} 
-          avatar={userProfile?.avatar} 
-          size="sm" 
-          className="border border-slate-700 shrink-0" 
+        <UserAvatar
+          name={userProfile?.name || 'Sarah Jenkins'}
+          avatar={userProfile?.avatar}
+          size="sm"
+          className="border border-slate-700 shrink-0"
         />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-white truncate">

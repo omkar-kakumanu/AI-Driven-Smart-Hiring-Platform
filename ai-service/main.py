@@ -50,6 +50,14 @@ def health_check():
 
 import tempfile
 import resume_parser
+import matching_engine
+
+class ExtractNLPRequest(BaseModel):
+    raw_text: str
+
+class BatchMatchRequest(BaseModel):
+    candidates: List[Dict[str, Any]]
+    jobs: List[Dict[str, Any]]
 
 @app.post("/api/ai/parse-resume")
 async def parse_resume(file: UploadFile = File(...)):
@@ -110,62 +118,99 @@ def calculate_match(payload: MatchRequest):
     cand = payload.candidate
     job = payload.job
     
-    req_skills = set([s.lower() for s in job.required_skills])
-    cand_skills = set([s.lower() for s in cand.skills])
-    
-    matching_skills = req_skills.intersection(cand_skills)
-    skill_score = (len(matching_skills) / len(req_skills) * 100) if req_skills else 100.0
-    
-    exp_score = min(100.0, (cand.experience_years / job.min_experience_years) * 100.0) if job.min_experience_years > 0 else 100.0
-    edu_score = 90.0 if "computer science" in cand.degree.lower() or "master" in cand.degree.lower() else 75.0
-    semantic_score = 92.0
-    
-    # Configurable weights: Required skills 30%, Exp 20%, Edu 10%, Pref Skills 10%, Projects 10%, Cert 5%, Semantic 10%, Soft 5%
-    overall = (skill_score * 0.30) + (exp_score * 0.20) + (edu_score * 0.10) + (semantic_score * 0.40)
-    
+    cand_dict = {
+        "name": cand.name,
+        "skills": cand.skills,
+        "experience": cand.experience_years,
+        "education": cand.degree
+    }
+    job_dict = {
+        "title": job.title,
+        "required_skills": job.required_skills,
+        "experience_required": job.min_experience_years,
+        "education_required": "BS Computer Science"
+    }
+
+    hiring_score, matched_skills = matching_engine.calculate_match(cand_dict, job_dict)
+    req_skills = set(job.required_skills)
+    cand_skills = set(cand.skills)
     missing = list(req_skills - cand_skills)
     
+    skill_score = (len(matched_skills) / len(req_skills) * 100) if req_skills else 100.0
+    exp_score = min(100.0, (cand.experience_years / max(job.min_experience_years, 1)) * 100.0)
+    edu_score = 100.0 if cand.degree.lower() in ["bs computer science", "ms computer science"] else 75.0
+
     return {
         "candidate_id": cand.candidate_id,
+        "candidate_name": cand.name,
         "job_title": job.title,
-        "overall_compatibility_score": round(overall, 1),
+        "hiring_score": hiring_score,
+        "overall_compatibility_score": hiring_score,
+        "matched_skills": matched_skills,
         "breakdown": {
             "skill_match_score": round(skill_score, 1),
             "experience_score": round(exp_score, 1),
-            "education_score": round(edu_score, 1),
-            "semantic_similarity_score": round(semantic_score, 1)
+            "education_score": round(edu_score, 1)
         },
-        "strengths": [f"Demonstrates strong capability in {s.title()}" for s in list(matching_skills)[:3]],
-        "missing_requirements": [m.title() for m in missing],
-        "hiring_recommendation": "Strongly Recommended" if overall >= 85 else "Recommended"
+        "strengths": [f"Demonstrates strong capability in {s}" for s in matched_skills[:3]],
+        "missing_requirements": missing,
+        "hiring_recommendation": "Strongly Recommended" if hiring_score >= 85 else "Recommended" if hiring_score >= 70 else "Consider with Skill Development"
     }
 
 @app.post("/api/ai/skill-gap")
 def analyze_skill_gap(payload: MatchRequest):
-    req_skills = payload.job.required_skills
-    cand_skills = payload.candidate.skills
+    cand_dict = {
+        "name": payload.candidate.name,
+        "skills": payload.candidate.skills,
+        "experience": payload.candidate.experience_years,
+        "education": payload.candidate.degree
+    }
+    job_dict = {
+        "title": payload.job.title,
+        "required_skills": payload.job.required_skills,
+        "experience_required": payload.job.min_experience_years,
+        "education_required": "MS Computer Science"
+    }
+
+    report = matching_engine.skill_gap_analysis(cand_dict, job_dict)
     
-    cand_lower = [s.lower() for s in cand_skills]
-    missing = [s for s in req_skills if s.lower() not in cand_lower]
-    matching = [s for s in req_skills if s.lower() in cand_lower]
-    
-    recommendations = []
-    for m in missing:
-        recommendations.append({
-            "skill": m,
+    formatted_recommendations = []
+    for skill in report.get("missing_skills", []):
+        formatted_recommendations.append({
+            "skill": skill,
             "priority": "HIGH",
-            "suggested_path": f"Complete intensive training module on {m} fundamentals and hands-on production deployment.",
+            "suggested_path": f"Consider training in {skill} with production deployment scenarios.",
             "estimated_weeks": 2
         })
-        
+
     return {
-        "candidate_name": payload.candidate.name,
-        "job_title": payload.job.title,
-        "matching_skills": matching,
-        "missing_skills": missing,
-        "learning_recommendations": recommendations,
-        "summary": f"{payload.candidate.name} shows strong core technical fundamentals but requires targeted development in {', '.join(missing[:2])}."
+        "candidate_name": report["candidate"],
+        "job_title": report["job_title"],
+        "hiring_score": report["hiring_score"],
+        "matched_skills": report["matched_skills"],
+        "missing_skills": report["missing_skills"],
+        "recommendations": report["recommendations"],
+        "learning_recommendations": formatted_recommendations,
+        "summary": f"{report['candidate']} matched {len(report['matched_skills'])} of {len(report['matched_skills']) + len(report['missing_skills'])} required skills for {report['job_title']}."
     }
+
+@app.post("/api/ai/batch-match")
+def batch_match(payload: BatchMatchRequest):
+    df_report = matching_engine.process_batch_matching(payload.candidates, payload.jobs)
+    return {
+        "success": True,
+        "records_count": len(df_report),
+        "results": df_report.to_dict(orient="records")
+    }
+
+@app.post("/api/ai/extract-profile-nlp")
+def extract_profile_nlp(payload: ExtractNLPRequest):
+    profile = matching_engine.extract_profile_from_text_nlp(payload.raw_text)
+    return {
+        "success": True,
+        "extracted_profile": profile
+    }
+
 
 @app.post("/api/ai/generate-questions")
 def generate_questions(payload: InterviewGenRequest):
