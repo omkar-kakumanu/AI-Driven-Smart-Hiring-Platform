@@ -103,17 +103,23 @@ export interface UserAccount {
   email: string;
   role: string;
   userType: 'ADMIN' | 'USER';
-  status: 'APPROVED' | 'PENDING' | 'REJECTED';
+  status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'REVOKED';
   createdAt: string;
+  password?: string;
+  isSuperAdmin?: boolean;
 }
+
 
 export interface UserProfile {
   name: string;
   role: string;
   email: string;
   userType?: 'ADMIN' | 'USER';
-  status?: 'APPROVED' | 'PENDING' | 'REJECTED';
+  status?: 'APPROVED' | 'PENDING' | 'REJECTED' | 'REVOKED';
+  isSuperAdmin?: boolean;
   avatar?: string;
 }
+
+
 
 

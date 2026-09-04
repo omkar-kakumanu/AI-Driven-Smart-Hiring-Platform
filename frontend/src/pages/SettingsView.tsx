@@ -9,6 +9,9 @@ interface SettingsViewProps {
   userAccounts?: UserAccount[];
   onApproveUser?: (userId: string) => void;
   onRejectUser?: (userId: string) => void;
+  onRevokeUserAccess?: (userId: string) => void;
+  onMakeUserAdmin?: (userId: string) => void;
+  onClearAllCandidates?: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ 
@@ -17,8 +20,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onUpdateUserProfile,
   userAccounts = [],
   onApproveUser,
-  onRejectUser
+  onRejectUser,
+  onRevokeUserAccess,
+  onMakeUserAdmin,
+  onClearAllCandidates
 }) => {
+
   const [openaiKey, setOpenaiKey] = useState('sk-proj-demo-key-recruitment-copilot');
   const [aiServiceUrl, setAiServiceUrl] = useState('http://localhost:8000');
 
@@ -190,78 +197,150 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div>
             <h3 className="font-bold text-slate-900 text-base">User Accounts & Administrator Approval Queue</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Manage user registration requests. Pending users cannot log in until approved by an Admin.</p>
+            <p className="text-xs text-slate-500 mt-0.5">Manage user access rights. Only logged-in Administrators can grant, promote, or revoke user access.</p>
           </div>
           <span className="px-3 py-1 bg-slate-900 text-white rounded-md text-xs font-bold">
             {userAccounts.filter(u => u.status === 'PENDING').length} Pending Requests
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 font-bold text-slate-500 bg-slate-50">
-                <th className="py-2.5 px-3">User Name</th>
-                <th className="py-2.5 px-3">Email Address</th>
-                <th className="py-2.5 px-3">Role</th>
-                <th className="py-2.5 px-3">Type</th>
-                <th className="py-2.5 px-3">Status</th>
-                <th className="py-2.5 px-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-medium">
-              {userAccounts.map((user) => (
-                <tr key={user.id} className="hover:bg-slate-50">
-                  <td className="py-3 px-3 font-bold text-slate-900">{user.name}</td>
-                  <td className="py-3 px-3 text-slate-700">{user.email}</td>
-                  <td className="py-3 px-3 text-slate-600">{user.role}</td>
-                  <td className="py-3 px-3 font-semibold text-slate-800">{user.userType}</td>
-                  <td className="py-3 px-3">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                      user.status === 'APPROVED' 
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : user.status === 'PENDING'
-                        ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                        : 'bg-rose-100 text-rose-800'
-                    }`}>
-                      {user.status}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 text-right space-x-2">
-                    {user.status === 'PENDING' && (
-                      <>
-                        <button
-                          onClick={() => onApproveUser && onApproveUser(user.id)}
-                          className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-[11px]"
-                        >
-                          Approve Access
-                        </button>
-                        <button
-                          onClick={() => onRejectUser && onRejectUser(user.id)}
-                          className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded text-[11px]"
-                        >
-                          Reject
-                        </button>
-                      </>
-                    )}
-                    {user.status === 'APPROVED' && (
-                      <span className="text-slate-400 font-semibold text-[11px]">Active Access</span>
-                    )}
-                    {user.status === 'REJECTED' && (
-                      <button
-                        onClick={() => onApproveUser && onApproveUser(user.id)}
-                        className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded text-[10px]"
-                      >
-                        Re-Approve
-                      </button>
-                    )}
-                  </td>
+        {userProfile?.userType !== 'ADMIN' ? (
+          <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl text-center space-y-2">
+            <span className="font-bold text-slate-900 text-xs block">Administrator Privileges Required</span>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              You are currently logged in as a Standard Recruiter. Access control management and user approvals are restricted exclusively to system Administrators.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 font-bold text-slate-500 bg-slate-50">
+                  <th className="py-2.5 px-3">User Name</th>
+                  <th className="py-2.5 px-3">Email Address</th>
+                  <th className="py-2.5 px-3">Role</th>
+                  <th className="py-2.5 px-3">Type</th>
+                  <th className="py-2.5 px-3">Status</th>
+                  <th className="py-2.5 px-3 text-right">Access Control Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {userAccounts.map((user) => (
+                  <tr key={user.id} className="hover:bg-slate-50">
+                    <td className="py-3 px-3 font-bold text-slate-900">
+                      {user.name}
+                      {user.isSuperAdmin && (
+                        <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-900 text-[10px] font-black rounded border border-blue-200">
+                          Main Super-Admin
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-slate-700">{user.email}</td>
+                    <td className="py-3 px-3 text-slate-600">{user.role}</td>
+                    <td className="py-3 px-3 font-semibold text-slate-800">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        user.userType === 'ADMIN' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'
+                      }`}>
+                        {user.userType}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        user.status === 'APPROVED' 
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : user.status === 'PENDING'
+                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                          : 'bg-rose-100 text-rose-800'
+                      }`}>
+                        {user.status}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-right space-x-2">
+                      {user.isSuperAdmin ? (
+                        <span className="text-[11px] font-extrabold text-blue-700 bg-blue-50 px-2.5 py-1 rounded border border-blue-200">
+                          Protected Main Admin
+                        </span>
+                      ) : (
+                        <>
+                          {user.status === 'PENDING' && (
+                            <>
+                              <button
+                                onClick={() => onApproveUser && onApproveUser(user.id)}
+                                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-[11px]"
+                              >
+                                Approve Access
+                              </button>
+                              <button
+                                onClick={() => onRejectUser && onRejectUser(user.id)}
+                                className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded text-[11px]"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          )}
+
+                          {user.status === 'APPROVED' && (
+                            <>
+                              {user.userType !== 'ADMIN' && (
+                                <button
+                                  onClick={() => onMakeUserAdmin && onMakeUserAdmin(user.id)}
+                                  className="px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-800 font-bold rounded text-[10px] hover:bg-blue-100"
+                                  title="Promote to Administrator"
+                                >
+                                  + Make Admin
+                                </button>
+                              )}
+                              <button
+                                onClick={() => onRevokeUserAccess && onRevokeUserAccess(user.id)}
+                                className="px-2.5 py-1 bg-rose-50 border border-rose-200 text-rose-700 font-bold rounded text-[10px] hover:bg-rose-100"
+                                title="Revoke user access at any time"
+                              >
+                                Revoke Access
+                              </button>
+                            </>
+                          )}
+
+                          {(user.status === 'REJECTED' || user.status === 'REVOKED') && (
+                            <button
+                              onClick={() => onApproveUser && onApproveUser(user.id)}
+                              className="px-2.5 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold rounded text-[10px]"
+                            >
+                              Re-Approve Access
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+
+      {/* Candidate Resume Data Reset Management */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div>
+            <h3 className="font-bold text-slate-900 text-base">Candidate Resume Database Management</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Clear all stored candidate resume data to reset the system for fresh uploads.</p>
+          </div>
+          <button
+            onClick={() => {
+              if (window.confirm("Are you sure you want to clear all candidate resume data?")) {
+                onClearAllCandidates && onClearAllCandidates();
+                alert("Candidate resume database cleared successfully!");
+              }
+            }}
+            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
+          >
+            Clear All Candidate Resumes
+          </button>
         </div>
       </div>
+
 
       {/* AI Configuration */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">

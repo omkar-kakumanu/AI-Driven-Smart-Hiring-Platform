@@ -1,26 +1,27 @@
 import React, { useState } from 'react';
 import { 
-  CheckCircle2, 
-  XCircle, 
-  Sparkles, 
-  Award, 
-  Briefcase, 
-  GraduationCap, 
-  BrainCircuit, 
-  BookOpen, 
-  ArrowRight, 
-  Layers,
-  Cpu
-} from 'lucide-react';
+  ResponsiveContainer, 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  PieChart, 
+  Pie, 
+  Cell,
+  Legend
+} from 'recharts';
 import type { Candidate, Job } from '../types';
 
 interface MatchingViewProps {
   candidates?: Candidate[];
   jobs?: Job[];
+  onNavigateToUpload?: () => void;
 }
 
 export const MatchingView: React.FC<MatchingViewProps> = () => {
-  // Step 1: Default Candidate & Job Profiles (matching user prompt example)
+  // Step 1: Default Candidate & Job Profiles (from prompt specification)
   const defaultCandidate = {
     name: "Sarah Johnson",
     skills: ["Python", "Machine Learning", "TensorFlow", "SQL", "Data Analysis"],
@@ -35,15 +36,55 @@ export const MatchingView: React.FC<MatchingViewProps> = () => {
     education_required: "MS Computer Science"
   };
 
-  // State for active candidate & job
-  const [selectedCandidate, setSelectedCandidate] = useState(defaultCandidate);
-  const [selectedJob, setSelectedJob] = useState(defaultJob);
-  const [rawText, setRawText] = useState(
-    "Experienced Senior ML Engineer with 6 years of experience in Python, TensorFlow, PyTorch, SQL, and AWS SageMaker. Master of Science in Computer Science."
-  );
-  const [isExtracting, setIsExtracting] = useState(false);
+  // State
+  const [selectedCandidate] = useState(defaultCandidate);
+  const [selectedJob] = useState(defaultJob);
 
-  // Additional mock candidates for batch dataframe
+  // Step 2: Matching Engine calculation (exact weighted formula)
+  const calculateMatchScore = (cand: typeof defaultCandidate, j: typeof defaultJob) => {
+    let score = 0.0;
+    let totalWeight = 0.0;
+
+    // Skill matching (weight 0.6)
+    const reqSkills = j.required_skills;
+    const candSkills = cand.skills;
+
+    const candSkillsSet = new Set(candSkills.map(s => s.toLowerCase()));
+
+    const matchedSkills = reqSkills.filter(s => candSkillsSet.has(s.toLowerCase()));
+    const skillScore = reqSkills.length > 0 ? matchedSkills.length / reqSkills.length : 1.0;
+
+
+    score += skillScore * 0.6;
+    totalWeight += 0.6;
+
+    // Experience matching (weight 0.25)
+    const expScore = Math.min(cand.experience / Math.max(j.experience_required, 1), 1.0);
+    score += expScore * 0.25;
+    totalWeight += 0.25;
+
+    // Education matching (weight 0.15)
+    const eduScore = cand.education.toLowerCase() === j.education_required.toLowerCase() ? 1.0 : 0.75;
+    score += eduScore * 0.15;
+    totalWeight += 0.15;
+
+    const hiringScore = Math.round((score / totalWeight) * 1000) / 10;
+    const missingSkills = reqSkills.filter(s => !candSkillsSet.has(s.toLowerCase()));
+
+    return {
+      hiringScore,
+      matchedSkills,
+      missingSkills,
+      skillScorePct: Math.round(skillScore * 100),
+      expScorePct: Math.round(expScore * 100),
+      eduScorePct: Math.round(eduScore * 100),
+      recommendations: missingSkills.map(s => `Consider training in ${s}`)
+    };
+  };
+
+  const currentMatch = calculateMatchScore(selectedCandidate, selectedJob);
+
+  // Batch Data for Charting
   const batchCandidates = [
     defaultCandidate,
     {
@@ -60,375 +101,193 @@ export const MatchingView: React.FC<MatchingViewProps> = () => {
     }
   ];
 
-  const batchJobs = [
-    defaultJob,
-    {
-      title: "Backend Java Specialist",
-      required_skills: ["Java", "SQL", "Docker"],
-      experience_required: 2,
-      education_required: "BS Computer Science"
-    }
-  ];
-
-  // Calculate Match Score (Exact Milestone 2 formula)
-  const calculateMatch = (cand: typeof defaultCandidate, j: typeof defaultJob) => {
-    let score = 0.0;
-    let totalWeight = 0.0;
-
-    // 1. Skill matching (weight 0.6)
-    const reqSkills = j.required_skills;
-    const candSkills = cand.skills;
-    const candSkillsLower = candSkills.map((s: string) => s.toLowerCase());
-
-    const matchedSkills = reqSkills.filter(s => candSkillsLower.includes(s.toLowerCase()));
-    const skillScore = reqSkills.length > 0 ? matchedSkills.length / reqSkills.length : 1.0;
-    score += skillScore * 0.6;
-    totalWeight += 0.6;
-
-    // 2. Experience matching (weight 0.25)
-    const expScore = Math.min(cand.experience / Math.max(j.experience_required, 1.0), 1.0);
-    score += expScore * 0.25;
-    totalWeight += 0.25;
-
-    // 3. Education matching (weight 0.15)
-    const eduScore = cand.education.toLowerCase() === j.education_required.toLowerCase() ? 1.0 : 0.75;
-    score += eduScore * 0.15;
-    totalWeight += 0.15;
-
-    const hiringScore = Math.round((score / totalWeight) * 100);
-
-    const missingSkills = reqSkills.filter(s => !candSkillsLower.includes(s.toLowerCase()));
-    const recommendations = missingSkills.map(s => `Consider training in ${s}`);
-
+  const batchResults = batchCandidates.map(c => {
+    const res = calculateMatchScore(c, selectedJob);
     return {
-      hiringScore,
-      matchedSkills,
-      missingSkills,
-      recommendations,
-      breakdown: {
-        skillScore: Math.round(skillScore * 100),
-        expScore: Math.round(expScore * 100),
-        eduScore: Math.round(eduScore * 100)
-      }
+      name: c.name,
+      score: res.hiringScore,
+      matchedCount: res.matchedSkills.length,
+      missingCount: res.missingSkills.length
     };
-  };
+  });
 
-  const currentResult = calculateMatch(selectedCandidate, selectedJob);
-
-  // AI NLP Text Extraction Handler
-  const handleNLPExtraction = () => {
-    setIsExtracting(true);
-    setTimeout(() => {
-      const lower = rawText.toLowerCase();
-      const catalog = ["Python", "TensorFlow", "PyTorch", "Kubernetes", "AWS SageMaker", "SQL", "Machine Learning", "Data Analysis", "Docker", "Java"];
-      const detectedSkills = catalog.filter(s => lower.includes(s.toLowerCase()));
-      
-      let exp = 5;
-      const expMatch = lower.match(/(\d+)\+?\s*years/);
-      if (expMatch) exp = parseInt(expMatch[1]);
-
-      let edu = "MS Computer Science";
-      if (lower.includes("bachelor") || lower.includes("bs")) edu = "BS Computer Science";
-
-      setSelectedCandidate({
-        name: "Auto-Extracted Candidate (NLP)",
-        skills: detectedSkills.length > 0 ? detectedSkills : ["Python", "TensorFlow", "SQL"],
-        experience: exp,
-        education: edu
-      });
-      setIsExtracting(false);
-    }, 600);
-  };
-
-  const getBadgeColor = (score: number) => {
-    if (score >= 85) return 'bg-emerald-500/10 text-emerald-700 border-emerald-300 dark:border-emerald-700';
-    if (score >= 70) return 'bg-amber-500/10 text-amber-700 border-amber-300 dark:border-amber-700';
-    return 'bg-rose-500/10 text-rose-700 border-rose-300 dark:border-rose-700';
-  };
+  // Recharts Pie Chart Data for Skill Match vs Missing
+  const pieData = [
+    { name: 'Matched Skills', value: currentMatch.matchedSkills.length },
+    { name: 'Missing Skills', value: currentMatch.missingSkills.length }
+  ];
+  const PIE_COLORS = ['#059669', '#e11d48'];
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
+    <div className="p-8 max-w-7xl mx-auto space-y-8 font-sans">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-2xl p-6 shadow-xl border border-slate-800 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/20 rounded-full text-blue-300 text-xs font-semibold mb-3 border border-blue-400/30">
-              <Cpu className="w-3.5 h-3.5" /> Milestone 2: Candidate-Job Matching & Skill Intelligence
-            </div>
-            <h1 className="text-2xl font-extrabold tracking-tight">Candidate Matching & Skill-Gap Engine</h1>
-            <p className="text-slate-300 text-sm mt-1 max-w-2xl">
-              Weighted compatibility scoring engine (60% Skill, 25% Experience, 15% Education) with dynamic AI NLP skill extraction and candidate skill gap analysis.
-            </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="inline-flex items-center px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-xs mb-2">
+            Milestone 2 Active Matching Engine
           </div>
-          <div className="flex items-center gap-3">
-            <div className="bg-slate-800/80 backdrop-blur border border-slate-700 rounded-xl p-3 text-center min-w-[120px]">
-              <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Target Accuracy</div>
-              <div className="text-xl font-black text-emerald-400">≥ 85%</div>
-            </div>
-          </div>
+          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Candidate-Job Matching & Skill Analysis</h2>
+          <p className="text-slate-500 text-xs mt-1 font-medium">Weighted compatibility scoring (Skills 60%, Exp 25%, Edu 15%) & AI Skill Gap Reports</p>
         </div>
+
+        <span className="px-4 py-2 bg-slate-900 text-white font-bold text-xs rounded-xl shadow-sm">
+          Target Accuracy: ≥85%
+        </span>
       </div>
 
-      {/* Main Matching Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Input Selection & NLP Text Extractor */}
-        <div className="space-y-6 lg:col-span-1">
-          {/* Candidate & Job Selection Card */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <BrainCircuit className="w-5 h-5 text-blue-600" /> Target Profile Selection
-            </h2>
+      {/* Main Grid: Left Candidate/Job & Right Analytics */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left Side: Score & Breakdown */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* Hiring Score Header Card */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Overall Hiring Score</span>
+              <div className="flex items-baseline gap-3">
+                <span className="text-5xl font-black text-slate-900">{currentMatch.hiringScore}%</span>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  currentMatch.hiringScore >= 80 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
+                }`}>
+                  {currentMatch.hiringScore >= 80 ? 'High Compatibility' : 'Moderate Match'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 font-medium">Candidate: <strong className="text-slate-800">{selectedCandidate.name}</strong> • Role: <strong className="text-slate-800">{selectedJob.title}</strong></p>
+            </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1.5">Candidate Profile</label>
-              <select 
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={selectedCandidate.name}
-                onChange={(e) => {
-                  const cand = batchCandidates.find(c => c.name === e.target.value);
-                  if (cand) setSelectedCandidate(cand);
-                }}
-              >
-                {batchCandidates.map((c) => (
-                  <option key={c.name} value={c.name}>{c.name} ({c.experience} yrs exp)</option>
+            <div className="w-24 h-24 rounded-full border-4 border-emerald-500 bg-emerald-50 flex flex-col items-center justify-center text-center p-2 shadow-inner shrink-0">
+              <span className="text-2xl font-black text-emerald-700">{currentMatch.matchedSkills.length}/{selectedJob.required_skills.length}</span>
+              <span className="text-[10px] font-bold text-emerald-800">Matched</span>
+            </div>
+          </div>
+
+          {/* Factor Breakdown Bars */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <h3 className="font-bold text-slate-900 text-base border-b border-slate-100 pb-3">Weighted Scoring Breakdown</h3>
+            
+            <div className="space-y-4 text-xs">
+              {/* Skill Match Factor */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between font-bold">
+                  <span className="text-slate-700">Skill Fit (60% Weight)</span>
+                  <span className="text-slate-900">{currentMatch.skillScorePct}%</span>
+                </div>
+                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                  <div className="bg-blue-600 h-full rounded-full transition-all duration-500" style={{ width: `${currentMatch.skillScorePct}%` }}></div>
+                </div>
+              </div>
+
+              {/* Experience Factor */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between font-bold">
+                  <span className="text-slate-700">Experience Alignment ({selectedCandidate.experience} yrs vs req {selectedJob.experience_required} yrs - 25% Weight)</span>
+                  <span className="text-slate-900">{currentMatch.expScorePct}%</span>
+                </div>
+                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                  <div className="bg-indigo-600 h-full rounded-full transition-all duration-500" style={{ width: `${currentMatch.expScorePct}%` }}></div>
+                </div>
+              </div>
+
+              {/* Education Factor */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between font-bold">
+                  <span className="text-slate-700">Education Match ({selectedCandidate.education} - 15% Weight)</span>
+                  <span className="text-slate-900">{currentMatch.eduScorePct}%</span>
+                </div>
+                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                  <div className="bg-emerald-600 h-full rounded-full transition-all duration-500" style={{ width: `${currentMatch.eduScorePct}%` }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Skill Gap Analysis Report Box */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <h3 className="font-bold text-slate-900 text-base border-b border-slate-100 pb-3">Skill-Gap Analysis & Training Recommendations</h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2">
+                <span className="font-bold text-emerald-900 block">Matched Skills ({currentMatch.matchedSkills.length})</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {currentMatch.matchedSkills.map((sk, i) => (
+                    <span key={i} className="px-2.5 py-1 bg-white text-emerald-800 border border-emerald-300 font-bold rounded-lg text-[11px]">
+                      ✓ {sk}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl space-y-2">
+                <span className="font-bold text-rose-900 block">Missing Required Skills ({currentMatch.missingSkills.length})</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {currentMatch.missingSkills.map((sk, i) => (
+                    <span key={i} className="px-2.5 py-1 bg-white text-rose-800 border border-rose-300 font-bold rounded-lg text-[11px]">
+                      ✗ {sk}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Actionable Recommendations */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs">
+              <span className="font-bold text-slate-900 block">AI Recommended Upskilling Path:</span>
+              <ul className="space-y-1 text-slate-700 font-medium">
+                {currentMatch.recommendations.map((rec, i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                    {rec}
+                  </li>
                 ))}
-              </select>
+              </ul>
             </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1.5">Job Requirement</label>
-              <select 
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={selectedJob.title}
-                onChange={(e) => {
-                  const j = batchJobs.find(item => item.title === e.target.value);
-                  if (j) setSelectedJob(j);
-                }}
-              >
-                {batchJobs.map((j) => (
-                  <option key={j.title} value={j.title}>{j.title}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2 text-xs">
-              <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                <span className="font-semibold">Candidate Degree:</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200">{selectedCandidate.education}</span>
-              </div>
-              <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                <span className="font-semibold">Candidate Exp:</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200">{selectedCandidate.experience} Years</span>
-              </div>
-            </div>
-          </div>
-
-          {/* AI NLP Text Extraction Card */}
-          <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-2xl p-5 border border-indigo-900 shadow-md space-y-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-amber-400" />
-              <h3 className="text-sm font-bold text-white">AI-Powered Dynamic NLP Extraction</h3>
-            </div>
-            <p className="text-xs text-slate-300">
-              Paste raw resume or job text below to auto-detect technical skills, experience duration, and educational credentials via NLP entity extraction:
-            </p>
-            <textarea
-              className="w-full bg-slate-950/80 border border-indigo-900 rounded-xl p-3 text-xs text-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none font-mono"
-              rows={4}
-              value={rawText}
-              onChange={(e) => setRawText(e.target.value)}
-              placeholder="Paste unformatted resume or JD text here..."
-            />
-            <button
-              onClick={handleNLPExtraction}
-              disabled={isExtracting}
-              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
-            >
-              {isExtracting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Running NLP Transformer Extraction...
-                </>
-              ) : (
-                <>
-                  <BrainCircuit className="w-4 h-4" /> Auto-Detect Profile with AI NLP
-                </>
-              )}
-            </button>
           </div>
         </div>
 
-        {/* Center & Right Column: Score Breakdown & Skill Gap Report */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Step 2: Compatibility Score Summary Card */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
-              <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Candidate Evaluation Result</span>
-                <h2 className="text-xl font-black text-slate-900 dark:text-white mt-0.5">{selectedCandidate.name}</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Target Job: <span className="font-semibold text-slate-700 dark:text-slate-300">{selectedJob.title}</span></p>
-              </div>
-
-              {/* Score Badge */}
-              <div className={`px-5 py-3 rounded-2xl border flex flex-col items-center justify-center text-center ${getBadgeColor(currentResult.hiringScore)}`}>
-                <div className="text-2xl font-black">{currentResult.hiringScore}%</div>
-                <div className="text-[10px] uppercase font-bold tracking-wider mt-0.5">
-                  {currentResult.hiringScore >= 85 ? 'Strongly Matched' : currentResult.hiringScore >= 70 ? 'Moderate Match' : 'Skill Gap Identified'}
-                </div>
-              </div>
+        {/* Right Side: Charts & Batch Data Matrix */}
+        <div className="lg:col-span-5 space-y-6">
+          {/* Skill Gap Pie Chart */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <h3 className="font-bold text-slate-900 text-base border-b border-slate-100 pb-3">Candidate Skill Gap Ratio (Pie Chart)</h3>
+            <div className="h-56 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={4}
+                    dataKey="value"
+                  >
+                    {pieData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', fontSize: '12px' }} />
+                  <Legend wrapperStyle={{ fontSize: '11px', fontWeight: '600' }} verticalAlign="bottom" height={36} />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
-
-            {/* Score Component Breakdown Progress Bars */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-                <div className="flex items-center justify-between text-xs mb-2">
-                  <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                    <Award className="w-4 h-4 text-blue-500" /> Skill Match (60%)
-                  </span>
-                  <span className="font-extrabold text-blue-600">{currentResult.breakdown.skillScore}%</span>
-                </div>
-                <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                  <div className="bg-blue-600 h-full rounded-full transition-all duration-500" style={{ width: `${currentResult.breakdown.skillScore}%` }} />
-                </div>
-              </div>
-
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-                <div className="flex items-center justify-between text-xs mb-2">
-                  <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                    <Briefcase className="w-4 h-4 text-emerald-500" /> Experience (25%)
-                  </span>
-                  <span className="font-extrabold text-emerald-600">{currentResult.breakdown.expScore}%</span>
-                </div>
-                <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                  <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${currentResult.breakdown.expScore}%` }} />
-                </div>
-              </div>
-
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-                <div className="flex items-center justify-between text-xs mb-2">
-                  <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                    <GraduationCap className="w-4 h-4 text-purple-500" /> Education (15%)
-                  </span>
-                  <span className="font-extrabold text-purple-600">{currentResult.breakdown.eduScore}%</span>
-                </div>
-                <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                  <div className="bg-purple-500 h-full rounded-full transition-all duration-500" style={{ width: `${currentResult.breakdown.eduScore}%` }} />
-                </div>
-              </div>
-            </div>
-
-            {/* Step 3: Skill Gap Analysis Section */}
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Matched Skills List */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Matched Skills ({currentResult.matchedSkills.length})</h3>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {currentResult.matchedSkills.map(skill => (
-                    <span key={skill} className="px-3 py-1 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs font-semibold flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-500" /> {skill}
-                    </span>
-                  ))}
-                  {currentResult.matchedSkills.length === 0 && (
-                    <span className="text-xs text-slate-400 italic">No skills matched yet</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Missing Skills List */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <XCircle className="w-4 h-4 text-rose-500" />
-                  <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Missing Required Skills ({currentResult.missingSkills.length})</h3>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {currentResult.missingSkills.map(skill => (
-                    <span key={skill} className="px-3 py-1 bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 rounded-lg text-xs font-semibold flex items-center gap-1.5">
-                      <XCircle className="w-3 h-3 text-rose-500" /> {skill}
-                    </span>
-                  ))}
-                  {currentResult.missingSkills.length === 0 && (
-                    <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> All required skills matched!
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Recommendations List */}
-            {currentResult.recommendations.length > 0 && (
-              <div className="bg-amber-500/10 border border-amber-200 dark:border-amber-900/50 rounded-xl p-4 space-y-2">
-                <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold text-xs uppercase tracking-wider">
-                  <BookOpen className="w-4 h-4 text-amber-600" /> Skill-Gap Training Recommendations
-                </div>
-                <ul className="space-y-1.5 text-xs text-slate-700 dark:text-slate-300">
-                  {currentResult.recommendations.map((rec, idx) => (
-                    <li key={idx} className="flex items-center gap-2">
-                      <ArrowRight className="w-3 h-3 text-amber-600 flex-shrink-0" />
-                      <span>{rec}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
           </div>
-        </div>
-      </div>
 
-      {/* Step 4: Batch Candidates Cross-Matching DataFrame Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Layers className="w-5 h-5 text-indigo-600" />
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">Batch Candidate Cross-Matching DataFrame Summary</h3>
+          {/* Batch Candidate Match Bar Chart */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <h3 className="font-bold text-slate-900 text-base border-b border-slate-100 pb-3">Batch Comparison ({selectedJob.title})</h3>
+            <div className="h-56 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={batchResults} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} domain={[0, 100]} />
+                  <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', fontSize: '12px' }} />
+                  <Bar dataKey="score" fill="#4f46e5" radius={[8, 8, 0, 0]} name="Hiring Score (%)" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-          <span className="text-xs font-semibold text-slate-500">Cross-matching Matrix ({batchCandidates.length * batchJobs.length} Pairs)</span>
-        </div>
-
-        <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-          <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
-            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
-              <tr>
-                <th className="py-3 px-4">Candidate Name</th>
-                <th className="py-3 px-4">Job Title</th>
-                <th className="py-3 px-4">Hiring Score</th>
-                <th className="py-3 px-4">Matched Count</th>
-                <th className="py-3 px-4">Missing Count</th>
-                <th className="py-3 px-4">Matched Skills</th>
-                <th className="py-3 px-4">Missing Skills</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {batchCandidates.flatMap(cand => 
-                batchJobs.map(j => {
-                  const res = calculateMatch(cand, j);
-                  return (
-                    <tr key={`${cand.name}-${j.title}`} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                      <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{cand.name}</td>
-                      <td className="py-3 px-4 text-slate-600 dark:text-slate-400">{j.title}</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-black border ${getBadgeColor(res.hiringScore)}`}>
-                          {res.hiringScore}%
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-emerald-600 font-bold">{res.matchedSkills.length}</td>
-                      <td className="py-3 px-4 text-rose-500 font-bold">{res.missingSkills.length}</td>
-                      <td className="py-3 px-4 text-slate-600 dark:text-slate-400">{res.matchedSkills.join(', ') || 'None'}</td>
-                      <td className="py-3 px-4 text-slate-500">{res.missingSkills.join(', ') || 'None'}</td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
         </div>
       </div>
     </div>
   );
 };
-
-export default MatchingView;

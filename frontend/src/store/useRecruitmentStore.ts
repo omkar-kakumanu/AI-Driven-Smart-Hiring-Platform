@@ -10,6 +10,7 @@ export function useRecruitmentStore() {
   });
 
   const [candidates, setCandidates] = useState<Candidate[]>(() => {
+    // Clear existing mock resumes to start fresh as requested
     const saved = localStorage.getItem('rc_candidates');
     return saved ? JSON.parse(saved) : [];
   });
@@ -17,13 +18,27 @@ export function useRecruitmentStore() {
   const INITIAL_USERS: UserAccount[] = [
     {
       id: 'usr-admin-1',
-      name: 'Alex Vance (Admin)',
+      name: 'Alex Vance (Main Super-Admin)',
       email: 'admin@copilot.com',
       role: 'System Administrator & Hiring Director',
       userType: 'ADMIN',
       status: 'APPROVED',
-      createdAt: '2026-01-10'
+      createdAt: '2026-01-10',
+      password: 'admin123',
+      isSuperAdmin: true
     },
+    {
+      id: 'usr-admin-2',
+      name: 'Elena Rostova (Secondary Admin)',
+      email: 'elena.admin@copilot.com',
+      role: 'Security & Platform Administrator',
+      userType: 'ADMIN',
+      status: 'APPROVED',
+      createdAt: '2026-01-15',
+      password: 'admin123',
+      isSuperAdmin: false
+    },
+
     {
       id: 'usr-recruiter-1',
       name: 'Sarah Jenkins',
@@ -31,7 +46,8 @@ export function useRecruitmentStore() {
       role: 'Talent Acquisition Specialist',
       userType: 'USER',
       status: 'APPROVED',
-      createdAt: '2026-02-01'
+      createdAt: '2026-02-01',
+      password: 'recruiter123'
     },
     {
       id: 'usr-pending-1',
@@ -40,7 +56,8 @@ export function useRecruitmentStore() {
       role: 'Junior Technical Recruiter',
       userType: 'USER',
       status: 'PENDING',
-      createdAt: '2026-08-30'
+      createdAt: '2026-08-30',
+      password: 'pass123'
     }
   ];
 
@@ -48,6 +65,7 @@ export function useRecruitmentStore() {
     const saved = localStorage.getItem('rc_user_accounts');
     return saved ? JSON.parse(saved) : INITIAL_USERS;
   });
+
 
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('rc_user_profile');
@@ -96,7 +114,28 @@ export function useRecruitmentStore() {
     setUserAccounts(prev => prev.map(u => u.id === userId ? { ...u, status: 'REJECTED' as const } : u));
   };
 
-  const registerUser = (name: string, email: string, role: string) => {
+  const revokeUserAccess = (userId: string) => {
+    setUserAccounts(prev => prev.map(u => {
+      if (u.id === userId) {
+        if (u.isSuperAdmin) return u; // Main Super Admin cannot be revoked
+        return { ...u, status: 'REVOKED' as const };
+      }
+      return u;
+    }));
+  };
+
+
+  const makeUserAdmin = (userId: string) => {
+    setUserAccounts(prev => prev.map(u => u.id === userId ? { ...u, userType: 'ADMIN' as const, status: 'APPROVED' as const } : u));
+  };
+
+  const clearAllCandidates = () => {
+    setCandidates([]);
+    setActiveCandidateId('');
+    localStorage.removeItem('rc_candidates');
+  };
+
+  const registerUser = (name: string, email: string, role: string, password?: string) => {
     const existing = userAccounts.find(u => u.email.toLowerCase() === email.toLowerCase());
     if (existing) return existing;
 
@@ -107,13 +146,13 @@ export function useRecruitmentStore() {
       role: role || 'Recruiter',
       userType: 'USER',
       status: 'PENDING',
-      createdAt: new Date().toISOString().split('T')[0]
+      createdAt: new Date().toISOString().split('T')[0],
+      password: password || 'pass123'
     };
 
     setUserAccounts(prev => [...prev, newUser]);
     return newUser;
   };
-
 
   const addCandidate = (newCandidate: Omit<Candidate, 'id' | 'status' | 'matchScore'>) => {
     const candidateId = `cand-${Date.now()}`;
@@ -170,12 +209,16 @@ export function useRecruitmentStore() {
     userAccounts,
     approveUser,
     rejectUser,
+    revokeUserAccess,
+    makeUserAdmin,
     registerUser,
+    clearAllCandidates,
     questions,
     atsProviders,
     activeJobId,
     setActiveJobId,
     activeCandidateId,
+
     setActiveCandidateId,
     addCandidate,
     addJob,

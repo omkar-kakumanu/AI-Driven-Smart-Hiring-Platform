@@ -1,4 +1,17 @@
 import React from 'react';
+import { 
+  ResponsiveContainer, 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  PieChart, 
+  Pie, 
+  Cell,
+  Legend
+} from 'recharts';
 import type { Candidate, Job } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
 
@@ -20,17 +33,66 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     { title: 'Avg Time to Screen', value: '1.2 days', change: '-40%', note: 'faster cycle' },
   ];
 
+  // 1. Calculate Skill Frequency for Pie Chart
+  const skillCounts: Record<string, number> = {};
+  candidates.forEach(c => {
+    (c.skills || []).forEach(sk => {
+      const formatted = sk.trim();
+      skillCounts[formatted] = (skillCounts[formatted] || 0) + 1;
+    });
+  });
+
+  const pieData = Object.keys(skillCounts).length > 0 
+    ? Object.entries(skillCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([name, value]) => ({ name, value }))
+    : [
+        { name: 'Python', value: 5 },
+        { name: 'Machine Learning', value: 4 },
+        { name: 'SQL', value: 4 },
+        { name: 'TensorFlow', value: 3 },
+        { name: 'React / Frontend', value: 2 },
+      ];
+
+  const PIE_COLORS = ['#2563eb', '#4f46e5', '#059669', '#f59e0b', '#7c3aed'];
+
+  // 2. Calculate Fit Score Ranges for Bar Chart
+  const scoreRanges = {
+    '90-100% Fit': 0,
+    '80-89% Fit': 0,
+    '70-79% Fit': 0,
+    '<70% Fit': 0
+  };
+
+  candidates.forEach(c => {
+    const score = c.matchScore || 75;
+    if (score >= 90) scoreRanges['90-100% Fit']++;
+    else if (score >= 80) scoreRanges['80-89% Fit']++;
+    else if (score >= 70) scoreRanges['70-79% Fit']++;
+    else scoreRanges['<70% Fit']++;
+  });
+
+  const barData = candidates.length > 0
+    ? Object.entries(scoreRanges).map(([name, count]) => ({ name, count }))
+    : [
+        { name: '90-100% Fit', count: 3 },
+        { name: '80-89% Fit', count: 4 },
+        { name: '70-79% Fit', count: 2 },
+        { name: '<70% Fit', count: 1 },
+      ];
+
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8 font-sans">
       {/* Top Banner */}
       <div className="bg-slate-900 text-white rounded-2xl p-8 shadow-sm border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-2 max-w-2xl">
           <div className="inline-flex items-center px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400 font-bold text-xs">
-            Recruitment Operations Overview
+            Recruitment Operations & Analytics
           </div>
-          <h2 className="text-3xl font-extrabold tracking-tight">Automated Candidate Screening & Profiling</h2>
+          <h2 className="text-3xl font-extrabold tracking-tight">Automated Candidate Profiling & Analytics</h2>
           <p className="text-slate-400 text-sm">
-            Process candidate resumes, analyze skill alignment against open job descriptions, and evaluate candidates.
+            Process candidate resumes, analyze skill alignment against open job descriptions, and evaluate data visualizations.
           </p>
         </div>
 
@@ -56,6 +118,66 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <p className="text-[11px] text-slate-400 font-medium">{stat.note}</p>
           </div>
         ))}
+      </div>
+
+      {/* Data Visualization Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Candidate Skill Distribution Pie Chart */}
+        <div className="lg:col-span-6 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 className="font-bold text-slate-900 text-base">Candidate Skill Distribution (Pie Chart)</h3>
+            <span className="text-xs font-bold text-slate-500">Top Technical Skills</span>
+          </div>
+
+          <div className="h-64 w-full pt-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={55}
+                  outerRadius={85}
+                  paddingAngle={4}
+                  dataKey="value"
+                >
+                  {pieData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', fontSize: '12px' }}
+                  formatter={(value: any) => [`${value} Candidates`, 'Count']}
+                />
+                <Legend 
+                  wrapperStyle={{ fontSize: '11px', fontWeight: '600' }}
+                  verticalAlign="bottom" 
+                  height={36} 
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Candidate Fit Score Distribution Bar Graph */}
+        <div className="lg:col-span-6 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 className="font-bold text-slate-900 text-base">Candidate Match Score Distribution (Bar Graph)</h3>
+            <span className="text-xs font-bold text-slate-500">Compatibility Ranges</span>
+          </div>
+
+          <div className="h-64 w-full pt-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', fontSize: '12px' }} />
+                <Bar dataKey="count" fill="#2563eb" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
 
       {/* Main Grid Section */}

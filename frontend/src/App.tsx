@@ -27,7 +27,8 @@ export const App: React.FC = () => {
   // Central Reactive Recruitment Store
   const store = useRecruitmentStore();
 
-  const handleLogin = (profile: UserProfile & { userType: 'ADMIN' | 'USER'; status: 'APPROVED' | 'PENDING' | 'REJECTED' }) => {
+  const handleLogin = (profile: UserProfile & { userType: 'ADMIN' | 'USER'; status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'REVOKED' }) => {
+
     store.updateUserProfile({
       name: profile.name,
       role: profile.role,
@@ -169,8 +170,12 @@ export const App: React.FC = () => {
               userAccounts={store.userAccounts}
               onApproveUser={store.approveUser}
               onRejectUser={store.rejectUser}
+              onRevokeUserAccess={store.revokeUserAccess}
+              onMakeUserAdmin={store.makeUserAdmin}
+              onClearAllCandidates={store.clearAllCandidates}
             />
           )}
+
         </main>
 
       </div>

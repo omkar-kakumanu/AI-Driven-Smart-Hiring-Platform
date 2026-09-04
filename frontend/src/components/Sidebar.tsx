@@ -12,9 +12,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, use
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'resume-upload', label: 'Resume Upload' },
+    { id: 'matching', label: 'Matching & Skill Gap', badge: 'M2' },
     { id: 'candidates', label: 'Candidate Profiles' },
     { id: 'settings', label: 'System Settings & Approvals' },
   ];
+
 
 
   return (
