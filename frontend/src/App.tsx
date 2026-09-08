@@ -18,6 +18,7 @@ export const App: React.FC = () => {
   const [inApp, setInApp] = useState(true);
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [showNewJobModal, setShowNewJobModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // New Job Form State
   const [jobTitle, setJobTitle] = useState('');
@@ -27,8 +28,20 @@ export const App: React.FC = () => {
   // Central Reactive Recruitment Store
   const store = useRecruitmentStore();
 
-  const handleLogin = (profile: UserProfile & { userType: 'ADMIN' | 'USER'; status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'REVOKED' }) => {
+  // Filter candidates based on Header Search Query
+  const filteredCandidates = store.candidates.filter(c => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.trim().toLowerCase();
+    return (
+      c.fullName.toLowerCase().includes(q) ||
+      c.email.toLowerCase().includes(q) ||
+      c.currentRole.toLowerCase().includes(q) ||
+      (c.degree || '').toLowerCase().includes(q) ||
+      (c.skills || []).some(s => s.toLowerCase().includes(q))
+    );
+  });
 
+  const handleLogin = (profile: UserProfile & { userType: 'ADMIN' | 'USER'; status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'REVOKED' }) => {
     store.updateUserProfile({
       name: profile.name,
       role: profile.role,
@@ -55,11 +68,9 @@ export const App: React.FC = () => {
     );
   }
 
-
   if (!inApp) {
     return <LandingPage onEnterApp={() => setInApp(true)} />;
   }
-
 
   const handleCreateJob = () => {
     if (!jobTitle.trim()) return alert("Please enter job title.");
@@ -82,7 +93,7 @@ export const App: React.FC = () => {
     setJobTitle('');
     setJobDepartment('');
     setJobSkills('');
-    alert("New Job Requirement Posting Created Successfully!");
+    alert("New Job Requirement Profile Created Successfully!");
   };
 
   const getHeaderInfo = () => {
@@ -92,19 +103,11 @@ export const App: React.FC = () => {
       case 'resume-upload':
         return { title: 'Resume Parsing & Candidate Profiling', subtitle: 'Upload and process resumes to create structured candidate profiles' };
       case 'candidates':
-        return { title: 'Candidate Comparison Matrix', subtitle: 'Side-by-side technical evaluation of candidate profiles' };
+        return { title: 'Candidate Directory & Profiling', subtitle: 'Candidate technical profiles and skill inventory' };
       case 'matching':
         return { title: 'Matching & Skill Analysis', subtitle: 'Candidate-job matching and skill-gap analysis' };
-      case 'interview-assistant':
-        return { title: 'Interview Assistance & ATS Integration', subtitle: 'Generate interview questions, simulate interviews, and manage candidates' };
-      case 'voice-screening':
-        return { title: 'Voice Screening & Deployment', subtitle: 'Recruitment analytics, voice screening, and system status' };
-      case 'pipeline':
-        return { title: 'Recruitment Kanban Pipeline', subtitle: 'Drag & drop candidates across hiring stages' };
-      case 'analytics':
-        return { title: 'Recruitment Analytics', subtitle: 'Track funnel metrics, pass rates, and time-to-hire' };
       case 'settings':
-        return { title: 'System Settings', subtitle: 'Configure ATS API credentials, AI LLM endpoints, and scoring weights' };
+        return { title: 'System Settings', subtitle: 'Configure user access approvals and database settings' };
       default:
         return { title: 'Recruitment Copilot', subtitle: 'AI Hiring Intelligence Platform' };
     }
@@ -127,38 +130,38 @@ export const App: React.FC = () => {
           title={headerInfo.title}
           subtitle={headerInfo.subtitle}
           userProfile={store.userProfile}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
           onNewJobClick={() => setShowNewJobModal(true)}
-          onExportClick={() => alert('Exporting recruitment analytics report as PDF...')}
           onProfileClick={() => setCurrentTab('settings')}
           onLogout={handleLogout}
         />
-
 
         <main className="flex-1 overflow-y-auto">
           {currentTab === 'dashboard' && (
             <DashboardView 
               onNavigate={setCurrentTab} 
-              candidates={store.candidates}
+              candidates={filteredCandidates}
               jobs={store.jobs}
             />
           )}
           {currentTab === 'resume-upload' && (
             <ResumeUploadView 
-              candidates={store.candidates}
+              candidates={filteredCandidates}
               onAddCandidate={store.addCandidate}
-              onNavigateToMatching={() => setCurrentTab('candidates')}
+              onNavigateToMatching={() => setCurrentTab('matching')}
             />
           )}
           {currentTab === 'candidates' && (
             <ResumeUploadView 
-              candidates={store.candidates}
+              candidates={filteredCandidates}
               onAddCandidate={store.addCandidate}
-              onNavigateToMatching={() => setCurrentTab('candidates')}
+              onNavigateToMatching={() => setCurrentTab('matching')}
             />
           )}
           {currentTab === 'matching' && (
             <MatchingView 
-              candidates={store.candidates}
+              candidates={filteredCandidates}
               jobs={store.jobs}
             />
           )}
@@ -171,13 +174,13 @@ export const App: React.FC = () => {
               onApproveUser={store.approveUser}
               onRejectUser={store.rejectUser}
               onRevokeUserAccess={store.revokeUserAccess}
+              onDeleteUserAccount={store.deleteUserAccount}
               onMakeUserAdmin={store.makeUserAdmin}
               onClearAllCandidates={store.clearAllCandidates}
+              onClearAllUserAccounts={store.clearAllUserAccounts}
             />
           )}
-
         </main>
-
       </div>
 
       {/* New Job Modal */}

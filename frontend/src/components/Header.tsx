@@ -6,8 +6,9 @@ interface HeaderProps {
   title: string;
   subtitle: string;
   userProfile?: UserProfile;
+  searchQuery?: string;
+  onSearchChange?: (q: string) => void;
   onNewJobClick?: () => void;
-  onExportClick?: () => void;
   onProfileClick?: () => void;
   onLogout?: () => void;
 }
@@ -16,11 +17,14 @@ export const Header: React.FC<HeaderProps> = ({
   title, 
   subtitle, 
   userProfile,
+  searchQuery = '',
+  onSearchChange,
   onNewJobClick, 
-  onExportClick,
   onProfileClick,
   onLogout
 }) => {
+  const isAdmin = userProfile?.userType === 'ADMIN';
+
   return (
     <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between sticky top-0 z-10 shadow-sm">
       <div>
@@ -34,30 +38,33 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Search */}
+        {/* Real-Time Candidate Search Input */}
         <div>
           <input
             type="text"
-            placeholder="Search candidates..."
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-56 transition-all"
+            value={searchQuery}
+            onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
+            placeholder="Search candidates by name, skills, role..."
+            className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64 transition-all"
           />
         </div>
 
-        {/* Export Button */}
-        <button 
-          onClick={onExportClick}
-          className="px-3.5 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
-        >
-          Export Data
-        </button>
-
-        {/* Action Button */}
-        <button 
-          onClick={onNewJobClick}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all"
-        >
-          + New Job
-        </button>
+        {/* Action Button: + New Job (Admin Only) */}
+        {isAdmin ? (
+          <button 
+            onClick={onNewJobClick}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition-all"
+          >
+            + New Job
+          </button>
+        ) : (
+          <span 
+            className="px-3.5 py-2 bg-slate-100 text-slate-400 border border-slate-200 rounded-xl text-xs font-bold cursor-not-allowed"
+            title="Only Administrators can create new job postings"
+          >
+            + New Job (Admin Only)
+          </span>
+        )}
 
 
         {/* User Profile Badge & Logout */}

@@ -1,0 +1,10 @@
+Candidate Name,Job Title,Hiring Score (%),Matched Count,Missing Count,Matched Skills,Missing Skills
+Sarah Johnson,Senior Machine Learning Engineer,76.0,3,2,"Python, TensorFlow, SQL","AWS SageMaker, Kubernetes"
+Sarah Johnson,Backend Java Specialist,56.25,1,2,SQL,"Docker, Java"
+Sarah Johnson,DevOps & Cloud Engineer,51.25,1,3,Python,"Kubernetes, AWS, Docker"
+Alex Chen,Senior Machine Learning Engineer,66.0,3,2,"Python, Kubernetes, SQL","AWS SageMaker, TensorFlow"
+Alex Chen,Backend Java Specialist,100.0,3,0,"Docker, Java, SQL",
+Alex Chen,DevOps & Cloud Engineer,78.75,3,1,"Kubernetes, Docker, Python",AWS
+Emily Rodriguez,Senior Machine Learning Engineer,100.0,5,0,"AWS SageMaker, SQL, Kubernetes, TensorFlow, Python",
+Emily Rodriguez,Backend Java Specialist,56.25,1,2,SQL,"Docker, Java"
+Emily Rodriguez,DevOps & Cloud Engineer,66.25,2,2,"Kubernetes, Python","AWS, Docker"

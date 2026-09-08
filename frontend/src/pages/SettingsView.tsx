@@ -10,8 +10,10 @@ interface SettingsViewProps {
   onApproveUser?: (userId: string) => void;
   onRejectUser?: (userId: string) => void;
   onRevokeUserAccess?: (userId: string) => void;
+  onDeleteUserAccount?: (userId: string) => void;
   onMakeUserAdmin?: (userId: string) => void;
   onClearAllCandidates?: () => void;
+  onClearAllUserAccounts?: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ 
@@ -22,13 +24,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onApproveUser,
   onRejectUser,
   onRevokeUserAccess,
+  onDeleteUserAccount,
   onMakeUserAdmin,
-  onClearAllCandidates
+  onClearAllCandidates,
+  onClearAllUserAccounts
 }) => {
-
-  const [openaiKey, setOpenaiKey] = useState('sk-proj-demo-key-recruitment-copilot');
-  const [aiServiceUrl, setAiServiceUrl] = useState('http://localhost:8000');
-
   // User Profile Form State
   const [name, setName] = useState(userProfile?.name || 'Sarah Jenkins');
   const [role, setRole] = useState(userProfile?.role || 'Lead Recruiter');
@@ -199,9 +199,25 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <h3 className="font-bold text-slate-900 text-base">User Accounts & Administrator Approval Queue</h3>
             <p className="text-xs text-slate-500 mt-0.5">Manage user access rights. Only logged-in Administrators can grant, promote, or revoke user access.</p>
           </div>
-          <span className="px-3 py-1 bg-slate-900 text-white rounded-md text-xs font-bold">
-            {userAccounts.filter(u => u.status === 'PENDING').length} Pending Requests
-          </span>
+          <div className="flex items-center gap-2">
+            {userProfile?.userType === 'ADMIN' && (
+              <button
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to clear the User Accounts approval queue? This will reset user accounts to default Main Super Admin.")) {
+                    onClearAllUserAccounts && onClearAllUserAccounts();
+                    alert("User Accounts approval queue cleared successfully!");
+                  }
+                }}
+                className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-lg border border-rose-200 transition-colors"
+                title="Clear all secondary/pending user accounts"
+              >
+                Clear User Accounts Queue
+              </button>
+            )}
+            <span className="px-3 py-1 bg-slate-900 text-white rounded-md text-xs font-bold">
+              {userAccounts.filter(u => u.status === 'PENDING').length} Pending Requests
+            </span>
+          </div>
         </div>
 
         {userProfile?.userType !== 'ADMIN' ? (
@@ -308,6 +324,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                               Re-Approve Access
                             </button>
                           )}
+
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Permanently delete account for "${user.name}" (${user.email})?`)) {
+                                onDeleteUserAccount && onDeleteUserAccount(user.id);
+                              }
+                            }}
+                            className="px-2.5 py-1 bg-slate-100 hover:bg-rose-600 hover:text-white border border-slate-300 text-slate-700 font-bold rounded text-[10px] transition-colors"
+                            title="Permanently delete user account from system"
+                          >
+                            Delete Account
+                          </button>
                         </>
                       )}
                     </td>
@@ -337,43 +365,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
           >
             Clear All Candidate Resumes
-          </button>
-        </div>
-      </div>
-
-
-      {/* AI Configuration */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-        <div className="font-bold text-slate-900 text-base">
-          AI Provider & LLM Engine Settings
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs font-bold text-slate-700 block mb-1">OpenAI / LLM Provider API Key</label>
-            <input
-              type="password"
-              value={openaiKey}
-              onChange={(e) => setOpenaiKey(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-bold focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-slate-700 block mb-1">Python AI Microservice Endpoint</label>
-            <input
-              type="text"
-              value={aiServiceUrl}
-              onChange={(e) => setAiServiceUrl(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-bold focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <button 
-            onClick={() => alert("AI API Configurations Saved Successfully!")}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm transition-all"
-          >
-            Save Configurations
           </button>
         </div>
       </div>

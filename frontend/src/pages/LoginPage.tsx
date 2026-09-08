@@ -299,27 +299,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
                   Log In to Recruiter Platform →
                 </button>
               </div>
-
-              {/* Demo Quick Select Presets */}
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 text-xs">
-                <span className="font-bold text-slate-700 block">Quick Demo Login Credentials:</span>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => { setRecruiterEmail('recruiter@copilot.com'); setRecruiterPassword('recruiter123'); }}
-                    className="px-3 py-1 bg-white border border-slate-300 text-slate-800 font-semibold rounded-lg hover:bg-slate-100"
-                  >
-                    Sarah Jenkins (Approved Recruiter)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setRecruiterEmail('michael.chang@company.com'); setRecruiterPassword('pass123'); }}
-                    className="px-3 py-1 bg-amber-50 border border-amber-300 text-amber-900 font-semibold rounded-lg hover:bg-amber-100"
-                  >
-                    Michael Chang (Pending Approval)
-                  </button>
-                </div>
-              </div>
             </form>
           )}
 
@@ -364,26 +343,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
                 >
                   Log In to Administrator Console →
                 </button>
-              </div>
-
-              <div className="p-4 bg-slate-100 border border-slate-300 rounded-2xl text-xs space-y-2">
-                <span className="font-bold text-slate-900 block">Registered Demo Admin Accounts (Password: admin123):</span>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => { setAdminEmail('admin@copilot.com'); setAdminPassword('admin123'); }}
-                    className="px-2.5 py-1 bg-white border border-slate-300 text-slate-800 font-semibold rounded text-[11px]"
-                  >
-                    Alex Vance (Admin 1)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setAdminEmail('elena.admin@copilot.com'); setAdminPassword('admin123'); }}
-                    className="px-2.5 py-1 bg-white border border-slate-300 text-slate-800 font-semibold rounded text-[11px]"
-                  >
-                    Elena Rostova (Admin 2)
-                  </button>
-                </div>
               </div>
             </form>
           )}

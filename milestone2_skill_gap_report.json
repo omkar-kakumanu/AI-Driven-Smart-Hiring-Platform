@@ -1,0 +1,18 @@
+{
+  "candidate": "Sarah Johnson",
+  "job_title": "Senior Machine Learning Engineer",
+  "hiring_score": 76.0,
+  "matched_skills": [
+    "Python",
+    "TensorFlow",
+    "SQL"
+  ],
+  "missing_skills": [
+    "AWS SageMaker",
+    "Kubernetes"
+  ],
+  "recommendations": [
+    "Consider training in AWS SageMaker",
+    "Consider training in Kubernetes"
+  ]
+}

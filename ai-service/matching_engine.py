@@ -2,13 +2,43 @@ import pandas as pd
 import re
 from typing import Dict, Any, List, Tuple
 
-def calculate_match(candidate: Dict[str, Any], job: Dict[str, Any]) -> Tuple[float, List[str]]:
+# Domain skill mappings for semantic/NLP skill matching
+SKILL_ALIASES = {
+    "ml": "Machine Learning",
+    "machine learning": "Machine Learning",
+    "tf": "TensorFlow",
+    "tensorflow": "TensorFlow",
+    "aws sagemaker": "AWS SageMaker",
+    "sagemaker": "AWS SageMaker",
+    "k8s": "Kubernetes",
+    "kubernetes": "Kubernetes",
+    "py": "Python",
+    "python": "Python",
+    "postgres": "PostgreSQL",
+    "postgresql": "PostgreSQL",
+    "sql": "SQL",
+    "js": "JavaScript",
+    "javascript": "JavaScript",
+    "ts": "TypeScript",
+    "typescript": "TypeScript"
+}
+
+SKILL_SIMILARITIES = {
+    ("machine learning", "tensorflow"): 0.8,
+    ("machine learning", "aws sagemaker"): 0.75,
+    ("data analysis", "sql"): 0.7,
+    ("python", "machine learning"): 0.8,
+    ("docker", "kubernetes"): 0.85
+}
+
+def calculate_match(candidate: Dict[str, Any], job: Dict[str, Any], use_semantic: bool = False) -> Tuple[float, List[str]]:
     """
     Calculates weighted compatibility score based on:
     - Skill matching (weight 0.6)
     - Experience matching (weight 0.25)
     - Education matching (weight 0.15)
     
+    If use_semantic is True, uses semantic/domain skill similarity to detect related capabilities.
     Returns (hiring_score_pct, matched_skills_list)
     """
     score = 0.0
@@ -18,7 +48,7 @@ def calculate_match(candidate: Dict[str, Any], job: Dict[str, Any]) -> Tuple[flo
     req_skills = job.get("required_skills") or job.get("requiredSkills") or []
     cand_skills = candidate.get("skills") or []
 
-    # Case-insensitive set matching
+    # Normalize skill names
     req_skills_map = {s.strip().lower(): s.strip() for s in req_skills if s}
     cand_skills_set = {s.strip().lower() for s in cand_skills if s}
 
@@ -26,7 +56,22 @@ def calculate_match(candidate: Dict[str, Any], job: Dict[str, Any]) -> Tuple[flo
     matched_skills = [req_skills_map[k] for k in matched_keys]
 
     if req_skills:
-        skill_score = len(matched_keys) / len(req_skills)
+        exact_ratio = len(matched_keys) / len(req_skills)
+        if use_semantic and exact_ratio < 1.0:
+            # Semantic boost for domain-related skills
+            unmatched_reqs = set(req_skills_map.keys()) - matched_keys
+            semantic_credit = 0.0
+            for req_k in unmatched_reqs:
+                for cand_k in cand_skills_set:
+                    sim = SKILL_SIMILARITIES.get((cand_k, req_k)) or SKILL_SIMILARITIES.get((req_k, cand_k)) or 0.0
+                    if sim > 0.5:
+                        semantic_credit += sim * 0.5
+                        if req_skills_map[req_k] not in matched_skills:
+                            matched_skills.append(req_skills_map[req_k])
+                        break
+            skill_score = min(1.0, exact_ratio + (semantic_credit / len(req_skills)))
+        else:
+            skill_score = exact_ratio
     else:
         skill_score = 1.0
 
@@ -48,7 +93,6 @@ def calculate_match(candidate: Dict[str, Any], job: Dict[str, Any]) -> Tuple[flo
     if cand_edu == job_req_edu:
         edu_score = 1.0
     elif any(degree in cand_edu for degree in ["ms", "master", "bs", "bachelor", "phd"]) and any(degree in job_req_edu for degree in ["ms", "master", "bs", "bachelor", "phd"]):
-        # Check degree equivalence (e.g. MS in CS vs MS Computer Science)
         if ("ms" in cand_edu or "master" in cand_edu) and ("ms" in job_req_edu or "master" in job_req_edu):
             edu_score = 1.0
         elif ("bs" in cand_edu or "bachelor" in cand_edu) and ("bs" in job_req_edu or "bachelor" in job_req_edu):
@@ -138,7 +182,8 @@ def extract_profile_from_text(raw_text: str) -> Dict[str, Any]:
     text_lower = raw_text.lower()
 
     for skill in skills_catalog:
-        if skill.lower() in text_lower:
+        pattern = r'\b' + re.escape(skill.lower()) + r'\b'
+        if re.search(pattern, text_lower):
             found_skills.append(skill)
 
     # Experience extraction
@@ -161,65 +206,27 @@ def extract_profile_from_text(raw_text: str) -> Dict[str, Any]:
 
 def extract_profile_from_text_nlp(raw_text: str) -> Dict[str, Any]:
     """
-    AI-powered NLP & Transformer Entity Extractor:
+    AI-powered NLP & Entity Extractor:
     Dynamically extracts skills, experience years, and degree level from raw text (resumes or job descriptions).
-    Supports HuggingFace Transformers / spaCy / Zero-Shot classification with regex fallback.
+    Supports catalog regex, spaCy NER, and keyword boundary extraction.
     """
-    extracted_skills = []
+    extracted = extract_profile_from_text(raw_text)
 
-    # 1. Try HuggingFace Transformers dynamic extraction if available
+    # Add spaCy enhancement if available without blocking
     try:
-        from transformers import pipeline
-        nlp_classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
-        candidate_labels = ["Python", "TensorFlow", "Kubernetes", "AWS SageMaker", "SQL", "Machine Learning", "Data Analysis", "Java", "Docker"]
-        res = nlp_classifier(raw_text[:512], candidate_labels=candidate_labels, multi_label=True)
-        for label, score in zip(res['labels'], res['scores']):
-            if score > 0.5:
-                extracted_skills.append(label)
+        import spacy
+        try:
+            nlp = spacy.load("en_core_web_sm")
+            doc = nlp(raw_text[:2000])
+            for ent in doc.ents:
+                if ent.label_ in ["ORG", "PRODUCT"] and ent.text in ["AWS", "TensorFlow", "Kubernetes", "Docker", "PyTorch"]:
+                    if ent.text not in extracted["skills"]:
+                        extracted["skills"].append(ent.text)
+        except Exception:
+            pass
     except Exception:
         pass
 
-    # 2. spaCy / catalog fallback extraction
-    if not extracted_skills:
-        try:
-            import spacy
-            try:
-                nlp = spacy.load("en_core_web_sm")
-            except Exception:
-                nlp = spacy.blank("en")
-            doc = nlp(raw_text)
-            skills_catalog = [
-                "Python", "Java", "C++", "JavaScript", "TypeScript", "React", "Node.js",
-                "Machine Learning", "TensorFlow", "PyTorch", "SQL", "PostgreSQL",
-                "Docker", "Kubernetes", "AWS", "AWS SageMaker", "Data Analysis", "NLP", "MLOps"
-            ]
-            text_lower = raw_text.lower()
-            for skill in skills_catalog:
-                if re.search(r'\b' + re.escape(skill.lower()) + r'\b', text_lower):
-                    if skill not in extracted_skills:
-                        extracted_skills.append(skill)
-        except Exception:
-            pass
+    return extracted
 
-    # 3. Fallback skills catalog
-    if not extracted_skills:
-        extracted_skills = extract_profile_from_text(raw_text)["skills"]
-
-    # Experience extraction via NLP regex
-    exp_match = re.search(r'(\d+)\+?\s*(?:years?|yrs?)\s*(?:of\s*)?(?:experience|exp)?', raw_text, re.IGNORECASE)
-    exp_years = int(exp_match.group(1)) if exp_match else 4
-
-    # Education extraction via NLP regex
-    edu = "BS Computer Science"
-    raw_lower = raw_text.lower()
-    if any(m in raw_lower for m in ["master", "ms", "m.s."]):
-        edu = "MS Computer Science"
-    elif any(d in raw_lower for d in ["phd", "doctorate"]):
-        edu = "PhD Computer Science"
-
-    return {
-        "skills": extracted_skills,
-        "experience": exp_years,
-        "education": edu
-    }
 

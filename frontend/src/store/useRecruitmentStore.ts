@@ -26,54 +26,37 @@ export function useRecruitmentStore() {
       createdAt: '2026-01-10',
       password: 'admin123',
       isSuperAdmin: true
-    },
-    {
-      id: 'usr-admin-2',
-      name: 'Elena Rostova (Secondary Admin)',
-      email: 'elena.admin@copilot.com',
-      role: 'Security & Platform Administrator',
-      userType: 'ADMIN',
-      status: 'APPROVED',
-      createdAt: '2026-01-15',
-      password: 'admin123',
-      isSuperAdmin: false
-    },
-
-    {
-      id: 'usr-recruiter-1',
-      name: 'Sarah Jenkins',
-      email: 'recruiter@copilot.com',
-      role: 'Talent Acquisition Specialist',
-      userType: 'USER',
-      status: 'APPROVED',
-      createdAt: '2026-02-01',
-      password: 'recruiter123'
-    },
-    {
-      id: 'usr-pending-1',
-      name: 'Michael Chang',
-      email: 'michael.chang@company.com',
-      role: 'Junior Technical Recruiter',
-      userType: 'USER',
-      status: 'PENDING',
-      createdAt: '2026-08-30',
-      password: 'pass123'
     }
   ];
 
   const [userAccounts, setUserAccounts] = useState<UserAccount[]>(() => {
     const saved = localStorage.getItem('rc_user_accounts');
-    return saved ? JSON.parse(saved) : INITIAL_USERS;
+    if (saved) {
+      try {
+        const parsed: UserAccount[] = JSON.parse(saved);
+        // Enforce Single Admin rule: Only Alex Vance (usr-admin-1 / admin@copilot.com) is ADMIN
+        return parsed.map(u => {
+          if (u.id === 'usr-admin-1' || u.email.toLowerCase() === 'admin@copilot.com') {
+            return { ...u, userType: 'ADMIN' as const, isSuperAdmin: true, status: 'APPROVED' as const };
+          }
+          // Convert all other existing accounts to standard USER (Recruiter) type
+          return { ...u, userType: 'USER' as const, isSuperAdmin: false };
+        });
+      } catch (e) {
+        return INITIAL_USERS;
+      }
+    }
+    return INITIAL_USERS;
   });
 
 
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('rc_user_profile');
     return saved ? JSON.parse(saved) : {
-      name: 'Sarah Jenkins',
-      role: 'Talent Acquisition Specialist',
-      email: 'recruiter@copilot.com',
-      userType: 'USER',
+      name: 'Alex Vance (Main Super-Admin)',
+      role: 'System Administrator & Hiring Director',
+      email: 'admin@copilot.com',
+      userType: 'ADMIN',
       status: 'APPROVED'
     };
   });
@@ -103,7 +86,21 @@ export function useRecruitmentStore() {
   }, [userProfile]);
 
   const updateUserProfile = (updates: Partial<UserProfile>) => {
-    setUserProfile(prev => ({ ...prev, ...updates }));
+    setUserProfile(prev => {
+      const updated = { ...prev, ...updates };
+      setUserAccounts(prevAccounts => prevAccounts.map(u => {
+        if (u.email.toLowerCase() === prev.email.toLowerCase() || (updates.email && u.email.toLowerCase() === updates.email.toLowerCase())) {
+          return {
+            ...u,
+            name: updates.name || u.name,
+            role: updates.role || u.role,
+            email: updates.email || u.email
+          };
+        }
+        return u;
+      }));
+      return updated;
+    });
   };
 
   const approveUser = (userId: string) => {
@@ -117,15 +114,19 @@ export function useRecruitmentStore() {
   const revokeUserAccess = (userId: string) => {
     setUserAccounts(prev => prev.map(u => {
       if (u.id === userId) {
-        if (u.isSuperAdmin) return u; // Main Super Admin cannot be revoked
+        if (u.isSuperAdmin || u.email.toLowerCase() === 'admin@copilot.com') return u; // Single Main Admin protected
         return { ...u, status: 'REVOKED' as const };
       }
       return u;
     }));
   };
 
+  const deleteUserAccount = (userId: string) => {
+    setUserAccounts(prev => prev.filter(u => u.id !== userId && !u.isSuperAdmin && u.email.toLowerCase() !== 'admin@copilot.com'));
+  };
 
   const makeUserAdmin = (userId: string) => {
+    // Single Admin Policy: Keep only Alex Vance as Admin, or explicitly confirm transfer
     setUserAccounts(prev => prev.map(u => u.id === userId ? { ...u, userType: 'ADMIN' as const, status: 'APPROVED' as const } : u));
   };
 
@@ -133,6 +134,11 @@ export function useRecruitmentStore() {
     setCandidates([]);
     setActiveCandidateId('');
     localStorage.removeItem('rc_candidates');
+  };
+
+  const clearAllUserAccounts = () => {
+    setUserAccounts(INITIAL_USERS);
+    localStorage.setItem('rc_user_accounts', JSON.stringify(INITIAL_USERS));
   };
 
   const registerUser = (name: string, email: string, role: string, password?: string) => {
@@ -210,9 +216,11 @@ export function useRecruitmentStore() {
     approveUser,
     rejectUser,
     revokeUserAccess,
+    deleteUserAccount,
     makeUserAdmin,
     registerUser,
     clearAllCandidates,
+    clearAllUserAccounts,
     questions,
     atsProviders,
     activeJobId,
