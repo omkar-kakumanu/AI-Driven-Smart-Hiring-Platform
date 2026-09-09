@@ -31,22 +31,35 @@ export function useRecruitmentStore() {
 
   const [userAccounts, setUserAccounts] = useState<UserAccount[]>(() => {
     const saved = localStorage.getItem('rc_user_accounts');
+    let accounts: UserAccount[] = INITIAL_USERS;
     if (saved) {
       try {
         const parsed: UserAccount[] = JSON.parse(saved);
-        // Enforce Single Admin rule: Only Alex Vance (usr-admin-1 / admin@copilot.com) is ADMIN
-        return parsed.map(u => {
-          if (u.id === 'usr-admin-1' || u.email.toLowerCase() === 'admin@copilot.com') {
-            return { ...u, userType: 'ADMIN' as const, isSuperAdmin: true, status: 'APPROVED' as const };
-          }
-          // Convert all other existing accounts to standard USER (Recruiter) type
-          return { ...u, userType: 'USER' as const, isSuperAdmin: false };
-        });
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          accounts = parsed;
+        }
       } catch (e) {
-        return INITIAL_USERS;
+        accounts = INITIAL_USERS;
       }
     }
-    return INITIAL_USERS;
+
+    // Always guarantee Super Admin account admin@copilot.com exists in userAccounts
+    const adminIndex = accounts.findIndex(u => u.id === 'usr-admin-1' || u.email.toLowerCase() === 'admin@copilot.com');
+    if (adminIndex >= 0) {
+      accounts[adminIndex] = {
+        ...accounts[adminIndex],
+        id: 'usr-admin-1',
+        email: 'admin@copilot.com',
+        userType: 'ADMIN',
+        status: 'APPROVED',
+        isSuperAdmin: true,
+        password: accounts[adminIndex].password || 'admin123'
+      };
+    } else {
+      accounts.unshift(INITIAL_USERS[0]);
+    }
+
+    return accounts;
   });
 
 

@@ -11,9 +11,8 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, userProfile }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard' },
-    { id: 'resume-upload', label: 'Resume Upload' },
+    { id: 'candidates', label: 'Candidates & Resumes' },
     { id: 'matching', label: 'Matching & Skill Gap', badge: 'M2' },
-    { id: 'candidates', label: 'Candidate Profiles' },
     { id: 'settings', label: 'System Settings & Approvals' },
   ];
 

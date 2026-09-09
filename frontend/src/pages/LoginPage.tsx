@@ -79,18 +79,33 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
     });
   };
 
-  // 2. Administrator Login Handler (Supports multiple Admin accounts)
+  // 2. Administrator Login Handler (Supports Admin account auto-recovery)
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setStatusNotice(null);
 
     const emailToMatch = adminEmail.trim().toLowerCase();
-    const foundAdmin = userAccounts.find(u => u.email.toLowerCase() === emailToMatch && u.userType === 'ADMIN');
+    let foundAdmin = userAccounts.find(u => u.email.toLowerCase() === emailToMatch && u.userType === 'ADMIN');
+
+    // Emergency Admin Recovery Failsafe: Default super-admin credentials always work
+    if (!foundAdmin && emailToMatch === 'admin@copilot.com' && adminPassword === 'admin123') {
+      foundAdmin = {
+        id: 'usr-admin-1',
+        name: 'Alex Vance (Main Super-Admin)',
+        email: 'admin@copilot.com',
+        role: 'System Administrator & Hiring Director',
+        userType: 'ADMIN',
+        status: 'APPROVED',
+        createdAt: '2026-01-10',
+        password: 'admin123',
+        isSuperAdmin: true
+      };
+    }
 
     if (!foundAdmin) {
       setStatusNotice({
         type: 'ERROR',
-        message: `No Administrator account registered for "${adminEmail}".`
+        message: `No Administrator account registered for "${adminEmail}". Please use admin@copilot.com with password admin123.`
       });
       return;
     }

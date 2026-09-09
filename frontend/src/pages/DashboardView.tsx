@@ -97,10 +97,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         <button 
-          onClick={() => onNavigate('resume-upload')}
+          onClick={() => onNavigate('candidates')}
           className="px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-sm transition-all whitespace-nowrap"
         >
-          Upload Resume (Milestone 1) →
+          Upload Resume & View Candidates →
         </button>
       </div>
 

@@ -30,72 +30,139 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   const [skills, setSkills] = useState<string[]>([]);
   const [candidateAvatar, setCandidateAvatar] = useState<string>('');
   const [newSkillInput, setNewSkillInput] = useState('');
+  const [parseError, setParseError] = useState<string | null>(null);
+
+  const SKILLS_VOCAB = [
+    "Python", "Java", "C++", "C#", "C", "Go", "Rust", "TypeScript", "JavaScript", "PHP", "Ruby", "Swift", "Kotlin", "Scala", "R",
+    "React", "Vue", "Angular", "Svelte", "Next.js", "Redux", "HTML", "HTML5", "CSS", "CSS3", "Tailwind", "Bootstrap", "REST", "GraphQL", "gRPC",
+    "Node.js", "Express", "Django", "Flask", "FastAPI", "Spring", "Spring Boot", "ASP.NET", "Microservices",
+    "SQL", "PostgreSQL", "MySQL", "MongoDB", "Redis", "SQLite", "Snowflake", "BigQuery", "DynamoDB", "Cassandra", "Elasticsearch",
+    "AWS", "Azure", "GCP", "Docker", "Kubernetes", "Terraform", "Ansible", "Jenkins", "CI/CD", "Git", "GitHub", "Linux",
+    "Machine Learning", "Deep Learning", "TensorFlow", "PyTorch", "Keras", "Scikit-Learn", "Pandas", "NumPy", "NLP", "LLM", "LangChain", "OpenAI",
+    "Cybersecurity", "SIEM", "Penetration Testing", "Firewalls", "Agile", "Scrum", "Jira", "React Native", "Flutter"
+  ];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selected = e.target.files[0];
       setFile(selected);
+      setParseError(null);
       processFile(selected);
     }
   };
 
-  const processFile = async (selectedFile: File) => {
-    setIsParsing(true);
-    setParsingProgress(25);
+  const parseTextForResumeDetails = (rawText: string, fileName: string) => {
+    const textLower = rawText.toLowerCase();
 
-    const fileNameNoExt = selectedFile.name.split('.')[0].replace(/[-_]/g, ' ');
-    const formattedName = fileNameNoExt.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    // Check resume validity indicators
+    const resumeKeywords = ["experience", "education", "skills", "projects", "summary", "objective", "work", "bachelor", "master", "university", "contact", "email", "phone"];
+    const keywordMatches = resumeKeywords.filter(kw => textLower.includes(kw));
+    const hasContact = /[\w\.-]+@[\w\.-]+/.test(rawText) || /\+?\d[\d -]{8,}\d/.test(rawText);
 
-    try {
-      const formData = new FormData();
-      formData.append('file', selectedFile);
+    // Extract skills strictly from text
+    const foundSkills = SKILLS_VOCAB.filter(skill => {
+      const regex = new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      return regex.test(rawText);
+    });
 
-      setParsingProgress(60);
-      const res = await fetch('http://localhost:8000/api/ai/parse-resume', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const profile = data.parsed_profile;
-
-        setParsingProgress(100);
-        setIsParsing(false);
-        setParsed(true);
-
-        setFullName(profile.full_name || formattedName);
-        setEmail(profile.email || `${selectedFile.name.toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`);
-        setPhone(profile.phone || '+1 (555) 392-1049');
-        setLocation(profile.location || 'San Francisco, CA');
-        setCurrentRole(profile.experience?.[0] || 'Software Engineer');
-        setExperienceYears(profile.total_experience_years || 4);
-        setDegree(profile.education?.degree || 'BS Computer Science');
-        setInstitution(profile.education?.institution || 'State University');
-        setSkills(profile.skills && profile.skills.length > 0 ? profile.skills : ['Python', 'SQL', 'Machine Learning']);
-        return;
-      }
-    } catch (err) {
-      console.warn("Backend API unavailable, using client-side fallback parsing", err);
+    if (!hasContact && keywordMatches.length < 2 && foundSkills.length < 2) {
+      return { isValid: false, error: "The uploaded file does not contain valid resume text or candidate skills. Please upload a valid candidate resume." };
     }
 
-    // Fallback client extraction if API unavailable
-    setTimeout(() => setParsingProgress(85), 300);
-    setTimeout(() => {
+    // Extract Name
+    const emailMatch = rawText.match(/[\w\.-]+@[\w\.-]+/);
+    const phoneMatch = rawText.match(/\+?\d[\d -]{8,}\d/);
+    const firstLine = rawText.split('\n').map(l => l.trim()).find(l => l.length > 0 && l.length < 40) || '';
+    const formattedName = firstLine && !/resume|cv|page/i.test(firstLine) 
+      ? firstLine 
+      : fileName.split('.')[0].replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+    return {
+      isValid: true,
+      name: formattedName,
+      email: emailMatch ? emailMatch[0] : `${fileName.split('.')[0].toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`,
+      phone: phoneMatch ? phoneMatch[0].trim() : '+1 (555) 392-1049',
+      skills: foundSkills,
+      experienceYears: Math.max(2, Math.min(10, Math.floor(rawText.length / 500))),
+      role: 'Software Engineer / Developer',
+      degree: 'BS Computer Science'
+    };
+  };
+
+  const processFile = async (selectedFile: File) => {
+    setIsParsing(true);
+    setParsingProgress(30);
+    setParseError(null);
+
+    // Read text client-side directly
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const fileText = (event.target?.result as string) || '';
+      setParsingProgress(60);
+
+      // Attempt backend API parsing first
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        const res = await fetch('http://localhost:8000/api/ai/parse-resume', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.is_valid === false || data.success === false) {
+            setIsParsing(false);
+            setParsingProgress(0);
+            setParsed(false);
+            setParseError(data.error || "Invalid resume document format.");
+            return;
+          }
+
+          const profile = data.parsed_profile;
+          setParsingProgress(100);
+          setIsParsing(false);
+          setParsed(true);
+
+          setFullName(profile.full_name || selectedFile.name.split('.')[0]);
+          setEmail(profile.email || `${selectedFile.name.toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`);
+          setPhone(profile.phone || '+1 (555) 392-1049');
+          setLocation(profile.location || 'San Francisco, CA');
+          setCurrentRole(profile.experience?.[0] || 'Software Developer');
+          setExperienceYears(profile.total_experience_years || 4);
+          setDegree(profile.education?.degree || 'BS Computer Science');
+          setInstitution(profile.education?.institution || 'State University');
+          setSkills(profile.skills || []);
+          return;
+        }
+      } catch (err) {
+        console.warn("Backend API unavailable, executing client-side resume parser", err);
+      }
+
+      // Client-side Resume Text Parsing Fallback
+      const parsedData = parseTextForResumeDetails(fileText, selectedFile.name);
       setParsingProgress(100);
       setIsParsing(false);
-      setParsed(true);
 
-      setFullName(formattedName || 'Candidate Profile');
-      setEmail(`${selectedFile.name.toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`);
-      setPhone('+1 (555) 392-1049');
+      if (!parsedData.isValid) {
+        setParsed(false);
+        setParseError(parsedData.error || "Invalid file content.");
+        return;
+      }
+
+      setParsed(true);
+      setFullName(parsedData.name || selectedFile.name.split('.')[0]);
+      setEmail(parsedData.email || `${selectedFile.name.toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`);
+      setPhone(parsedData.phone || '+1 (555) 392-1049');
       setLocation('San Francisco, CA');
-      setCurrentRole('Software Engineer');
-      setExperienceYears(4);
-      setDegree('BS Computer Science');
-      setInstitution('Stanford University');
-      setSkills(['Python', 'React', 'TypeScript', 'SQL', 'Docker', 'REST APIs']);
-    }, 600);
+      setCurrentRole(parsedData.role || 'Software Engineer / Developer');
+      setExperienceYears(parsedData.experienceYears || 3);
+      setDegree(parsedData.degree || 'BS Computer Science');
+      setInstitution('State University');
+      setSkills(parsedData.skills || []);
+    };
+
+    reader.readAsText(selectedFile);
   };
 
   const handleAddSkill = () => {
@@ -126,23 +193,30 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
       avatar: candidateAvatar || undefined
     });
 
-    alert(`Candidate "${fullName}" profile created & matched successfully!`);
+    alert(`Candidate "${fullName}" profile saved successfully!`);
     onNavigateToMatching();
   };
 
   const loadSampleResume = () => {
-    const dummyFile = new File(["Sample Resume Content"], "Sarah_Johnson_Resume.pdf", { type: "application/pdf" });
+    const sampleText = `
+    Sarah Johnson
+    Email: sarah.johnson@example.com | Phone: +1 (555) 019-2831
+    Education: MS in Computer Science, Stanford University
+    Experience: 5 years experience as Senior Machine Learning Engineer
+    Technical Skills: Python, Machine Learning, TensorFlow, SQL, Data Analysis, PyTorch, Docker, AWS
+    `;
+    const dummyFile = new File([sampleText], "Sarah_Johnson_Resume.txt", { type: "text/plain" });
     setFile(dummyFile);
     processFile(dummyFile);
   };
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8 font-sans">
-      {/* Header */}
+      {/* Unified Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Resume Parsing & Candidate Profiling</h2>
-          <p className="text-slate-500 text-sm mt-0.5">Upload resumes to automatically extract structured candidate data and calculate fit</p>
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Candidate Profiles & Resume Parser</h2>
+          <p className="text-slate-500 text-sm mt-0.5">Upload candidate resumes to extract skills automatically, edit profiles, and view the directory.</p>
         </div>
         <div className="flex items-center gap-3">
           <button 
@@ -151,9 +225,6 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
           >
             Load Sample Resume
           </button>
-          <span className="px-3 py-1 bg-blue-600 text-white rounded-md text-xs font-bold uppercase tracking-wider shadow-sm">
-            Milestone 1
-          </span>
         </div>
       </div>
 
@@ -224,10 +295,19 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
             )}
           </div>
 
+          {parseError && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl space-y-1">
+              <p className="text-xs font-bold text-red-800 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-red-600"></span> Parsing Error / Invalid Document
+              </p>
+              <p className="text-xs text-red-700 font-medium">{parseError}</p>
+            </div>
+          )}
+
           {!parsed ? (
             <div className="py-16 text-center text-slate-400 space-y-3">
               <p className="text-sm font-semibold text-slate-600">No Resume Processed Yet</p>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">Upload a resume file on the left or click "Load Sample Resume" to test automated parsing.</p>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">Upload a valid candidate resume file on the left or click "Load Sample Resume" to test automated parsing.</p>
             </div>
           ) : (
             <div className="space-y-4">

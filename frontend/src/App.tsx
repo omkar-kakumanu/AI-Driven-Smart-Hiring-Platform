@@ -101,9 +101,8 @@ export const App: React.FC = () => {
       case 'dashboard':
         return { title: 'AI Recruitment Copilot', subtitle: 'Automate candidate screening and improve hiring efficiency with AI' };
       case 'resume-upload':
-        return { title: 'Resume Parsing & Candidate Profiling', subtitle: 'Upload and process resumes to create structured candidate profiles' };
       case 'candidates':
-        return { title: 'Candidate Directory & Profiling', subtitle: 'Candidate technical profiles and skill inventory' };
+        return { title: 'Candidate Directory & Resume Upload', subtitle: 'Upload candidate resumes, extract technical skills, and manage candidate profiles' };
       case 'matching':
         return { title: 'Matching & Skill Analysis', subtitle: 'Candidate-job matching and skill-gap analysis' };
       case 'settings':
@@ -145,14 +144,7 @@ export const App: React.FC = () => {
               jobs={store.jobs}
             />
           )}
-          {currentTab === 'resume-upload' && (
-            <ResumeUploadView 
-              candidates={filteredCandidates}
-              onAddCandidate={store.addCandidate}
-              onNavigateToMatching={() => setCurrentTab('matching')}
-            />
-          )}
-          {currentTab === 'candidates' && (
+          {(currentTab === 'candidates' || currentTab === 'resume-upload') && (
             <ResumeUploadView 
               candidates={filteredCandidates}
               onAddCandidate={store.addCandidate}

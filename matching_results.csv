@@ -1,0 +1,7 @@
+Candidate,Job Title,Hiring Score (%),Matched Skills,Missing Skills
+Sarah Johnson,Senior Machine Learning Engineer,76.0,"Python, TensorFlow, SQL","Kubernetes, AWS SageMaker"
+Sarah Johnson,Backend Developer,40.0,SQL,"AWS, Java, Spring"
+David Lee,Senior Machine Learning Engineer,37.0,SQL,"Python, TensorFlow, Kubernetes, AWS SageMaker"
+David Lee,Backend Developer,100.0,"SQL, AWS, Java, Spring",
+Priya Sharma,Senior Machine Learning Engineer,69.75,"Python, SQL, Kubernetes","TensorFlow, AWS SageMaker"
+Priya Sharma,Backend Developer,55.0,"SQL, AWS","Java, Spring"

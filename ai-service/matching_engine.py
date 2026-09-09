@@ -143,28 +143,43 @@ def skill_gap_analysis(candidate: Dict[str, Any], job: Dict[str, Any]) -> Dict[s
     return report
 
 
-def process_batch_matching(candidates_list: List[Dict[str, Any]], jobs_list: List[Dict[str, Any]]) -> pd.DataFrame:
+def process_batch_matching(candidates_list: List[Dict[str, Any]], jobs_list: List[Dict[str, Any]], export_files: bool = True) -> pd.DataFrame:
     """
     Performs batch cross-matching across multiple candidates and job positions,
-    returning a structured pandas DataFrame.
+    returning a structured pandas DataFrame and exporting to matching_results.csv and matching_results.xlsx.
     """
-    records = []
+    results = []
 
-    for cand in candidates_list:
+    for candidate in candidates_list:
         for job in jobs_list:
-            score, matched = calculate_match(cand, job)
-            report = skill_gap_analysis(cand, job)
-            records.append({
-                "Candidate Name": cand.get("name") or cand.get("fullName"),
-                "Job Title": job.get("title"),
-                "Hiring Score (%)": score,
-                "Matched Count": len(matched),
-                "Missing Count": len(report["missing_skills"]),
-                "Matched Skills": ", ".join(matched),
-                "Missing Skills": ", ".join(report["missing_skills"])
+            hiring_score, matched_skills = calculate_match(candidate, job)
+            report = skill_gap_analysis(candidate, job)
+            missing_skills = report.get("missing_skills", [])
+
+            cand_name = candidate.get("name") or candidate.get("fullName") or "Candidate"
+            job_title = job.get("title") or "Target Position"
+
+            results.append({
+                "Candidate": cand_name,
+                "Job Title": job_title,
+                "Hiring Score (%)": hiring_score,
+                "Matched Skills": ", ".join(matched_skills),
+                "Missing Skills": ", ".join(missing_skills)
             })
 
-    df = pd.DataFrame(records)
+    df = pd.DataFrame(results)
+
+    if export_files:
+        try:
+            df.to_csv("matching_results.csv", index=False)
+        except Exception:
+            pass
+
+        try:
+            df.to_excel("matching_results.xlsx", index=False)
+        except Exception:
+            pass
+
     return df
 
 
