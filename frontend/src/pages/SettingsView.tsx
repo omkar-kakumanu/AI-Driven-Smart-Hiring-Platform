@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import type { ATSProvider, UserProfile, UserAccount } from '../types';
+import type { UserProfile, UserAccount } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
 
 interface SettingsViewProps {
-  atsProviders?: ATSProvider[];
   userProfile?: UserProfile;
   onUpdateUserProfile?: (updates: Partial<UserProfile>) => void;
   userAccounts?: UserAccount[];
@@ -17,7 +16,6 @@ interface SettingsViewProps {
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ 
-  atsProviders = [],
   userProfile,
   onUpdateUserProfile,
   userAccounts = [],
@@ -68,18 +66,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     setAvatar(undefined);
   };
 
-  const activeProviders = atsProviders.length > 0 ? atsProviders : [
-    { id: 'greenhouse', name: 'Greenhouse ATS', logo: 'GH', status: 'Connected' as const, lastSync: '10 mins ago', candidateCount: 142 },
-    { id: 'lever', name: 'Lever Recruiter', logo: 'LV', status: 'Disconnected' as const, lastSync: 'Never', candidateCount: 0 },
-    { id: 'workday', name: 'Workday Human Capital', logo: 'WD', status: 'Connected' as const, lastSync: '1 hour ago', candidateCount: 89 },
-  ];
-
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8 font-sans">
       {/* Header */}
       <div>
         <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">System Settings & Administration</h2>
-        <p className="text-slate-500 text-sm mt-0.5">Manage user access approvals, profile details, AI LLM endpoints, and integrations</p>
+        <p className="text-slate-500 text-sm mt-0.5">Manage user access approvals, profile details, and system administration</p>
       </div>
 
       {/* User Profile Settings Section */}
@@ -366,32 +358,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           >
             Clear All Candidate Resumes
           </button>
-        </div>
-      </div>
-
-      {/* ATS Integrations */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-        <div className="font-bold text-slate-900 text-base">
-          ATS Provider Integrations
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {activeProviders.map((provider) => (
-            <div key={provider.id} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-xs bg-slate-200 text-slate-800 px-2 py-1 rounded">{provider.logo}</span>
-                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                  provider.status === 'Connected' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
-                }`}>
-                  {provider.status}
-                </span>
-              </div>
-              <div>
-                <h4 className="font-bold text-slate-900 text-sm">{provider.name}</h4>
-                <p className="text-[11px] text-slate-500 font-medium">Last sync: {provider.lastSync}</p>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </div>

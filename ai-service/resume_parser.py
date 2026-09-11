@@ -1,4 +1,9 @@
-import fitz  # PyMuPDF
+# Load PyMuPDF with fallback
+try:
+    import pymupdf as fitz
+except Exception:
+    import fitz
+
 import docx
 import spacy
 import re
@@ -50,23 +55,31 @@ SKILLS_VOCABULARY = [
 ]
 
 def extract_text_from_pdf(pdf_path: str) -> str:
-    doc = fitz.open(pdf_path)
-    text = ""
-    for page in doc:
-        text += page.get_text() + "\n"
-    return text
+    try:
+        doc = fitz.open(pdf_path)
+        text = ""
+        for page in doc:
+            text += page.get_text() + "\n"
+        return text
+    except Exception as e:
+        print(f"PDF extraction error: {e}")
+        return ""
 
 def extract_text_from_docx(docx_path: str) -> str:
-    doc = docx.Document(docx_path)
-    text = "\n".join([para.text for para in doc.paragraphs if para.text.strip()])
-    return text
+    try:
+        doc = docx.Document(docx_path)
+        text = "\n".join([para.text for para in doc.paragraphs if para.text.strip()])
+        return text
+    except Exception as e:
+        print(f"DOCX extraction error: {e}")
+        return ""
 
 def validate_resume_content(text: str) -> bool:
     """
     Validates if text contains actual resume structure indicators.
     Returns True if text is a candidate resume, False if random text/file.
     """
-    if not text or len(text.strip()) < 40:
+    if not text or len(text.strip()) < 30:
         return False
 
     text_lower = text.lower()
@@ -83,11 +96,14 @@ def validate_resume_content(text: str) -> bool:
     # Check for email or phone
     has_contact = bool(re.search(r'[\w\.-]+@[\w\.-]+', text)) or bool(re.search(r'\+?\d[\d -]{8,}\d', text))
     
-    # Check for technical skills
-    found_skills_count = sum(1 for skill in SKILLS_VOCABULARY if re.search(r'\b' + re.escape(skill.lower()) + r'\b', text_lower))
+    # Check for technical skills using lookbehind/lookahead pattern
+    found_skills_count = sum(
+        1 for skill in SKILLS_VOCABULARY 
+        if re.search(r'(?<![a-zA-Z0-9])' + re.escape(skill.lower()) + r'(?![a-zA-Z0-9])', text_lower)
+    )
 
-    # A valid resume must have contact info OR (>= 2 section keywords) OR (>= 2 technical skills)
-    if has_contact or len(matches) >= 2 or found_skills_count >= 2:
+    # A valid resume must have contact info OR (>= 2 section keywords) OR (>= 1 technical skill)
+    if has_contact or len(matches) >= 2 or found_skills_count >= 1:
         return True
 
     return False
@@ -129,35 +145,41 @@ def extract_candidate_info(text: str) -> Dict[str, Any]:
     if phone_match:
         candidate["phone"] = phone_match.group(0).strip()
 
-    # Extract Name (first line or PERSON entity)
+    # Extract Name (first non-keyword header line or PERSON entity)
     lines = [line.strip() for line in text.split('\n') if line.strip()]
-    if lines:
-        possible_name = lines[0]
-        if len(possible_name.split()) <= 4 and not any(kw in possible_name.lower() for kw in ["resume", "cv", "curriculum", "page"]):
-            candidate["name"] = possible_name
+    for line in lines[:5]:
+        if len(line.split()) in [2, 3, 4] and not any(kw in line.lower() for kw in ["resume", "cv", "curriculum", "page", "summary", "experience", "education", "skills"]):
+            candidate["name"] = line
+            break
 
     if nlp and not candidate["name"]:
         doc = nlp(text[:1000])
         for ent in doc.ents:
-            if ent.label_ == "PERSON" and len(ent.text.strip().split()) <= 4:
+            if ent.label_ == "PERSON" and len(ent.text.strip().split()) in [2, 3, 4]:
                 candidate["name"] = ent.text.strip()
                 break
 
     # Extract Education
-    edu_matches = re.findall(r'(?:Bachelor|Master|Doctor|Ph\.?D|BS|MS|B\.S|M\.S|B.Tech|M.Tech|Diploma)\s*(?:of|in|degree)?\s*[A-Za-z\s]+', text, re.IGNORECASE)
+    edu_matches = re.findall(r'(?:Bachelor|Master|Doctor|Ph\.?D|BS|MS|B\.S|M\.S|B\.Tech|M\.Tech|Diploma)\s*(?:of|in|degree)?\s*[A-Za-z\s]+', text, re.IGNORECASE)
     if edu_matches:
         candidate["education"] = list(set([e.strip() for e in edu_matches[:3]]))
 
-    # Extract skills strictly from vocabulary (case-insensitive boundary match)
+    # Extract skills using robust lookbehind/lookahead boundary regex
     text_lower = text.lower()
     extracted_skills = []
     for skill in SKILLS_VOCABULARY:
-        pattern = r'\b' + re.escape(skill.lower()) + r'\b'
+        s_lower = skill.lower()
+        pattern = r'(?<![a-zA-Z0-9])' + re.escape(s_lower) + r'(?![a-zA-Z0-9])'
         if re.search(pattern, text_lower):
             if skill not in extracted_skills:
                 extracted_skills.append(skill)
 
     candidate["skills"] = extracted_skills
+
+    # Extract years of experience explicitly if mentioned
+    exp_years_match = re.search(r'(\d{1,2})\s*\+?\s*(?:years?|yrs?)\s*(?:of)?\s*(?:experience|exp)', text, re.IGNORECASE)
+    if exp_years_match:
+        candidate["total_experience_years"] = int(exp_years_match.group(1))
 
     # Extract work experience roles
     exp_matches = re.findall(r'(?:Senior|Junior|Lead|Principal|Staff)?\s*(?:Software|Data|Full Stack|Backend|Frontend|DevOps|ML|Machine Learning|Cloud|Security|Systems)\s*(?:Engineer|Developer|Scientist|Architect|Analyst|Specialist|Manager)', text, re.IGNORECASE)

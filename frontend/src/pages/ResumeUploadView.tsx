@@ -5,12 +5,14 @@ import { UserAvatar } from '../components/UserAvatar';
 interface ResumeUploadViewProps {
   candidates: Candidate[];
   onAddCandidate: (cand: Omit<Candidate, 'id' | 'status' | 'matchScore'>) => Candidate;
+  onDeleteCandidate?: (candidateId: string) => void;
   onNavigateToMatching: () => void;
 }
 
 export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({ 
   candidates, 
   onAddCandidate,
+  onDeleteCandidate,
   onNavigateToMatching
 }) => {
   const [file, setFile] = useState<File | null>(null);
@@ -51,31 +53,61 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
     }
   };
 
+  const extractDocumentTextClientSide = (rawText: string, fileName: string): string => {
+    const ext = fileName.split('.').pop()?.toLowerCase() || '';
+
+    if (ext === 'docx' || ext === 'doc') {
+      // Extract XML text nodes from Word document structure (<w:t>text</w:t>)
+      const matches = rawText.match(/<w:t[^>]*>(.*?)<\/w:t>/gi);
+      if (matches && matches.length > 0) {
+        return matches.map(m => m.replace(/<[^>]+>/g, '')).join(' ');
+      }
+    }
+
+    if (ext === 'pdf') {
+      // Extract text stream operators ((text) Tj / [(text)] TJ) from PDF objects
+      const tjMatches = rawText.match(/\(([^()]{2,120})\)\s*T[jJ]/g);
+      if (tjMatches && tjMatches.length > 0) {
+        return tjMatches.map(m => m.replace(/[()]/g, '').replace(/T[jJ]/g, '')).join(' ');
+      }
+    }
+
+    // Default clean printable ASCII text
+    return rawText.replace(/[^\x20-\x7E\n\r\t]/g, ' ');
+  };
+
   const parseTextForResumeDetails = (rawText: string, fileName: string) => {
-    const textLower = rawText.toLowerCase();
+    const cleanText = extractDocumentTextClientSide(rawText, fileName);
+    const textLower = cleanText.toLowerCase();
 
     // Check resume validity indicators
     const resumeKeywords = ["experience", "education", "skills", "projects", "summary", "objective", "work", "bachelor", "master", "university", "contact", "email", "phone"];
     const keywordMatches = resumeKeywords.filter(kw => textLower.includes(kw));
-    const hasContact = /[\w\.-]+@[\w\.-]+/.test(rawText) || /\+?\d[\d -]{8,}\d/.test(rawText);
+    const hasContact = /[\w\.-]+@[\w\.-]+/.test(cleanText) || /\+?\d[\d -]{8,}\d/.test(cleanText);
 
-    // Extract skills strictly from text
+    // Extract skills using lookbehind/lookahead boundary regex
     const foundSkills = SKILLS_VOCAB.filter(skill => {
-      const regex = new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-      return regex.test(rawText);
+      const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(?<![a-zA-Z0-9])${escaped}(?![a-zA-Z0-9])`, 'i');
+      return regex.test(cleanText);
     });
 
-    if (!hasContact && keywordMatches.length < 2 && foundSkills.length < 2) {
-      return { isValid: false, error: "The uploaded file does not contain valid resume text or candidate skills. Please upload a valid candidate resume." };
+    if (!hasContact && keywordMatches.length < 2 && foundSkills.length < 1) {
+      return { isValid: false, error: "The uploaded file does not contain valid candidate resume text or technical skills. Please upload a valid candidate resume." };
     }
 
     // Extract Name
-    const emailMatch = rawText.match(/[\w\.-]+@[\w\.-]+/);
-    const phoneMatch = rawText.match(/\+?\d[\d -]{8,}\d/);
-    const firstLine = rawText.split('\n').map(l => l.trim()).find(l => l.length > 0 && l.length < 40) || '';
-    const formattedName = firstLine && !/resume|cv|page/i.test(firstLine) 
-      ? firstLine 
+    const emailMatch = cleanText.match(/[\w\.-]+@[\w\.-]+/);
+    const phoneMatch = cleanText.match(/\+?\d[\d -]{8,}\d/);
+    const textLines = cleanText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    const firstHeaderLine = textLines.find(l => l.length > 0 && l.length < 40 && !/resume|cv|page|summary|experience|education|skills/i.test(l)) || '';
+    
+    const formattedName = firstHeaderLine 
+      ? firstHeaderLine 
       : fileName.split('.')[0].replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+    const expYearsMatch = cleanText.match(/(\d{1,2})\s*\+?\s*(?:years?|yrs?)\s*(?:of)?\s*(?:experience|exp)/i);
+    const experienceYears = expYearsMatch ? parseInt(expYearsMatch[1], 10) : 4;
 
     return {
       isValid: true,
@@ -83,7 +115,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
       email: emailMatch ? emailMatch[0] : `${fileName.split('.')[0].toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`,
       phone: phoneMatch ? phoneMatch[0].trim() : '+1 (555) 392-1049',
       skills: foundSkills,
-      experienceYears: Math.max(2, Math.min(10, Math.floor(rawText.length / 500))),
+      experienceYears: experienceYears,
       role: 'Software Engineer / Developer',
       degree: 'BS Computer Science'
     };
@@ -468,7 +500,8 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                   <th className="py-3 px-4">Experience</th>
                   <th className="py-3 px-4">Top Skills</th>
                   <th className="py-3 px-4 text-center">Match Score</th>
-                  <th className="py-3 px-4 text-right">Status</th>
+                  <th className="py-3 px-4 text-center">Status</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -497,10 +530,26 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                         {cand.matchScore}%
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-right">
+                    <td className="py-3.5 px-4 text-center">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
                         {cand.status}
                       </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`Delete candidate resume "${cand.fullName}"?`)) {
+                            onDeleteCandidate && onDeleteCandidate(cand.id);
+                          }
+                        }}
+                        className="px-2.5 py-1 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-lg transition-colors inline-flex items-center gap-1"
+                        title="Delete this resume and candidate profile"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))}

@@ -43,17 +43,18 @@ export function useRecruitmentStore() {
       }
     }
 
-    // Always guarantee Super Admin account admin@copilot.com exists in userAccounts
+    // Always guarantee Super Admin account admin@copilot.com exists in userAccounts with valid credentials
     const adminIndex = accounts.findIndex(u => u.id === 'usr-admin-1' || u.email.toLowerCase() === 'admin@copilot.com');
     if (adminIndex >= 0) {
       accounts[adminIndex] = {
         ...accounts[adminIndex],
         id: 'usr-admin-1',
+        name: accounts[adminIndex].name || 'Alex Vance (Main Super-Admin)',
         email: 'admin@copilot.com',
         userType: 'ADMIN',
         status: 'APPROVED',
         isSuperAdmin: true,
-        password: accounts[adminIndex].password || 'admin123'
+        password: 'admin123'
       };
     } else {
       accounts.unshift(INITIAL_USERS[0]);

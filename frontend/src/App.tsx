@@ -148,6 +148,7 @@ export const App: React.FC = () => {
             <ResumeUploadView 
               candidates={filteredCandidates}
               onAddCandidate={store.addCandidate}
+              onDeleteCandidate={store.deleteCandidate}
               onNavigateToMatching={() => setCurrentTab('matching')}
             />
           )}
@@ -159,7 +160,6 @@ export const App: React.FC = () => {
           )}
           {currentTab === 'settings' && (
             <SettingsView 
-              atsProviders={store.atsProviders} 
               userProfile={store.userProfile}
               onUpdateUserProfile={store.updateUserProfile}
               userAccounts={store.userAccounts}
