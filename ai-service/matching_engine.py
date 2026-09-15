@@ -115,6 +115,8 @@ def skill_gap_analysis(candidate: Dict[str, Any], job: Dict[str, Any]) -> Dict[s
     Generates structured skill gap analysis report including:
     - Matched skills
     - Missing required skills
+    - Skill match percentage & 85% benchmark qualification
+    - Candidate alerts for < 85% skill match
     - Actionable learning recommendations
     """
     hiring_score, matched_skills = calculate_match(candidate, job)
@@ -131,10 +133,18 @@ def skill_gap_analysis(candidate: Dict[str, Any], job: Dict[str, Any]) -> Dict[s
     cand_name = candidate.get("name") or candidate.get("fullName") or "Candidate"
     job_title = job.get("title") or "Target Position"
 
+    # Skill match percentage & 85% benchmark status
+    skill_match_pct = round((len(matched_skills) / max(len(req_skills), 1)) * 100, 2) if req_skills else 100.0
+    is_qualified = skill_match_pct >= 85.0
+
     report = {
         "candidate": cand_name,
         "job_title": job_title,
         "hiring_score": hiring_score,
+        "skill_match_pct": skill_match_pct,
+        "is_qualified": is_qualified,
+        "benchmark_status": f"QUALIFIED ({skill_match_pct}% >= 85%)" if is_qualified else f"ALERT ({skill_match_pct}% < 85%)",
+        "alert": None if is_qualified else f"Alert: Skill match {skill_match_pct}% is below 85% requirement. Upskilling recommended in: {', '.join(missing_skills)}",
         "matched_skills": list(matched_skills),
         "missing_skills": list(missing_skills),
         "recommendations": [f"Consider training in {skill}" for skill in missing_skills]
@@ -146,7 +156,8 @@ def skill_gap_analysis(candidate: Dict[str, Any], job: Dict[str, Any]) -> Dict[s
 def process_batch_matching(candidates_list: List[Dict[str, Any]], jobs_list: List[Dict[str, Any]], export_files: bool = True) -> pd.DataFrame:
     """
     Performs batch cross-matching across multiple candidates and job positions,
-    returning a structured pandas DataFrame and exporting to matching_results.csv and matching_results.xlsx.
+    dynamically ranks candidates, evaluates against the 85% skill match benchmark,
+    returns a structured pandas DataFrame, and exports to matching_results.csv and matching_results.xlsx.
     """
     results = []
 
@@ -155,21 +166,41 @@ def process_batch_matching(candidates_list: List[Dict[str, Any]], jobs_list: Lis
             hiring_score, matched_skills = calculate_match(candidate, job)
             report = skill_gap_analysis(candidate, job)
             missing_skills = report.get("missing_skills", [])
+            skill_match_pct = report.get("skill_match_pct", 0.0)
 
             cand_name = candidate.get("name") or candidate.get("fullName") or "Candidate"
             job_title = job.get("title") or "Target Position"
 
+            is_qualified = skill_match_pct >= 85.0
+            benchmark_status = f"QUALIFIED ({skill_match_pct}% >= 85%)" if is_qualified else f"ALERT ({skill_match_pct}% < 85%)"
+            alert_flag = "None (Meets >=85% Target)" if is_qualified else f"ALERT: Skill match {skill_match_pct}% is below 85% requirement. Upskilling recommended in: {', '.join(missing_skills) if missing_skills else 'Domain Skills'}"
+
             results.append({
                 "Candidate": cand_name,
                 "Job Title": job_title,
+                "Skill Match (%)": skill_match_pct,
                 "Hiring Score (%)": hiring_score,
+                "Benchmark Status": benchmark_status,
+                "Alert": alert_flag,
                 "Matched Skills": ", ".join(matched_skills),
                 "Missing Skills": ", ".join(missing_skills)
             })
 
     df = pd.DataFrame(results)
 
-    if export_files:
+    if not df.empty:
+        # Dynamic ranking per Job Title by Hiring Score (%) and Skill Match (%) descending
+        df = df.sort_values(by=["Job Title", "Hiring Score (%)", "Skill Match (%)"], ascending=[True, False, False]).reset_index(drop=True)
+        df["Rank"] = df.groupby("Job Title").cumcount() + 1
+        df["Rank"] = df["Rank"].apply(lambda r: f"#{r}")
+
+        column_order = [
+            "Rank", "Candidate", "Job Title", "Skill Match (%)",
+            "Hiring Score (%)", "Benchmark Status", "Alert", "Matched Skills", "Missing Skills"
+        ]
+        df = df[column_order]
+
+    if export_files and not df.empty:
         try:
             df.to_csv("matching_results.csv", index=False)
         except Exception:

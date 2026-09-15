@@ -2,17 +2,21 @@
   "candidate": "Sarah Johnson",
   "job_title": "Senior Machine Learning Engineer",
   "hiring_score": 76.0,
+  "skill_match_pct": 60.0,
+  "is_qualified": false,
+  "benchmark_status": "ALERT (60.0% < 85%)",
+  "alert": "Alert: Skill match 60.0% is below 85% requirement. Upskilling recommended in: Kubernetes, AWS SageMaker",
   "matched_skills": [
+    "SQL",
     "Python",
-    "TensorFlow",
-    "SQL"
+    "TensorFlow"
   ],
   "missing_skills": [
-    "AWS SageMaker",
-    "Kubernetes"
+    "Kubernetes",
+    "AWS SageMaker"
   ],
   "recommendations": [
-    "Consider training in AWS SageMaker",
-    "Consider training in Kubernetes"
+    "Consider training in Kubernetes",
+    "Consider training in AWS SageMaker"
   ]
 }

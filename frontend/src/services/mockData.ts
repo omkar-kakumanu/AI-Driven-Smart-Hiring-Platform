@@ -156,7 +156,98 @@ export const INITIAL_JOBS: Job[] = [
   }
 ];
 
-export const INITIAL_CANDIDATES: Candidate[] = [];
+export const INITIAL_CANDIDATES: Candidate[] = [
+  {
+    id: 'cand-1',
+    fullName: 'Sarah Johnson',
+    email: 'sarah.johnson@example.com',
+    phone: '+1 (555) 019-2831',
+    location: 'San Francisco, CA',
+    currentRole: 'Senior Machine Learning Engineer',
+    totalExperienceYears: 5,
+    headline: 'Senior ML Engineer with 5 years experience in Python, TensorFlow, PyTorch',
+    skills: ['Python', 'Machine Learning', 'TensorFlow', 'PyTorch', 'SQL', 'Data Analysis', 'AWS SageMaker', 'Docker'],
+    degree: 'MS Computer Science',
+    institution: 'Stanford University',
+    status: 'Applied',
+    matchScore: 92
+  },
+  {
+    id: 'cand-2',
+    fullName: 'Alex Chen',
+    email: 'alex.chen@example.com',
+    phone: '+1 (555) 482-9910',
+    location: 'Austin, TX',
+    currentRole: 'Frontend React Developer',
+    totalExperienceYears: 4,
+    headline: 'Frontend Engineer specialized in React, TypeScript, Redux, and modern UI',
+    skills: ['React', 'TypeScript', 'JavaScript', 'Redux', 'HTML5', 'Tailwind CSS', 'REST APIs'],
+    degree: 'BS Computer Science',
+    institution: 'UT Austin',
+    status: 'Screened',
+    matchScore: 88
+  },
+  {
+    id: 'cand-3',
+    fullName: 'Emily Rodriguez',
+    email: 'emily.rodriguez@example.com',
+    phone: '+1 (555) 731-4029',
+    location: 'Seattle, WA',
+    currentRole: 'DevOps & Security Specialist',
+    totalExperienceYears: 6,
+    headline: 'DevOps Architect experienced in Kubernetes, Docker, AWS, Terraform',
+    skills: ['Kubernetes', 'Docker', 'AWS', 'Terraform', 'CI/CD', 'Linux', 'Python', 'Cybersecurity'],
+    degree: 'BS Computer Science',
+    institution: 'University of Washington',
+    status: 'Shortlisted',
+    matchScore: 95
+  },
+  {
+    id: 'cand-4',
+    fullName: 'Marcus Vance',
+    email: 'marcus.vance@example.com',
+    phone: '+1 (555) 839-2011',
+    location: 'New York, NY',
+    currentRole: 'Backend Systems Architect',
+    totalExperienceYears: 5,
+    headline: 'Enterprise Java Architect specializing in Spring Boot and Microservices',
+    skills: ['Java', 'Spring Boot', 'PostgreSQL', 'Microservices', 'Redis', 'Docker', 'SQL', 'REST APIs'],
+    degree: 'BS Software Engineering',
+    institution: 'Columbia University',
+    status: 'Interviewed',
+    matchScore: 86
+  },
+  {
+    id: 'cand-5',
+    fullName: 'Elena Rostova',
+    email: 'elena.rostova@example.com',
+    phone: '+1 (555) 294-8102',
+    location: 'Chicago, IL',
+    currentRole: 'Data Engineer & ETL Specialist',
+    totalExperienceYears: 4,
+    headline: 'Data Engineering expert in Apache Spark, Snowflake, Airflow, and Python',
+    skills: ['Python', 'SQL', 'Apache Spark', 'Snowflake', 'Airflow', 'Data Modeling', 'PostgreSQL'],
+    degree: 'MS Data Analytics',
+    institution: 'Northwestern University',
+    status: 'Offered',
+    matchScore: 84
+  },
+  {
+    id: 'cand-6',
+    fullName: 'Priya Sharma',
+    email: 'priya.sharma@example.com',
+    phone: '+1 (555) 912-3847',
+    location: 'San Francisco, CA',
+    currentRole: 'AI & LLM Prompt Engineer',
+    totalExperienceYears: 3,
+    headline: 'AI Developer creating RAG systems with LangChain, OpenAI, and FastAPI',
+    skills: ['Python', 'LangChain', 'OpenAI API', 'Prompt Engineering', 'Vector Databases', 'FastAPI', 'Docker'],
+    degree: 'BS AI Systems',
+    institution: 'UC Berkeley',
+    status: 'Applied',
+    matchScore: 89
+  }
+];
 
 export const INITIAL_QUESTIONS: InterviewQuestion[] = [
   {

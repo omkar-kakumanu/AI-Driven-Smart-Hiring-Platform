@@ -5,11 +5,11 @@ import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardView } from './pages/DashboardView';
 import { ResumeUploadView } from './pages/ResumeUploadView';
-import { SettingsView } from './pages/SettingsView';
 import { MatchingView } from './pages/MatchingView';
+import { SettingsView } from './pages/SettingsView';
+import { InterviewAssistantView } from './pages/InterviewAssistantView';
 import { useRecruitmentStore } from './store/useRecruitmentStore';
 import type { UserProfile } from './types';
-
 
 export const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -28,6 +28,12 @@ export const App: React.FC = () => {
   // Central Reactive Recruitment Store
   const store = useRecruitmentStore();
 
+  // Determine if logged in user is the Main Super-Admin
+  const isMainAdmin = store.userProfile?.userType === 'ADMIN' && (
+    store.userProfile?.isSuperAdmin === true || 
+    store.userProfile?.email?.toLowerCase() === 'admin@copilot.com'
+  );
+
   // Filter candidates based on Header Search Query
   const filteredCandidates = store.candidates.filter(c => {
     if (!searchQuery.trim()) return true;
@@ -36,6 +42,8 @@ export const App: React.FC = () => {
       c.fullName.toLowerCase().includes(q) ||
       c.email.toLowerCase().includes(q) ||
       c.currentRole.toLowerCase().includes(q) ||
+      (c.headline || '').toLowerCase().includes(q) ||
+      (c.location || '').toLowerCase().includes(q) ||
       (c.degree || '').toLowerCase().includes(q) ||
       (c.skills || []).some(s => s.toLowerCase().includes(q))
     );
@@ -105,6 +113,8 @@ export const App: React.FC = () => {
         return { title: 'Candidate Directory & Resume Upload', subtitle: 'Upload candidate resumes, extract technical skills, and manage candidate profiles' };
       case 'matching':
         return { title: 'Matching & Skill Analysis', subtitle: 'Candidate-job matching and skill-gap analysis' };
+      case 'interview-assistant':
+        return { title: 'Interview Assistance & ATS Integration', subtitle: 'Generate interview questions, simulate interviews, and manage candidates' };
       case 'settings':
         return { title: 'System Settings', subtitle: 'Configure user access approvals and database settings' };
       default:
@@ -130,6 +140,7 @@ export const App: React.FC = () => {
           subtitle={headerInfo.subtitle}
           userProfile={store.userProfile}
           searchQuery={searchQuery}
+          matchCount={filteredCandidates.length}
           onSearchChange={setSearchQuery}
           onNewJobClick={() => setShowNewJobModal(true)}
           onProfileClick={() => setCurrentTab('settings')}
@@ -141,21 +152,44 @@ export const App: React.FC = () => {
             <DashboardView 
               onNavigate={setCurrentTab} 
               candidates={filteredCandidates}
+              allCandidatesCount={store.candidates.length}
               jobs={store.jobs}
+              searchQuery={searchQuery}
+              onClearSearch={() => setSearchQuery('')}
             />
           )}
           {(currentTab === 'candidates' || currentTab === 'resume-upload') && (
             <ResumeUploadView 
               candidates={filteredCandidates}
+              searchQuery={searchQuery}
+              onClearSearch={() => setSearchQuery('')}
+              isMainAdmin={isMainAdmin}
               onAddCandidate={store.addCandidate}
               onDeleteCandidate={store.deleteCandidate}
+              onAddSkillToCandidate={store.addSkillToCandidate}
+              onRemoveSkillFromCandidate={store.removeSkillFromCandidate}
+              onUpdateCandidateRoleAndExperience={store.updateCandidateRoleAndExperience}
               onNavigateToMatching={() => setCurrentTab('matching')}
             />
           )}
           {currentTab === 'matching' && (
             <MatchingView 
               candidates={filteredCandidates}
+              searchQuery={searchQuery}
+              onClearSearch={() => setSearchQuery('')}
               jobs={store.jobs}
+              isMainAdmin={isMainAdmin}
+              onAddSkillToCandidate={store.addSkillToCandidate}
+              onRemoveSkillFromCandidate={store.removeSkillFromCandidate}
+            />
+          )}
+          {currentTab === 'interview-assistant' && (
+            <InterviewAssistantView 
+              candidates={filteredCandidates}
+              jobs={store.jobs}
+              isMainAdmin={isMainAdmin}
+              onUpdateCandidateStatusByEmail={store.updateCandidateStatusByEmail}
+              onUpdateCandidateRoleAndExperience={store.updateCandidateRoleAndExperience}
             />
           )}
           {currentTab === 'settings' && (

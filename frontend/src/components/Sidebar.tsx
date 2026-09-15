@@ -13,6 +13,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, use
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'candidates', label: 'Candidates & Resumes' },
     { id: 'matching', label: 'Matching & Skill Gap', badge: 'M2' },
+    { id: 'interview-assistant', label: 'Interview Assistant', badge: 'M3' },
     { id: 'settings', label: 'System Settings & Approvals' },
   ];
 

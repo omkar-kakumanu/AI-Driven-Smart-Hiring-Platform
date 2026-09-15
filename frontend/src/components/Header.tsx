@@ -7,6 +7,7 @@ interface HeaderProps {
   subtitle: string;
   userProfile?: UserProfile;
   searchQuery?: string;
+  matchCount?: number;
   onSearchChange?: (q: string) => void;
   onNewJobClick?: () => void;
   onProfileClick?: () => void;
@@ -18,6 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
   subtitle, 
   userProfile,
   searchQuery = '',
+  matchCount,
   onSearchChange,
   onNewJobClick, 
   onProfileClick,
@@ -39,14 +41,34 @@ export const Header: React.FC<HeaderProps> = ({
 
       <div className="flex items-center gap-3">
         {/* Real-Time Candidate Search Input */}
-        <div>
+        <div className="relative flex items-center">
+          <svg className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
             placeholder="Search candidates by name, skills, role..."
-            className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64 transition-all"
+            className="pl-9 pr-16 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-72 transition-all"
           />
+          {searchQuery && (
+            <div className="absolute right-2.5 flex items-center gap-1">
+              {matchCount !== undefined && (
+                <span className="text-[10px] font-extrabold bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-md border border-blue-200">
+                  {matchCount}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => onSearchChange && onSearchChange('')}
+                className="w-4 h-4 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-xs font-bold leading-none"
+                title="Clear search query"
+              >
+                ×
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Action Button: + New Job (Admin Only) */}

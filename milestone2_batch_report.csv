@@ -1,10 +1,10 @@
-Candidate Name,Job Title,Hiring Score (%),Matched Count,Missing Count,Matched Skills,Missing Skills
-Sarah Johnson,Senior Machine Learning Engineer,76.0,3,2,"Python, TensorFlow, SQL","AWS SageMaker, Kubernetes"
-Sarah Johnson,Backend Java Specialist,56.25,1,2,SQL,"Docker, Java"
-Sarah Johnson,DevOps & Cloud Engineer,51.25,1,3,Python,"Kubernetes, AWS, Docker"
-Alex Chen,Senior Machine Learning Engineer,66.0,3,2,"Python, Kubernetes, SQL","AWS SageMaker, TensorFlow"
-Alex Chen,Backend Java Specialist,100.0,3,0,"Docker, Java, SQL",
-Alex Chen,DevOps & Cloud Engineer,78.75,3,1,"Kubernetes, Docker, Python",AWS
-Emily Rodriguez,Senior Machine Learning Engineer,100.0,5,0,"AWS SageMaker, SQL, Kubernetes, TensorFlow, Python",
-Emily Rodriguez,Backend Java Specialist,56.25,1,2,SQL,"Docker, Java"
-Emily Rodriguez,DevOps & Cloud Engineer,66.25,2,2,"Kubernetes, Python","AWS, Docker"
+Rank,Candidate,Job Title,Skill Match (%),Hiring Score (%),Benchmark Status,Alert,Matched Skills,Missing Skills
+#1,Alex Chen,Backend Java Specialist,100.0,100.0,QUALIFIED (100.0% >= 85%),None (Meets >=85% Target),"Docker, Java, SQL",
+#2,Sarah Johnson,Backend Java Specialist,33.33,56.25,ALERT (33.33% < 85%),"ALERT: Skill match 33.33% is below 85% requirement. Upskilling recommended in: Docker, Java",SQL,"Docker, Java"
+#3,Emily Rodriguez,Backend Java Specialist,33.33,56.25,ALERT (33.33% < 85%),"ALERT: Skill match 33.33% is below 85% requirement. Upskilling recommended in: Docker, Java",SQL,"Docker, Java"
+#1,Alex Chen,DevOps & Cloud Engineer,75.0,78.75,ALERT (75.0% < 85%),ALERT: Skill match 75.0% is below 85% requirement. Upskilling recommended in: AWS,"Docker, Kubernetes, Python",AWS
+#2,Emily Rodriguez,DevOps & Cloud Engineer,50.0,66.25,ALERT (50.0% < 85%),"ALERT: Skill match 50.0% is below 85% requirement. Upskilling recommended in: Docker, AWS","Kubernetes, Python","Docker, AWS"
+#3,Sarah Johnson,DevOps & Cloud Engineer,25.0,51.25,ALERT (25.0% < 85%),"ALERT: Skill match 25.0% is below 85% requirement. Upskilling recommended in: Docker, Kubernetes, AWS",Python,"Docker, Kubernetes, AWS"
+#1,Emily Rodriguez,Senior Machine Learning Engineer,100.0,100.0,QUALIFIED (100.0% >= 85%),None (Meets >=85% Target),"AWS SageMaker, Python, TensorFlow, Kubernetes, SQL",
+#2,Sarah Johnson,Senior Machine Learning Engineer,60.0,76.0,ALERT (60.0% < 85%),"ALERT: Skill match 60.0% is below 85% requirement. Upskilling recommended in: Kubernetes, AWS SageMaker","SQL, Python, TensorFlow","Kubernetes, AWS SageMaker"
+#3,Alex Chen,Senior Machine Learning Engineer,60.0,66.0,ALERT (60.0% < 85%),"ALERT: Skill match 60.0% is below 85% requirement. Upskilling recommended in: AWS SageMaker, TensorFlow","Kubernetes, Python, SQL","AWS SageMaker, TensorFlow"

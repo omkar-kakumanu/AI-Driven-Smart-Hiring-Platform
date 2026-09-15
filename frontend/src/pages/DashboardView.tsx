@@ -18,16 +18,22 @@ import { UserAvatar } from '../components/UserAvatar';
 interface DashboardViewProps {
   onNavigate: (tab: string) => void;
   candidates?: Candidate[];
+  allCandidatesCount?: number;
   jobs?: Job[];
+  searchQuery?: string;
+  onClearSearch?: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({ 
   onNavigate,
   candidates = [],
-  jobs = []
+  allCandidatesCount = 0,
+  jobs = [],
+  searchQuery = '',
+  onClearSearch
 }) => {
   const stats = [
-    { title: 'Total Candidates', value: candidates.length.toString(), change: '+12%', note: 'vs last month' },
+    { title: 'Matching Candidates', value: candidates.length.toString(), change: searchQuery ? 'Filtered' : '+12%', note: searchQuery ? `out of ${allCandidatesCount} total` : 'vs last month' },
     { title: 'Active Openings', value: jobs.length.toString(), change: '+3', note: 'new roles' },
     { title: 'Screening Pass Rate', value: '78%', change: '+5%', note: 'quality score' },
     { title: 'Avg Time to Screen', value: '1.2 days', change: '-40%', note: 'faster cycle' },
@@ -185,33 +191,71 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Active Candidates List */}
         <div className="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="font-bold text-slate-900 text-base">Recently Profiled Candidates</h3>
+            <h3 className="font-bold text-slate-900 text-base">Top Ranked Candidates Leaderboard</h3>
             <button onClick={() => onNavigate('candidates')} className="text-xs font-bold text-blue-600 hover:underline">
               View All Directory →
             </button>
           </div>
 
           <div className="divide-y divide-slate-100">
-            {candidates.slice(0, 4).map((cand) => (
-              <div key={cand.id} className="py-3.5 flex items-center justify-between hover:bg-slate-50/60 transition-colors px-2 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <UserAvatar name={cand.fullName} avatar={cand.avatar} size="md" />
-                  <div>
-                    <p className="text-sm font-bold text-slate-900">{cand.fullName}</p>
-                    <p className="text-xs text-slate-500 font-medium">{cand.currentRole} • {cand.totalExperienceYears} yrs exp</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-black text-xs rounded-full">
-                    {cand.matchScore}% Match
-                  </span>
-                  <button onClick={() => onNavigate('matching')} className="text-xs font-bold text-slate-400 hover:text-slate-700">
-                    Details
+            {candidates.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 space-y-2">
+                <p className="text-xs font-bold text-slate-600">No candidates match search query "{searchQuery}"</p>
+                {onClearSearch && (
+                  <button onClick={onClearSearch} className="text-xs font-bold text-blue-600 hover:underline">
+                    Clear Search Filter
                   </button>
-                </div>
+                )}
               </div>
-            ))}
+            ) : (
+              [...candidates]
+                .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))
+                .slice(0, 5)
+                .map((cand, index) => {
+                  const isTopTier = (cand.matchScore || 0) >= 85;
+                  return (
+                    <div key={cand.id} className="py-3.5 flex items-center justify-between hover:bg-slate-50/60 transition-colors px-2 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-black shrink-0 ${
+                          index === 0 ? 'bg-amber-400 text-amber-950 ring-2 ring-amber-300' :
+                          index === 1 ? 'bg-slate-200 text-slate-800' :
+                          index === 2 ? 'bg-amber-100 text-amber-900 border border-amber-300' :
+                          'bg-slate-100 text-slate-600'
+                        }`}>
+                          #{index + 1}
+                        </span>
+                        <UserAvatar name={cand.fullName} avatar={cand.avatar} size="md" />
+                        <div>
+                          <p className="text-sm font-bold text-slate-900">{cand.fullName}</p>
+                          <p className="text-xs text-slate-500 font-medium">{cand.currentRole} • {cand.totalExperienceYears} yrs exp</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {(cand.skills || []).slice(0, 3).map((sk, i) => (
+                              <span key={i} className="text-[10px] bg-slate-100 font-semibold px-1.5 py-0.2 rounded border border-slate-200 text-slate-600">
+                                {sk}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2.5">
+                        {isTopTier ? (
+                          <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 font-black text-xs rounded-full">
+                            {cand.matchScore}% (≥85% Top Fit)
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 bg-rose-50 text-rose-800 border border-rose-200 font-black text-xs rounded-full">
+                            ⚠️ {cand.matchScore}% (&lt;85% Alert)
+                          </span>
+                        )}
+                        <button onClick={() => onNavigate('matching')} className="text-xs font-bold text-blue-600 hover:text-blue-800">
+                          Details →
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+            )}
           </div>
         </div>
 

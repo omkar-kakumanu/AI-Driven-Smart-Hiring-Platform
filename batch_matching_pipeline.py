@@ -23,7 +23,8 @@ def calculate_match(candidate, job):
     matched_skills = required_skills.intersection(candidate_skills)
 
     # Skill score (weight 0.6)
-    skill_score = len(matched_skills) / len(required_skills)
+    skill_match_pct = round((len(matched_skills) / len(required_skills)) * 100, 2) if required_skills else 100.0
+    skill_score = len(matched_skills) / len(required_skills) if required_skills else 1.0
     # Experience score (weight 0.25)
     exp_score = min(candidate["experience"] / job["experience_required"], 1.0)
     # Education score (weight 0.15)
@@ -31,7 +32,7 @@ def calculate_match(candidate, job):
 
     # Weighted hiring score
     hiring_score = round((skill_score * 0.6 + exp_score * 0.25 + edu_score * 0.15) * 100, 2)
-    return hiring_score, matched_skills
+    return hiring_score, skill_match_pct, matched_skills
 
 # -------------------------------
 # Step 3: Skill-Gap Analysis
@@ -43,30 +44,57 @@ def skill_gap_analysis(candidate, job):
     return list(missing_skills)
 
 # -------------------------------
-# Step 4: Build DataFrame
+# Step 4: Build DataFrame & Ranking System
 # -------------------------------
 def run_batch_pipeline():
     results = []
 
     for candidate in candidates:
         for job in jobs:
-            hiring_score, matched_skills = calculate_match(candidate, job)
+            hiring_score, skill_match_pct, matched_skills = calculate_match(candidate, job)
             missing_skills = skill_gap_analysis(candidate, job)
+
+            # Benchmark Logic: >=85% Qualified vs <85% Alert
+            if skill_match_pct >= 85.0:
+                benchmark_status = f"QUALIFIED ({skill_match_pct}% >= 85%)"
+                alert_flag = "None (Meets >=85% Target)"
+            else:
+                benchmark_status = f"ALERT ({skill_match_pct}% < 85%)"
+                alert_flag = f"ALERT: Skill match {skill_match_pct}% is below 85% benchmark. Upskilling recommended in: {', '.join(missing_skills) if missing_skills else 'Advanced Topics'}"
 
             results.append({
                 "Candidate": candidate["name"],
                 "Job Title": job["title"],
+                "Skill Match (%)": skill_match_pct,
                 "Hiring Score (%)": hiring_score,
+                "Benchmark Status": benchmark_status,
+                "Alert": alert_flag,
                 "Matched Skills": ", ".join(matched_skills),
                 "Missing Skills": ", ".join(missing_skills)
             })
 
     df = pd.DataFrame(results)
 
+    # Dynamic Candidate Ranking per Job Title (sorted by score descending)
+    df = df.sort_values(by=["Job Title", "Hiring Score (%)", "Skill Match (%)"], ascending=[True, False, False]).reset_index(drop=True)
+    df["Rank"] = df.groupby("Job Title").cumcount() + 1
+    df["Rank"] = df["Rank"].apply(lambda r: f"#{r}")
+
+    # Reorder columns with Rank first
+    column_order = [
+        "Rank", "Candidate", "Job Title", "Skill Match (%)",
+        "Hiring Score (%)", "Benchmark Status", "Alert", "Matched Skills", "Missing Skills"
+    ]
+    df = df[column_order]
+
     # -------------------------------
     # Step 5: Export Results
     # -------------------------------
+    print("=" * 100)
+    print("AI CANDIDATE RANKING & 85% BENCHMARK EVALUATION REPORT")
+    print("=" * 100)
     print(df.to_string(index=False))
+    print("=" * 100)
     
     df.to_csv("matching_results.csv", index=False)
     

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Job, Candidate, InterviewQuestion, ATSProvider, UserProfile, UserAccount } from '../types';
 
-import { INITIAL_JOBS, INITIAL_QUESTIONS, INITIAL_ATS_PROVIDERS } from '../services/mockData';
+import { INITIAL_JOBS, INITIAL_CANDIDATES, INITIAL_QUESTIONS, INITIAL_ATS_PROVIDERS } from '../services/mockData';
 
 export function useRecruitmentStore() {
   const [jobs, setJobs] = useState<Job[]>(() => {
@@ -10,9 +10,16 @@ export function useRecruitmentStore() {
   });
 
   const [candidates, setCandidates] = useState<Candidate[]>(() => {
-    // Clear existing mock resumes to start fresh as requested
     const saved = localStorage.getItem('rc_candidates');
-    return saved ? JSON.parse(saved) : [];
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {
+        // Fallback
+      }
+    }
+    return INITIAL_CANDIDATES;
   });
 
   const INITIAL_USERS: UserAccount[] = [
@@ -212,6 +219,75 @@ export function useRecruitmentStore() {
     }
   };
 
+  const addSkillToCandidate = (candidateId: string, newSkill: string) => {
+    const trimmedSkill = newSkill.trim();
+    if (!trimmedSkill) return;
+
+    setCandidates(prev => prev.map(cand => {
+      if (cand.id === candidateId) {
+        const existingSkills = cand.skills || [];
+        // Prevent duplicate skill addition (case-insensitive check)
+        if (existingSkills.some(s => s.toLowerCase() === trimmedSkill.toLowerCase())) {
+          return cand;
+        }
+        const updatedSkills = [...existingSkills, trimmedSkill];
+        const activeJob = jobs.find(j => j.id === activeJobId) || jobs[0];
+        const newScore = calculateMatchScore(updatedSkills, activeJob?.requiredSkills || []);
+
+        return {
+          ...cand,
+          skills: updatedSkills,
+          matchScore: newScore,
+          headline: cand.headline ? cand.headline : `${cand.currentRole} with experience in ${updatedSkills.slice(0, 3).join(', ')}`
+        };
+      }
+      return cand;
+    }));
+  };
+
+  const removeSkillFromCandidate = (candidateId: string, skillToRemove: string) => {
+    setCandidates(prev => prev.map(cand => {
+      if (cand.id === candidateId) {
+        const updatedSkills = (cand.skills || []).filter(s => s.toLowerCase() !== skillToRemove.toLowerCase());
+        const activeJob = jobs.find(j => j.id === activeJobId) || jobs[0];
+        const newScore = calculateMatchScore(updatedSkills, activeJob?.requiredSkills || []);
+
+        return {
+          ...cand,
+          skills: updatedSkills,
+          matchScore: newScore
+        };
+      }
+      return cand;
+    }));
+  };
+
+  const updateCandidateRoleAndExperience = (candidateId: string, newRole: string, newExperienceYears: number) => {
+    setCandidates(prev => prev.map(cand => {
+      if (cand.id === candidateId) {
+        const activeJob = jobs.find(j => j.id === activeJobId) || jobs[0];
+        const newScore = calculateMatchScore(cand.skills, activeJob?.requiredSkills || []);
+        return {
+          ...cand,
+          currentRole: newRole,
+          totalExperienceYears: newExperienceYears,
+          headline: `${newRole} with ${newExperienceYears} years experience in ${(cand.skills || []).slice(0, 3).join(', ')}`,
+          matchScore: newScore
+        };
+      }
+      return cand;
+    }));
+  };
+
+  const updateCandidateStatusByEmail = (email: string, status: Candidate['status']) => {
+    setCandidates(prev => prev.map(cand => {
+      if (cand.email.toLowerCase() === email.toLowerCase()) {
+        return { ...cand, status };
+      }
+      return cand;
+    }));
+  };
+
   const calculateMatchScore = (candidateSkills: string[], requiredSkills: string[]): number => {
     if (!requiredSkills || requiredSkills.length === 0) return 85;
     const candSkillsLower = candidateSkills.map(s => s.toLowerCase());
@@ -245,7 +321,11 @@ export function useRecruitmentStore() {
     addCandidate,
     addJob,
     updateCandidateStatus,
-    deleteCandidate
+    updateCandidateStatusByEmail,
+    deleteCandidate,
+    addSkillToCandidate,
+    removeSkillFromCandidate,
+    updateCandidateRoleAndExperience
   };
 }
 
