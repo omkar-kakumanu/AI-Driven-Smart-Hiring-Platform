@@ -1,27 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
-:root {
-  --font-heading: 'Helvetica Now Display Bold', sans-serif;
-  --font-body: 'Inter', sans-serif;
-  --color-text: #192837;
-  --color-accent: #7342E2;
-  --color-login-bg: #F2F2EE;
-}
-
-* {
-  box-sizing: border-box;
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-brand-gray: #F8FAFC;
+  --color-brand-border: #E2E8F0;
 }
 
 body {
-  font-family: var(--font-body);
-  color: var(--color-text);
-  margin: 0;
-  padding: 0;
+  font-family: var(--font-sans);
+  background-color: #F8FAFC;
+  color: #0F172A;
+  -webkit-font-smoothing: antialiased;
 }
 
-@layer base {
-  body {
-    @apply antialiased selection:bg-purple-600 selection:text-white;
-  }
-}
+

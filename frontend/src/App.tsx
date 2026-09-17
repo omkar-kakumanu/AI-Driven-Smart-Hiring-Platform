@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { LandingPage } from './pages/LandingPage';
@@ -11,7 +11,7 @@ import { InterviewAssistantView } from './pages/InterviewAssistantView';
 import { useRecruitmentStore } from './store/useRecruitmentStore';
 import type { UserProfile } from './types';
 
-export const App: React.FC = () => {
+export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     return localStorage.getItem('rc_is_authenticated') === 'true';
   });
@@ -257,4 +257,3 @@ export const App: React.FC = () => {
   );
 };
 
-export default App;
