@@ -42,7 +42,7 @@ class Job(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(150), nullable=False)
     department = Column(String(100), nullable=False)
-    location = Column(String(100), nullable=False)
+    location = Column(String(100), nullable=False)cd frontend
     employment_type = Column(String(50), default="Full-time")
     min_salary = Column(Float, nullable=True)
     max_salary = Column(Float, nullable=True)

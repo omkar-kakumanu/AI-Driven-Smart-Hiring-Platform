@@ -7,7 +7,6 @@ import {
   Database, 
   ExternalLink, 
   Download, 
-  Send, 
   ShieldCheck, 
   Activity, 
   Search, 
@@ -32,16 +31,6 @@ interface AtsCandidateRecord {
   provider: 'Greenhouse' | 'Lever' | 'Workday';
   lastSynced: string;
   externalId: string;
-}
-
-interface WebhookEvent {
-  id: string;
-  event: string;
-  provider: 'Greenhouse' | 'Lever' | 'Workday';
-  timestamp: string;
-  statusCode: number;
-  latencyMs: number;
-  payload: Record<string, unknown>;
 }
 
 export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
@@ -111,37 +100,6 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
   const [selectedStageFilter, setSelectedStageFilter] = useState<string>('ALL');
   const [selectedProviderFilter, setSelectedProviderFilter] = useState<string>('ALL');
 
-  // Webhook event stream log
-  const [webhookEvents, setWebhookEvents] = useState<WebhookEvent[]>([
-    {
-      id: 'wh-1',
-      event: 'candidate.stage_changed',
-      provider: 'Greenhouse',
-      timestamp: '15:24:12',
-      statusCode: 200,
-      latencyMs: 34,
-      payload: { candidate_email: 'sarah.johnson@example.com', new_stage: 'Interview in progress', action_by: 'system_copilot' }
-    },
-    {
-      id: 'wh-2',
-      event: 'application.received',
-      provider: 'Lever',
-      timestamp: '15:18:05',
-      statusCode: 200,
-      latencyMs: 41,
-      payload: { candidate_email: 'michael.chen@example.com', job: 'Frontend React Engineer', external_id: 'LEV-55120' }
-    },
-    {
-      id: 'wh-3',
-      event: 'interview.feedback_submitted',
-      provider: 'Workday',
-      timestamp: '15:02:44',
-      statusCode: 200,
-      latencyMs: 29,
-      payload: { candidate_email: 'marcus.vance@example.com', overall_score: 92, recommendation: 'HIRE' }
-    }
-  ]);
-
   // Synchronize candidates from parent props into ATS candidate records
   useEffect(() => {
     if (candidates && candidates.length > 0) {
@@ -194,19 +152,7 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
       // Offline fallback
     }
 
-    // Add webhook log entry
-    const newEvent: WebhookEvent = {
-      id: `wh-${Date.now()}`,
-      event: 'candidate.stage_changed',
-      provider: 'Greenhouse',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      statusCode: 200,
-      latencyMs: Math.floor(25 + Math.random() * 30),
-      payload: { candidate_email: email, new_stage: newStatus, webhook_source: 'RecruitmentCopilot_UI' }
-    };
-    setWebhookEvents(prev => [newEvent, ...prev.slice(0, 9)]);
-
-    setLastAtsSyncNotice(`Updated status for ${email} to "${newStatus}" and dispatched REST webhook.`);
+    setLastAtsSyncNotice(`Updated status for ${email} to "${newStatus}" and dispatched ATS sync.`);
     setTimeout(() => setLastAtsSyncNotice(null), 4000);
   };
 
@@ -220,33 +166,6 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
       setLastAtsSyncNotice(`Bi-directional sync completed! All candidate stages match Greenhouse, Lever, & Workday (HTTP 200 OK).`);
       setTimeout(() => setLastAtsSyncNotice(null), 5000);
     }, 850);
-  };
-
-  // Simulate outgoing test webhook
-  const handleSimulateWebhook = (providerName: 'Greenhouse' | 'Lever' | 'Workday') => {
-    const randomCand = atsCandidates[Math.floor(Math.random() * atsCandidates.length)] || {
-      email: 'alex.recruiter@example.com',
-      job_applied: 'Staff AI Engineer'
-    };
-
-    const newEv: WebhookEvent = {
-      id: `wh-${Date.now()}`,
-      event: providerName === 'Lever' ? 'candidate.interview_scheduled' : 'candidate.score_updated',
-      provider: providerName,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      statusCode: 200,
-      latencyMs: Math.floor(20 + Math.random() * 35),
-      payload: {
-        provider: providerName,
-        candidate_email: randomCand.email,
-        job_role: randomCand.job_applied,
-        event_signature: `sha256=${Math.random().toString(36).substring(2)}`
-      }
-    };
-
-    setWebhookEvents(prev => [newEv, ...prev.slice(0, 9)]);
-    setLastAtsSyncNotice(`Dispatched synthetic webhook test to ${providerName} (HTTP 200 OK).`);
-    setTimeout(() => setLastAtsSyncNotice(null), 4000);
   };
 
   // Export CSV Report
@@ -417,12 +336,9 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
             </div>
             <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
               <span className="text-slate-500 font-medium">Sync: Bi-directional</span>
-              <button 
-                onClick={() => handleSimulateWebhook('Greenhouse')}
-                className="text-emerald-700 hover:underline font-bold flex items-center gap-1 cursor-pointer"
-              >
-                <Send className="w-3 h-3" /> Test Webhook
-              </button>
+              <span className="text-emerald-700 font-bold flex items-center gap-1.5 text-[11px]">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> 99.9% Uptime
+              </span>
             </div>
           </div>
 
@@ -444,12 +360,9 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
             </div>
             <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
               <span className="text-slate-500 font-medium">Push: Event-driven</span>
-              <button 
-                onClick={() => handleSimulateWebhook('Lever')}
-                className="text-amber-700 hover:underline font-bold flex items-center gap-1 cursor-pointer"
-              >
-                <Send className="w-3 h-3" /> Test Webhook
-              </button>
+              <span className="text-amber-700 font-bold flex items-center gap-1.5 text-[11px]">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Active Listener
+              </span>
             </div>
           </div>
 
@@ -471,12 +384,9 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
             </div>
             <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
               <span className="text-slate-500 font-medium">Stage: Sync Live</span>
-              <button 
-                onClick={() => handleSimulateWebhook('Workday')}
-                className="text-blue-700 hover:underline font-bold flex items-center gap-1 cursor-pointer"
-              >
-                <Send className="w-3 h-3" /> Test Webhook
-              </button>
+              <span className="text-blue-700 font-bold flex items-center gap-1.5 text-[11px]">
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> Enterprise Active
+              </span>
             </div>
           </div>
         </div>
@@ -617,42 +527,6 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
               No ATS candidates matched your filters.
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Real-Time REST & Webhook Event Stream */}
-      <div className="bg-slate-900 text-slate-100 rounded-2xl p-6 shadow-md space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
-          <div className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            <h4 className="font-extrabold text-sm text-white tracking-wide">Live ATS REST & Webhook Event Stream</h4>
-          </div>
-          <span className="text-[11px] font-mono text-slate-400">
-            Protocol: HTTP/2 TLS 1.3 • Webhook Callback URL: <code className="text-emerald-400">https://copilot.ai/api/ats/webhook</code>
-          </span>
-        </div>
-
-        <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-          {webhookEvents.map((ev) => (
-            <div 
-              key={ev.id}
-              className="p-3 bg-slate-800/80 border border-slate-700 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono"
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                  {ev.statusCode} OK
-                </span>
-                <span className="text-blue-400 font-bold">{ev.provider}</span>
-                <span className="text-white font-semibold">{ev.event}</span>
-              </div>
-
-              <div className="flex items-center gap-4 text-slate-400 text-[11px]">
-                <span>payload: <code className="text-slate-300 font-semibold">{JSON.stringify(ev.payload).slice(0, 48)}...</code></span>
-                <span className="text-slate-500">{ev.latencyMs}ms</span>
-                <span className="text-slate-400">{ev.timestamp}</span>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </div>
