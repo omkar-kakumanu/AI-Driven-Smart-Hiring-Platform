@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import type { Candidate, Job, CandidateInterviewResponse } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
 
@@ -73,6 +74,7 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
   const [adminRoleInput, setAdminRoleInput] = useState<string>(activeCandidate.currentRole || '');
   const [adminExpInput, setAdminExpInput] = useState<number>(activeCandidate.totalExperienceYears || 3);
   const [showAdminEditModal, setShowAdminEditModal] = useState<boolean>(false);
+  const [stagingNotice, setStagingNotice] = useState<string | null>(null);
 
   // Sync Admin Inputs when Active Candidate Changes
   useEffect(() => {
@@ -362,8 +364,6 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
     };
     setChatMessages(prev => [...prev, aiMsg]);
   };
-
-  const [stagingNotice, setStagingNotice] = useState<string | null>(null);
 
   const handleStageCandidate = (newStage: Candidate['status']) => {
     syncAtsStatus(activeCandidate.email, newStage);
