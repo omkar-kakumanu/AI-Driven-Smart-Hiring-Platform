@@ -7,6 +7,7 @@ interface ResumeUploadViewProps {
   searchQuery?: string;
   onClearSearch?: () => void;
   isMainAdmin?: boolean;
+  isCandidateUser?: boolean;
   onAddCandidate: (cand: Omit<Candidate, 'id' | 'status' | 'matchScore'>) => Candidate;
   onDeleteCandidate?: (candidateId: string) => void;
   onAddSkillToCandidate?: (candidateId: string, skill: string) => void;
@@ -20,6 +21,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   searchQuery = '',
   onClearSearch,
   isMainAdmin = false,
+  isCandidateUser = false,
   onAddCandidate,
   onDeleteCandidate,
   onAddSkillToCandidate,
@@ -258,11 +260,32 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8 font-sans">
+      {/* Candidate Role RBAC Notice Banner */}
+      {isCandidateUser && (
+        <div className="p-4 bg-purple-50 border border-purple-200 rounded-2xl flex items-center justify-between text-purple-900 text-xs font-semibold shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-purple-600 animate-pulse"></span>
+            <span>
+              <strong>🔒 Candidate Self-Service Mode:</strong> You are viewing your personal candidate profile & uploaded resume record. Full directory access across all candidate resumes is reserved for Recruiters and Administrators.
+            </span>
+          </div>
+          <span className="px-2.5 py-1 bg-purple-100 border border-purple-300 rounded-lg text-[10px] font-bold uppercase tracking-wider text-purple-800">
+            Candidate Role Active
+          </span>
+        </div>
+      )}
+
       {/* Unified Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Candidate Profiles & Resume Parser</h2>
-          <p className="text-slate-500 text-sm mt-0.5">Upload candidate resumes to extract skills automatically, edit profiles, and view the directory.</p>
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            {isCandidateUser ? 'My Candidate Resume & Profile' : 'Candidate Profiles & Resume Parser'}
+          </h2>
+          <p className="text-slate-500 text-sm mt-0.5">
+            {isCandidateUser 
+              ? 'Manage your candidate resume document, review extracted skills, and track application status.' 
+              : 'Upload candidate resumes to extract skills automatically, edit profiles, and view the directory.'}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <button 

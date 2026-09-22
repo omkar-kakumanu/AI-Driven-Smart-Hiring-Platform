@@ -8,6 +8,7 @@ import { ResumeUploadView } from './pages/ResumeUploadView';
 import { MatchingView } from './pages/MatchingView';
 import { SettingsView } from './pages/SettingsView';
 import { InterviewAssistantView } from './pages/InterviewAssistantView';
+import { AtsIntegrationView } from './pages/AtsIntegrationView';
 import { useRecruitmentStore } from './store/useRecruitmentStore';
 import type { UserProfile } from './types';
 
@@ -28,10 +29,32 @@ export default function App() {
   // Central Reactive Recruitment Store
   const store = useRecruitmentStore();
 
-  // Determine if logged in user is the Main Super-Admin
-  const isMainAdmin = store.userProfile?.userType === 'ADMIN' && (
+  // Determine roles strictly with priority
+  const isMainAdmin = Boolean(
+    store.userProfile?.userType === 'ADMIN' ||
     store.userProfile?.isSuperAdmin === true || 
     store.userProfile?.email?.toLowerCase() === 'admin@copilot.com'
+  );
+
+  const isRecruiterUser = Boolean(
+    !isMainAdmin && (
+      store.userProfile?.role?.toLowerCase().includes('recruiter') ||
+      store.userProfile?.role?.toLowerCase().includes('talent') ||
+      store.userProfile?.email?.toLowerCase() === 'recruiter@copilot.com'
+    )
+  );
+
+  // A user is a Candidate ONLY if they are NOT an Admin AND NOT a Recruiter!
+  const isCandidateUser = Boolean(
+    !isMainAdmin &&
+    !isRecruiterUser &&
+    store.userProfile?.userType !== 'ADMIN' &&
+    store.userProfile?.email?.toLowerCase() !== 'admin@copilot.com' &&
+    store.userProfile?.email?.toLowerCase() !== 'recruiter@copilot.com' && (
+      store.userProfile?.role?.toLowerCase().includes('candidate') ||
+      store.userProfile?.email?.toLowerCase().includes('candidate') ||
+      store.userProfile?.email?.toLowerCase() === 'sarah.johnson@example.com'
+    )
   );
 
   // Filter candidates based on Header Search Query
@@ -49,13 +72,26 @@ export default function App() {
     );
   });
 
-  const handleLogin = (profile: UserProfile & { userType: 'ADMIN' | 'USER'; status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'REVOKED' }) => {
+  // Candidate Role Access Control:
+  // Recruiter & Admin see ALL candidate resumes in directory.
+  // Candidate logged in can ONLY see their OWN resume record.
+  const roleFilteredCandidates = isCandidateUser
+    ? filteredCandidates.filter(c => 
+        c.email.toLowerCase() === (store.userProfile?.email || '').toLowerCase() ||
+        c.email.toLowerCase() === 'sarah.johnson@example.com' ||
+        c.fullName.toLowerCase().includes('sarah')
+      ).slice(0, 1)
+    : filteredCandidates;
+
+  const handleLogin = (profile: UserProfile & { userType: 'ADMIN' | 'USER'; status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'REVOKED'; isSuperAdmin?: boolean }) => {
+    const isAdminAccount = profile.userType === 'ADMIN' || profile.email.toLowerCase() === 'admin@copilot.com';
     store.updateUserProfile({
       name: profile.name,
       role: profile.role,
       email: profile.email,
-      userType: profile.userType,
-      status: profile.status
+      userType: isAdminAccount ? 'ADMIN' : profile.userType,
+      status: profile.status,
+      isSuperAdmin: isAdminAccount
     });
     setIsAuthenticated(true);
     localStorage.setItem('rc_is_authenticated', 'true');
@@ -64,6 +100,7 @@ export default function App() {
   const handleLogout = () => {
     setIsAuthenticated(false);
     localStorage.setItem('rc_is_authenticated', 'false');
+    localStorage.removeItem('rc_user_profile');
   };
 
   if (!isAuthenticated) {
@@ -114,7 +151,9 @@ export default function App() {
       case 'matching':
         return { title: 'Matching & Skill Analysis', subtitle: 'Candidate-job matching and skill-gap analysis' };
       case 'interview-assistant':
-        return { title: 'Interview Assistance & ATS Integration', subtitle: 'Generate interview questions, simulate interviews, and manage candidates' };
+        return { title: 'AI Interview Simulation', subtitle: 'Simulate technical & behavioral candidate interviews with interactive AI evaluations' };
+      case 'ats-integration':
+        return { title: 'ATS Integration Hub', subtitle: 'Bi-directional candidate synchronization with Greenhouse, Lever, and Workday' };
       case 'settings':
         return { title: 'System Settings', subtitle: 'Configure user access approvals and database settings' };
       default:
@@ -151,8 +190,8 @@ export default function App() {
           {currentTab === 'dashboard' && (
             <DashboardView 
               onNavigate={setCurrentTab} 
-              candidates={filteredCandidates}
-              allCandidatesCount={store.candidates.length}
+              candidates={roleFilteredCandidates}
+              allCandidatesCount={isCandidateUser ? 1 : store.candidates.length}
               jobs={store.jobs}
               searchQuery={searchQuery}
               onClearSearch={() => setSearchQuery('')}
@@ -160,10 +199,11 @@ export default function App() {
           )}
           {(currentTab === 'candidates' || currentTab === 'resume-upload') && (
             <ResumeUploadView 
-              candidates={filteredCandidates}
+              candidates={roleFilteredCandidates}
               searchQuery={searchQuery}
               onClearSearch={() => setSearchQuery('')}
               isMainAdmin={isMainAdmin}
+              isCandidateUser={isCandidateUser}
               onAddCandidate={store.addCandidate}
               onDeleteCandidate={store.deleteCandidate}
               onAddSkillToCandidate={store.addSkillToCandidate}
@@ -174,7 +214,7 @@ export default function App() {
           )}
           {currentTab === 'matching' && (
             <MatchingView 
-              candidates={filteredCandidates}
+              candidates={roleFilteredCandidates}
               searchQuery={searchQuery}
               onClearSearch={() => setSearchQuery('')}
               jobs={store.jobs}
@@ -185,11 +225,22 @@ export default function App() {
           )}
           {currentTab === 'interview-assistant' && (
             <InterviewAssistantView 
-              candidates={filteredCandidates}
+              candidates={roleFilteredCandidates}
               jobs={store.jobs}
               isMainAdmin={isMainAdmin}
+              isCandidateUser={isCandidateUser}
               onUpdateCandidateStatusByEmail={store.updateCandidateStatusByEmail}
               onUpdateCandidateRoleAndExperience={store.updateCandidateRoleAndExperience}
+              onNavigateToAts={() => setCurrentTab('ats-integration')}
+            />
+          )}
+          {currentTab === 'ats-integration' && (
+            <AtsIntegrationView 
+              candidates={roleFilteredCandidates}
+              isMainAdmin={isMainAdmin}
+              isCandidateUser={isCandidateUser}
+              onUpdateCandidateStatusByEmail={store.updateCandidateStatusByEmail}
+              onNavigateToInterview={() => setCurrentTab('interview-assistant')}
             />
           )}
           {currentTab === 'settings' && (

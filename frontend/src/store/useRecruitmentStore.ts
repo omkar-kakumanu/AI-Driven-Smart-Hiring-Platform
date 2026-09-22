@@ -33,6 +33,26 @@ export function useRecruitmentStore() {
       createdAt: '2026-01-10',
       password: 'admin123',
       isSuperAdmin: true
+    },
+    {
+      id: 'usr-recruiter-1',
+      name: 'Sarah Jenkins',
+      email: 'recruiter@copilot.com',
+      role: 'Talent Acquisition Specialist',
+      userType: 'USER',
+      status: 'APPROVED',
+      createdAt: '2026-01-12',
+      password: 'recruiter123'
+    },
+    {
+      id: 'usr-cand-1',
+      name: 'Sarah Johnson (Candidate)',
+      email: 'candidate@copilot.com',
+      role: 'Candidate Applicant',
+      userType: 'USER',
+      status: 'APPROVED',
+      createdAt: '2026-02-15',
+      password: 'candidate123'
     }
   ];
 

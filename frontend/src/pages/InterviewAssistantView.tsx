@@ -6,8 +6,10 @@ interface InterviewAssistantViewProps {
   candidates: Candidate[];
   jobs: Job[];
   isMainAdmin?: boolean;
+  isCandidateUser?: boolean;
   onUpdateCandidateStatusByEmail?: (email: string, status: Candidate['status']) => void;
   onUpdateCandidateRoleAndExperience?: (candidateId: string, role: string, exp: number) => void;
+  onNavigateToAts?: () => void;
 }
 
 interface InterviewQuestionItem {
@@ -36,8 +38,10 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
   candidates = [],
   jobs = [],
   isMainAdmin = false,
+  isCandidateUser = false,
   onUpdateCandidateStatusByEmail,
-  onUpdateCandidateRoleAndExperience
+  onUpdateCandidateRoleAndExperience,
+  onNavigateToAts
 }) => {
   // Job positions available for questions
   const availablePositions = jobs.length > 0 ? jobs.map(j => j.title) : [
@@ -77,21 +81,38 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
     }
   }, [selectedCandidateId, activeCandidate]);
 
+  const stageRef = React.useRef<HTMLDivElement>(null);
+
+  const playRobotEntrance = () => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const studio = stage.querySelector('.fm-studio');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (reduceMotion.matches || !studio) return;
+
+    stage.classList.remove('is-entering');
+    const robot = stage.querySelector('.fm-robot');
+    if (robot) {
+      robot.replaceWith(robot.cloneNode(true));
+    }
+    void (stage as HTMLElement).offsetWidth;
+    stage.classList.add('is-entering');
+
+    studio.addEventListener('animationend', () => {
+      stage.classList.remove('is-entering');
+    }, { once: true });
+  };
+
+  useEffect(() => {
+    playRobotEntrance();
+  }, [selectedCandidateId]);
+
   // AI Interview Simulation Chat State
   const [chatMessages, setChatMessages] = useState<ChatBubble[]>([]);
   const [candidateInputText, setCandidateInputText] = useState<string>('');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [sessionStatus, setSessionStatus] = useState<'Ready' | 'Active' | 'Completed'>('Active');
   const [latestEvaluation, setLatestEvaluation] = useState<{ clarity: number; relevance: number; overall: number; feedback: string } | null>(null);
-
-  // ATS Integration State
-  const [atsCandidates, setAtsCandidates] = useState<Array<{ name: string; email: string; job_applied: string; status: string }>>([
-    { name: "Sarah Johnson", email: "sarah.johnson@example.com", job_applied: "Senior Machine Learning Engineer", status: "Interview in progress" },
-    { name: "Michael Chen", email: "michael.chen@example.com", job_applied: "Frontend React Engineer", status: "Scheduled for tomorrow" },
-    { name: "Emily Rodriguez", email: "emily.rodriguez@example.com", job_applied: "Cloud DevOps Specialist", status: "Shortlisted" },
-    { name: "Marcus Vance", email: "marcus.vance@example.com", job_applied: "Backend Java Systems Architect", status: "Interview Completed" }
-  ]);
-  const [isSyncingAts, setIsSyncingAts] = useState<boolean>(false);
 
   // Fetch Role-Specific Interview Questions from Python Microservice
   const fetchInterviewQuestions = async (role: string, cat: string) => {
@@ -330,22 +351,13 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
       await fetch(`http://localhost:8000/api/ats/update_status/${encodeURIComponent(email)}?status=${encodeURIComponent(status)}`, {
         method: 'PUT'
       });
-    } catch (e) {
+    } catch {
       // Local fallback
     }
 
-    setAtsCandidates(prev => prev.map(c => c.email.toLowerCase() === email.toLowerCase() ? { ...c, status } : c));
     if (onUpdateCandidateStatusByEmail) {
       onUpdateCandidateStatusByEmail(email, status as Candidate['status']);
     }
-  };
-
-  const handleSyncAllAts = () => {
-    setIsSyncingAts(true);
-    setTimeout(() => {
-      setIsSyncingAts(false);
-      alert("ATS Database Synced Successfully! All candidates are aligned with Lever, Greenhouse, & Workday APIs.");
-    }, 800);
   };
 
   const handleAdminSaveRoleExp = () => {
@@ -362,15 +374,24 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
       {/* Top Page Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-100 text-amber-900 rounded-full font-bold text-xs mb-2 border border-amber-300">
-            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-            Milestone 3: Interview Assistance & ATS Integration
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-900 rounded-full font-bold text-xs mb-2 border border-blue-300">
+            <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+            Milestone 3 Core • AI Interview Simulation
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Interview Assistance & ATS Integration</h2>
-          <p className="text-slate-500 text-xs mt-1 font-medium">Generate interview questions, simulate interviews, and manage candidates</p>
+          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">AI Interview Simulation & Question Generation</h2>
+          <p className="text-slate-500 text-xs mt-1 font-medium">Interactive neural interview simulation, real-time response evaluation, and question generator</p>
         </div>
 
         <div className="flex items-center gap-3">
+          {onNavigateToAts && (
+            <button
+              onClick={onNavigateToAts}
+              className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl border border-blue-200 transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+            >
+              <span>🏢 Open ATS Integration Hub</span>
+              <span className="text-xs font-mono font-bold">➔</span>
+            </button>
+          )}
           <span className="px-3.5 py-1.5 bg-amber-500 text-white font-extrabold text-xs rounded-xl shadow-sm">
             Milestone 3
           </span>
@@ -530,6 +551,230 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
               </span>
             </div>
 
+            {/* Scoped Future Machine Motion Template Box for AI Interview Simulation */}
+            <div className="relative rounded-2xl overflow-hidden shadow-md border border-blue-900/60 isolate">
+              <style>{`
+                .fm-stage {
+                  position: relative;
+                  width: 100%;
+                  height: 290px;
+                  isolation: isolate;
+                  overflow: hidden;
+                  border-radius: 1rem;
+                  background:
+                    radial-gradient(circle at 50% 46%, rgba(0,119,255,.48) 0%, rgba(0,102,235,.28) 35%, rgba(0,73,183,.15) 72%, rgba(0,58,150,.06) 100%),
+                    linear-gradient(128deg, #0753bf 0%, #0069e9 48%, #0755c4 100%);
+                }
+                .fm-stage::before {
+                  content: "";
+                  position: absolute;
+                  inset: -15%;
+                  z-index: -1;
+                  background:
+                    radial-gradient(ellipse at 51% 45%, rgba(0,127,255,.35), transparent 54%),
+                    radial-gradient(ellipse at 5% 15%, rgba(13,72,174,.24), transparent 44%),
+                    radial-gradient(ellipse at 92% 86%, rgba(7,63,162,.28), transparent 45%);
+                  filter: blur(28px);
+                }
+                .fm-brand {
+                  position: absolute;
+                  top: 6.05%;
+                  left: 3.45%;
+                  margin: 0;
+                  white-space: nowrap;
+                  font-size: clamp(1.4rem, 2.4vw, 2.2rem);
+                  font-weight: 700;
+                  line-height: 1;
+                  letter-spacing: -0.025em;
+                  text-shadow: 0 1px 3px rgba(255,255,255,.25), 0 2px 5px rgba(0,24,68,.14);
+                  color: #fff;
+                }
+                .fm-brand sup {
+                  display: inline-block;
+                  margin-left: .03em;
+                  font-size: .43em;
+                  line-height: 1;
+                  letter-spacing: -.04em;
+                  vertical-align: top;
+                  transform: translateY(-.02em);
+                }
+                .fm-robot {
+                  position: absolute;
+                  top: 13.1%;
+                  left: 29.37%;
+                  width: 41.35%;
+                  height: auto;
+                  display: block;
+                  filter: drop-shadow(0 2px 4px rgba(0,20,68,.08));
+                  user-select: none;
+                  -webkit-user-drag: none;
+                }
+                .fm-studio {
+                  position: absolute;
+                  right: 3.05%;
+                  bottom: 6.45%;
+                  margin: 0;
+                  white-space: nowrap;
+                  font-size: clamp(1.3rem, 2.3vw, 2.1rem);
+                  font-weight: 300;
+                  font-style: italic;
+                  line-height: 1;
+                  letter-spacing: -.035em;
+                  text-shadow: 0 1px 4px rgba(0,28,75,.18);
+                  color: #fff;
+                }
+                .fm-edge-line {
+                  position: absolute;
+                  top: 1.6%;
+                  right: .48%;
+                  width: 2px;
+                  height: 9.8%;
+                  border-radius: 2px;
+                  background: rgba(202,226,249,.73);
+                  box-shadow: 0 0 6px rgba(197,227,255,.16);
+                }
+                @media (prefers-reduced-motion: no-preference) {
+                  .fm-stage.is-entering .fm-brand { will-change: transform, opacity, clip-path; animation: fm-brand-reveal 1s cubic-bezier(.16,1,.3,1) .12s backwards; }
+                  .fm-stage.is-entering .fm-studio { will-change: transform, opacity, clip-path; animation: fm-studio-reveal .86s cubic-bezier(.16,1,.3,1) 1.08s backwards; }
+                  .fm-stage.is-entering .fm-edge-line { transform-origin: 50% 0; will-change: transform, opacity; animation: fm-edge-reveal .62s cubic-bezier(.22,1,.36,1) .22s backwards; }
+                  @keyframes fm-brand-reveal  { from { opacity: 0; clip-path: inset(0 0 100% 0); transform: translateY(28px); } }
+                  @keyframes fm-studio-reveal { from { opacity: 0; clip-path: inset(100% 0 0 0); transform: translateY(22px); } }
+                  @keyframes fm-edge-reveal   { from { opacity: 0; transform: scaleY(0); } }
+                }
+              `}</style>
+
+              <div 
+                ref={stageRef}
+                className="fm-stage is-entering" 
+                aria-label="Future Machine Robotics Studio - AI Interview Simulation"
+              >
+                <h1 className="fm-brand">
+                  Future Machine<sup>TM</sup>
+                </h1>
+
+                <svg 
+                  className="fm-robot" 
+                  viewBox="0 0 660 680" 
+                  role="img" 
+                  aria-labelledby="fmRobotTitle fmRobotDescription"
+                >
+                  <title id="fmRobotTitle">Future Machine robotic helmet</title>
+                  <desc id="fmRobotDescription">A crisp white futuristic robot helmet with a deep navy visor and blue panel seams.</desc>
+
+                  <defs>
+                    <linearGradient id="fm-shell" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0" stopColor="#ffffff" />
+                      <stop offset="0.56" stopColor="#fbfbfb" />
+                      <stop offset="1" stopColor="#f0f1f2" />
+                    </linearGradient>
+                    <linearGradient id="fm-visor" x1="0.1" y1="0" x2="0.9" y2="1">
+                      <stop offset="0" stopColor="#0c2b4e" />
+                      <stop offset="1" stopColor="#071d35" />
+                    </linearGradient>
+                    <filter id="fm-softEdge" x="-8%" y="-8%" width="116%" height="116%">
+                      <feGaussianBlur in="SourceAlpha" stdDeviation="1.15" result="blur" />
+                      <feOffset dy="1" result="offset" />
+                      <feColorMatrix in="offset" type="matrix" values="0 0 0 0 0.02 0 0 0 0 0.17 0 0 0 0 0.39 0 0 0 .14 0" />
+                      <feMerge>
+                        <feMergeNode />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+
+                  <style>{`
+                    @media (prefers-reduced-motion: no-preference) {
+                      .piece { transform-box: fill-box; transform-origin: center; }
+                      .rear-left    { animation: assemble-left   .9s  cubic-bezier(.16,1,.3,1) .24s backwards; }
+                      .rear-right   { animation: assemble-right  .9s  cubic-bezier(.16,1,.3,1) .24s backwards; }
+                      .ear-left     { animation: dock-left       .82s cubic-bezier(.16,1,.3,1) .34s backwards; }
+                      .ear-right    { animation: dock-right      .82s cubic-bezier(.16,1,.3,1) .34s backwards; }
+                      .jaw-left     { animation: jaw-left-in     .88s cubic-bezier(.16,1,.3,1) .43s backwards; }
+                      .jaw-right    { animation: jaw-right-in    .88s cubic-bezier(.16,1,.3,1) .43s backwards; }
+                      .jaw-center   { animation: jaw-center-in   .92s cubic-bezier(.16,1,.3,1) .5s  backwards; }
+                      .visor        { animation: visor-seat      .92s cubic-bezier(.16,1,.3,1) .56s backwards; }
+                      .crown-fin    { animation: fin-seat        .96s cubic-bezier(.16,1,.3,1) .62s backwards; }
+                      .seams        { animation: detail-reveal   .62s cubic-bezier(.22,1,.36,1) .92s backwards; }
+                      .face-details { animation: detail-reveal   .68s cubic-bezier(.22,1,.36,1) 1.02s backwards; }
+                      @keyframes assemble-left  { from { opacity: 0; transform: translate(-20px,-9px) rotate(-1.2deg) scale(.985); } }
+                      @keyframes assemble-right { from { opacity: 0; transform: translate(20px,-9px) rotate(1.2deg) scale(.985); } }
+                      @keyframes dock-left      { from { opacity: 0; transform: translateX(-25px) scale(.98); } }
+                      @keyframes dock-right     { from { opacity: 0; transform: translateX(25px) scale(.98); } }
+                      @keyframes jaw-left-in    { from { opacity: 0; transform: translate(-15px,15px) rotate(-.8deg); } }
+                      @keyframes jaw-right-in   { from { opacity: 0; transform: translate(15px,15px) rotate(.8deg); } }
+                      @keyframes jaw-center-in  { from { opacity: 0; transform: translateY(18px) scale(.985); } }
+                      @keyframes visor-seat     { from { opacity: 0; transform: translateY(7px) scale(.955,.98); } }
+                      @keyframes fin-seat       { from { opacity: 0; transform: translateY(-24px) scaleY(.96); } }
+                      @keyframes detail-reveal  { from { opacity: 0; } }
+                    }
+                  `}</style>
+
+                  <g filter="url(#fm-softEdge)">
+                    {/* Rear crown panels */}
+                    <path className="piece rear-left" fill="url(#fm-shell)" d="M72 256c-9-36-5-55 10-76l47-63c15-14 35-20 59-12l49-15 31 152-4 46-177 12z" />
+                    <path className="piece rear-right" fill="url(#fm-shell)" d="M588 256c9-36 5-55-10-76l-47-63c-15-14-35-20-59-12l-49-15-31 152 4 46 177 12z" />
+
+                    {/* Side ear housings */}
+                    <g className="piece ear-left">
+                      <path fill="url(#fm-shell)" d="M63 251c-19 6-40 20-51 37C4 300 0 314 0 330v108c0 26 13 47 36 60l25 14 10-50 7-87z" />
+                      <path fill="#0864d9" d="M14 322c0-8 5-14 10-14s10 6 10 14v101c0 8-5 14-10 14s-10-6-10-14z" />
+                    </g>
+                    <g className="piece ear-right">
+                      <path fill="url(#fm-shell)" d="M597 251c19 6 40 20 51 37 8 12 12 26 12 42v108c0 26-13 47-36 60l-25 14-10-50-7-87z" />
+                      <path fill="#0864d9" d="M626 322c0-8 5-14 10-14s10 6 10 14v101c0 8-5 14-10 14s-10-6-10-14z" />
+                    </g>
+
+                    {/* Lower cheek and jaw armor */}
+                    <path className="piece jaw-left" fill="url(#fm-shell)" d="M69 385l82 61 48 178-101-65c-22-14-33-35-35-63z" />
+                    <path className="piece jaw-right" fill="url(#fm-shell)" d="M591 385l-82 61-48 178 101-65c22-14 33-35 35-63z" />
+                    <path className="piece jaw-center" fill="url(#fm-shell)" d="M151 437l45 27 24 170 30 28q7 11 20 11h120q13 0 20-11l30-28 24-170 45-27-6-34-88 38H265l-108-38z" />
+
+                    {/* Blue seams */}
+                    <g className="piece seams">
+                      <path fill="#0763d9" d="M70 407l91 61 54 166-10-7-53-153-82-55z" />
+                      <path fill="#0763d9" d="M590 407l-91 61-54 166 10-7 53-153 82-55z" />
+                    </g>
+
+                    {/* Visor */}
+                    <path className="piece visor" fill="url(#fm-visor)" d="M91 227c-18-4-30 8-28 28l15 111c2 14 8 24 20 32l73 45c5 4 12 6 19 6h280c7 0 14-2 19-6l73-45c12-8 18-18 20-32l15-111c2-20-10-32-28-28l-145 31c-35 7-60 11-94 11s-59-4-94-11z" />
+
+                    {/* Crown fin */}
+                    <g className="piece crown-fin">
+                      <g transform="translate(26.4 0) scale(.92 1)">
+                        <path fill="url(#fm-shell)" stroke="#0763d9" strokeWidth="7" strokeLinejoin="round" d="M309 0h42c14 0 23 7 29 20l34 70c5 10 6 18 4 30l-28 141c-3 15-10 20-24 20h-72c-14 0-21-5-24-20l-28-141c-2-12-1-20 4-30l34-70c6-13 15-20 29-20z" />
+                        <path fill="#0763d9" d="M309 0h42v201c0 14-9 23-21 23s-21-9-21-23z" />
+                      </g>
+                    </g>
+
+                    {/* Expression and chin vents */}
+                    <g className="piece face-details">
+                      <path fill="#ffffff" d="M151 354h109v20H151z" />
+                      <path fill="#ffffff" d="M399 360l105-28 5 20-105 28z" />
+                      <rect x="276" y="522" width="108" height="18" rx="9" fill="url(#fm-visor)" />
+                      <rect x="276" y="549" width="108" height="18" rx="9" fill="url(#fm-visor)" />
+                    </g>
+                  </g>
+                </svg>
+
+                <p className="fm-studio">Robotics Studio</p>
+                <span className="fm-edge-line" aria-hidden="true"></span>
+
+                {/* Scoped Interactive Overlay Button */}
+                <div className="absolute bottom-3 left-3.5 z-10 flex items-center gap-2">
+                  <button
+                    onClick={playRobotEntrance}
+                    className="px-3 py-1.5 bg-white/20 hover:bg-white/30 active:bg-white/40 backdrop-blur-md text-white text-xs font-bold rounded-xl border border-white/25 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    title="Trigger Mechanical Assembly Animation"
+                  >
+                    <span>⚡ Re-assemble Interrogator</span>
+                  </button>
+                  <span className="text-[10px] text-blue-100/80 font-mono hidden sm:inline">
+                    Interactive Motion Ready
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {/* Real AI Evaluation Metric Badges */}
             {latestEvaluation && (
               <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl flex items-center justify-between text-xs font-bold text-emerald-950">
@@ -621,45 +866,56 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
             )}
           </div>
 
-          {/* Bottom Panel: ATS Integration Widget */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <h3 className="font-extrabold text-slate-900 text-base">ATS Integration</h3>
-                <span className="px-2.5 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-extrabold rounded-full border border-slate-200">
-                  REST API
-                </span>
+          {/* Bottom Panel: Dedicated Milestone 3 ATS Integration Hub Gateway */}
+          <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border-2 border-indigo-500/40 rounded-2xl p-6 shadow-md text-white space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 bg-amber-400 text-slate-950 font-black text-[10px] rounded-md uppercase">
+                    Milestone 3 Core
+                  </span>
+                  <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 font-bold text-[10px] rounded-md border border-emerald-500/30">
+                    REST API v2.4 Active
+                  </span>
+                </div>
+                <h3 className="text-lg font-black text-white tracking-tight">Enterprise ATS Integration Hub</h3>
+                <p className="text-xs text-indigo-200/80 font-medium">
+                  Greenhouse, Lever, and Workday live bi-directional candidate synchronization, OpenAPI REST endpoints, and webhook event streaming.
+                </p>
               </div>
-              
-              <div className="flex items-center gap-3">
+
+              {onNavigateToAts && (
                 <button
-                  onClick={handleSyncAllAts}
-                  disabled={isSyncingAts}
-                  className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
+                  onClick={onNavigateToAts}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-black text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all flex items-center gap-2 shrink-0 cursor-pointer"
                 >
-                  {isSyncingAts ? "Syncing..." : "🔄 Sync ATS Database"}
+                  <span>Open ATS Integration Hub</span>
+                  <span className="text-sm font-bold">➔</span>
                 </button>
-                <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span> • Connected
-                </span>
-              </div>
+              )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              {atsCandidates.map((cand, idx) => (
-                <div key={idx} className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <UserAvatar name={cand.name} size="sm" />
-                    <div className="min-w-0">
-                      <p className="font-bold text-slate-900 truncate">{cand.name}</p>
-                      <p className="text-[10px] text-slate-500 font-semibold truncate">{cand.job_applied}</p>
-                    </div>
-                  </div>
+            {/* Quick candidate status sync preview */}
+            <div className="p-3.5 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <UserAvatar name={activeCandidate.fullName} size="sm" />
+                <div className="min-w-0">
+                  <p className="font-bold text-white text-xs truncate">{activeCandidate.fullName}</p>
+                  <p className="text-[11px] text-indigo-300 truncate">{activeCandidate.currentRole}</p>
+                </div>
+              </div>
 
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[11px] text-slate-300 font-bold hidden sm:inline">Stage:</span>
+                {isCandidateUser ? (
+                  <span className="px-3 py-1 bg-purple-600 text-white font-black text-xs rounded-lg">
+                    {activeCandidate.status || 'Applied'}
+                  </span>
+                ) : (
                   <select
-                    value={cand.status}
-                    onChange={(e) => syncAtsStatus(cand.email, e.target.value)}
-                    className="text-[10px] font-bold bg-white border border-slate-300 rounded px-1.5 py-1 focus:outline-none"
+                    value={activeCandidate.status || 'Applied'}
+                    onChange={(e) => syncAtsStatus(activeCandidate.email, e.target.value)}
+                    className="text-xs font-black bg-slate-800 border border-slate-600 text-white rounded-lg px-2.5 py-1.5 focus:border-blue-400 outline-none cursor-pointer"
                   >
                     <option value="Applied">Applied</option>
                     <option value="Screened">Screened</option>
@@ -669,8 +925,8 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
                     <option value="Offered">Offered</option>
                     <option value="Hired">Hired</option>
                   </select>
-                </div>
-              ))}
+                )}
+              </div>
             </div>
           </div>
         </div>

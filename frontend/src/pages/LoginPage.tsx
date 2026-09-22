@@ -14,13 +14,13 @@ const GoogleIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
 
 interface LoginPageProps {
   userAccounts: UserAccount[];
-  onLogin: (profile: UserProfile & { userType: 'ADMIN' | 'USER'; status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'REVOKED' }) => void;
+  onLogin: (profile: UserProfile & { userType: 'ADMIN' | 'USER'; status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'REVOKED'; isSuperAdmin?: boolean }) => void;
   onRegister: (name: string, email: string, role: string, password?: string) => UserAccount;
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onRegister }) => {
-  // Modes: 'RECRUITER' | 'ADMIN' | 'SIGN_UP'
-  const [mode, setMode] = useState<'RECRUITER' | 'ADMIN' | 'SIGN_UP'>('RECRUITER');
+  // Modes: 'RECRUITER' | 'CANDIDATE' | 'ADMIN' | 'SIGN_UP'
+  const [mode, setMode] = useState<'RECRUITER' | 'CANDIDATE' | 'ADMIN' | 'SIGN_UP'>('RECRUITER');
   
   // Form Input States
   const [firstName, setFirstName] = useState('');
@@ -61,7 +61,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
     }
     const nameFromEmail = customGmail.split('@')[0].replace('.', ' ');
     const formattedName = nameFromEmail.charAt(0).toUpperCase() + nameFromEmail.slice(1);
-    handleGoogleSelect(customGmail.trim(), formattedName, 'Talent Acquisition Recruiter', false);
+    handleGoogleSelect(customGmail.trim(), formattedName, 'Candidate Applicant', false);
   };
 
   // Standard Form Submit Handler
@@ -70,6 +70,47 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
     setStatusNotice(null);
 
     const emailClean = email.trim().toLowerCase();
+
+    // 1. GLOBAL PRIORITY CHECK: Default Super-Admin ALWAYS logs in as Administrator
+    if (emailClean === 'admin@copilot.com' && (password === 'admin123' || mode === 'ADMIN')) {
+      const storedAdmin = userAccounts.find(u => u.email.toLowerCase() === 'admin@copilot.com');
+      onLogin({
+        name: storedAdmin?.name || 'Alex Vance (Main Super-Admin)',
+        role: storedAdmin?.role || 'System Administrator & Hiring Director',
+        email: 'admin@copilot.com',
+        userType: 'ADMIN',
+        status: 'APPROVED',
+        isSuperAdmin: true
+      });
+      return;
+    }
+
+    // 2. GLOBAL PRIORITY CHECK: Default Recruiter
+    if (emailClean === 'recruiter@copilot.com' && (password === 'recruiter123' || mode === 'RECRUITER')) {
+      const stored = userAccounts.find(u => u.email.toLowerCase() === 'recruiter@copilot.com');
+      onLogin({
+        name: stored?.name || 'Sarah Jenkins',
+        role: stored?.role || 'Talent Acquisition Specialist',
+        email: 'recruiter@copilot.com',
+        userType: 'USER',
+        status: 'APPROVED',
+        isSuperAdmin: false
+      });
+      return;
+    }
+
+    // 3. GLOBAL PRIORITY CHECK: Default Candidate
+    if ((emailClean === 'candidate@copilot.com' || emailClean === 'sarah.johnson@example.com') && (password === 'candidate123' || mode === 'CANDIDATE')) {
+      onLogin({
+        name: 'Sarah Johnson',
+        role: 'Candidate Applicant',
+        email: 'sarah.johnson@example.com',
+        userType: 'USER',
+        status: 'APPROVED',
+        isSuperAdmin: false
+      });
+      return;
+    }
 
     if (mode === 'SIGN_UP') {
       const fullName = `${firstName} ${lastName}`.trim() || 'New User';
@@ -83,18 +124,28 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
         message: `Access Request Submitted Successfully! Account for "${newAcc.email}" is in PENDING status. An Administrator must approve your access before logging in.`
       });
       setActiveStep(3);
-    } else if (mode === 'RECRUITER') {
-      if (emailClean === 'recruiter@copilot.com' && password === 'recruiter123') {
-        const stored = userAccounts.find(u => u.email.toLowerCase() === 'recruiter@copilot.com');
+    } else if (mode === 'CANDIDATE') {
+      const found = userAccounts.find(u => u.email.toLowerCase() === emailClean);
+      if (found) {
         onLogin({
-          name: stored?.name || 'Sarah Jenkins',
-          role: stored?.role || 'Talent Acquisition Specialist',
-          email: 'recruiter@copilot.com',
+          name: found.name,
+          role: 'Candidate Applicant',
+          email: found.email,
           userType: 'USER',
-          status: 'APPROVED'
+          status: 'APPROVED',
+          isSuperAdmin: false
         });
         return;
       }
+      onLogin({
+        name: emailClean.split('@')[0].replace('.', ' '),
+        role: 'Candidate Applicant',
+        email: emailClean,
+        userType: 'USER',
+        status: 'APPROVED',
+        isSuperAdmin: false
+      });
+    } else if (mode === 'RECRUITER') {
       const found = userAccounts.find(u => u.email.toLowerCase() === emailClean);
       if (!found) {
         setStatusNotice({ type: 'ERROR', message: `No account registered for "${email}". Please submit a New Access Request or Sign in with Google.` });
@@ -113,21 +164,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
         role: found.role,
         email: found.email,
         userType: found.userType === 'ADMIN' ? 'ADMIN' : 'USER',
-        status: 'APPROVED'
+        status: 'APPROVED',
+        isSuperAdmin: found.userType === 'ADMIN'
       });
     } else if (mode === 'ADMIN') {
-      if (emailClean === 'admin@copilot.com' && password === 'admin123') {
-        const storedAdmin = userAccounts.find(u => u.email.toLowerCase() === 'admin@copilot.com');
-        onLogin({
-          name: storedAdmin?.name || 'Alex Vance (Main Super-Admin)',
-          role: storedAdmin?.role || 'System Administrator & Hiring Director',
-          email: 'admin@copilot.com',
-          userType: 'ADMIN',
-          status: 'APPROVED',
-          isSuperAdmin: true
-        });
-        return;
-      }
       const foundAdmin = userAccounts.find(u => u.email.toLowerCase() === emailClean && u.userType === 'ADMIN');
       if (!foundAdmin) {
         setStatusNotice({ type: 'ERROR', message: `No Administrator account registered for "${email}". Use admin@copilot.com with admin123.` });
@@ -139,7 +179,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
         email: foundAdmin.email,
         userType: 'ADMIN',
         status: 'APPROVED',
-        isSuperAdmin: foundAdmin.isSuperAdmin
+        isSuperAdmin: true
       });
     }
   };
@@ -274,39 +314,50 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
         >
           {/* Top Bar: Portal Selector Pills */}
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl w-full">
+            <div className="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-xl w-full">
               <button
                 type="button"
                 onClick={() => { setMode('RECRUITER'); setEmail('recruiter@copilot.com'); setPassword('recruiter123'); setStatusNotice(null); }}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`py-1.5 rounded-lg text-[11px] font-bold transition-all text-center truncate ${
                   mode === 'RECRUITER'
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                1. Recruiter Login
+                1. Recruiter
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMode('CANDIDATE'); setEmail('candidate@copilot.com'); setPassword('candidate123'); setStatusNotice(null); }}
+                className={`py-1.5 rounded-lg text-[11px] font-bold transition-all text-center truncate ${
+                  mode === 'CANDIDATE'
+                    ? 'bg-purple-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                2. Candidate
               </button>
               <button
                 type="button"
                 onClick={() => { setMode('ADMIN'); setEmail('admin@copilot.com'); setPassword('admin123'); setStatusNotice(null); }}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`py-1.5 rounded-lg text-[11px] font-bold transition-all text-center truncate ${
                   mode === 'ADMIN'
                     ? 'bg-slate-900 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                2. Admin Portal
+                3. Admin
               </button>
               <button
                 type="button"
                 onClick={() => { setMode('SIGN_UP'); setEmail(''); setPassword(''); setStatusNotice(null); }}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`py-1.5 rounded-lg text-[11px] font-bold transition-all text-center truncate ${
                   mode === 'SIGN_UP'
                     ? 'bg-emerald-600 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                3. Access Request
+                4. Request
               </button>
             </div>
           </div>
@@ -316,13 +367,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
             <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">
               {mode === 'RECRUITER'
                 ? 'Recruiter Gateway'
+                : mode === 'CANDIDATE'
+                ? 'Candidate Applicant Portal'
                 : mode === 'ADMIN'
                 ? 'Administrator Governance'
                 : 'Request Enterprise Access'}
             </h2>
             <p className="text-slate-500 text-xs font-medium">
               {mode === 'RECRUITER'
-                ? 'Sign in with your approved Gmail or enterprise credentials.'
+                ? 'Sign in with your approved recruiter credentials or Google SSO.'
+                : mode === 'CANDIDATE'
+                ? 'Sign in to view your candidate resume, application status, and match reports.'
                 : mode === 'ADMIN'
                 ? 'System administrator access & access control management.'
                 : 'Submit your enterprise details for Administrator approval.'}
@@ -528,15 +583,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
               <button
                 type="button"
                 onClick={() => handleGoogleSelect('sarah.jenkins@gmail.com', 'Sarah Jenkins', 'Talent Acquisition Lead', false)}
-                className="w-full flex items-center justify-between p-3.5 border border-slate-200 rounded-2xl hover:border-blue-500 hover:bg-blue-50/50 transition-all text-left cursor-pointer group"
+                className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-2xl hover:border-blue-500 hover:bg-blue-50/50 transition-all text-left cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center">
                     SJ
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-900 block group-hover:text-blue-600">Sarah Jenkins (Recruiter)</span>
-                    <span className="text-[11px] text-slate-500 font-medium">sarah.jenkins@gmail.com</span>
+                    <span className="text-[10px] text-slate-500 font-medium">sarah.jenkins@gmail.com</span>
                   </div>
                 </div>
                 <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
@@ -544,16 +599,33 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
 
               <button
                 type="button"
-                onClick={() => handleGoogleSelect('alex.vance@gmail.com', 'Alex Vance', 'System Administrator & Hiring Director', true)}
-                className="w-full flex items-center justify-between p-3.5 border border-slate-200 rounded-2xl hover:border-slate-900 hover:bg-slate-50 transition-all text-left cursor-pointer group"
+                onClick={() => handleGoogleSelect('sarah.johnson@example.com', 'Sarah Johnson', 'Candidate Applicant', false)}
+                className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-2xl hover:border-purple-500 hover:bg-purple-50/50 transition-all text-left cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-purple-600 text-white font-extrabold text-xs flex items-center justify-center">
+                    S3
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block group-hover:text-purple-600">Sarah Johnson (Candidate)</span>
+                    <span className="text-[10px] text-slate-500 font-medium">sarah.johnson@example.com</span>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleGoogleSelect('alex.vance@gmail.com', 'Alex Vance', 'System Administrator & Hiring Director', true)}
+                className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-2xl hover:border-slate-900 hover:bg-slate-50 transition-all text-left cursor-pointer group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center">
                     AV
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-900 block group-hover:text-slate-900">Alex Vance (Admin)</span>
-                    <span className="text-[11px] text-slate-500 font-medium">alex.vance@gmail.com</span>
+                    <span className="text-[10px] text-slate-500 font-medium">alex.vance@gmail.com</span>
                   </div>
                 </div>
                 <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />
