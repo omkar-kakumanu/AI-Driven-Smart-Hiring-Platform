@@ -90,29 +90,46 @@ async def parse_resume(file: UploadFile = File(...)):
         full_name = extracted_info.get("name") or filename.split('.')[0].replace('_', ' ').replace('-', ' ').title()
         email = extracted_info.get("email") or f"{filename.split('.')[0].lower()}@example.com"
         phone = extracted_info.get("phone") or "+1 (555) 019-2831"
+        current_role = extracted_info.get("current_role")
+        total_exp = extracted_info.get("total_experience_years") or (len(extracted_info.get("experience", [])) * 2 if extracted_info.get("experience") else 3)
         skills = extracted_info.get("skills") or []
-        education = extracted_info.get("education") or []
+        education_list = extracted_info.get("education") or []
         certifications = extracted_info.get("certifications") or []
         experience = extracted_info.get("experience") or []
+        projects = extracted_info.get("projects") or []
+        achievements = extracted_info.get("achievements") or []
+        linkedin = extracted_info.get("linkedin")
+        github = extracted_info.get("github")
+        portfolio = extracted_info.get("portfolio")
+
+        first_edu = education_list[0] if (education_list and isinstance(education_list[0], dict)) else {
+            "degree": education_list[0] if education_list else "BS Computer Science",
+            "institution": "University / Institution",
+            "graduation_year": 2021
+        }
 
         return {
             "success": True,
             "is_valid": True,
             "filename": filename,
             "parsed_profile": {
+                "name": full_name,
                 "full_name": full_name,
                 "email": email,
                 "phone": phone,
+                "current_role": current_role,
                 "location": "San Francisco, CA",
                 "skills": skills,
-                "total_experience_years": max(1, len(experience) * 2) if experience else 3,
-                "education": {
-                    "degree": education[0] if education else "BS Computer Science",
-                    "institution": "University / Institution",
-                    "graduation_year": 2021
-                },
-                "certifications": certifications,
+                "total_experience_years": total_exp,
+                "education": first_edu,
+                "education_history": education_list,
                 "experience": experience,
+                "projects": projects,
+                "certifications": certifications,
+                "achievements": achievements,
+                "linkedin": linkedin,
+                "github": github,
+                "portfolio": portfolio,
                 "pandas_dataframe": extracted_info,
                 "parsing_accuracy": 0.98 if skills else 0.85
             }
