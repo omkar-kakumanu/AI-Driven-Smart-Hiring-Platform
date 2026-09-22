@@ -231,6 +231,7 @@ export default function App() {
               isCandidateUser={isCandidateUser}
               onUpdateCandidateStatusByEmail={store.updateCandidateStatusByEmail}
               onUpdateCandidateRoleAndExperience={store.updateCandidateRoleAndExperience}
+              onSaveCandidateInterviewResponse={store.addCandidateInterviewResponse}
               onNavigateToAts={() => setCurrentTab('ats-integration')}
             />
           )}

@@ -16,6 +16,20 @@ export interface Job {
   createdAt: string;
 }
 
+export interface CandidateInterviewResponse {
+  id: string;
+  question: string;
+  category?: string;
+  answer: string;
+  timestamp: string;
+  score?: {
+    clarity: number;
+    relevance: number;
+    overall: number;
+    feedback: string;
+  };
+}
+
 export interface Candidate {
   id: string;
   fullName: string;
@@ -31,9 +45,10 @@ export interface Candidate {
   skills: string[];
   degree: string;
   institution: string;
-  status: 'Applied' | 'Screened' | 'Shortlisted' | 'Interviewed' | 'Offered' | 'Hired' | 'Rejected';
+  status: 'Applied' | 'Screened' | 'Shortlisted' | 'Interviewed' | 'Interview in progress' | 'Interview Completed' | 'Offered' | 'Hired' | 'Rejected';
   matchScore?: number;
   avatar?: string;
+  interviewResponses?: CandidateInterviewResponse[];
 }
 
 export interface SkillGapItem {

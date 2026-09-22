@@ -169,8 +169,23 @@ export const INITIAL_CANDIDATES: Candidate[] = [
     skills: ['Python', 'Machine Learning', 'TensorFlow', 'PyTorch', 'SQL', 'Data Analysis', 'AWS SageMaker', 'Docker'],
     degree: 'MS Computer Science',
     institution: 'Stanford University',
-    status: 'Applied',
-    matchScore: 92
+    status: 'Interview in progress',
+    matchScore: 92,
+    interviewResponses: [
+      {
+        id: 'resp-1',
+        question: 'Describe a machine learning project where you had to optimize model performance. What techniques did you use and what was the outcome?',
+        category: 'Technical',
+        answer: 'I led the optimization of our fraud detection transformer model by implementing mixed-precision training (FP16), hyperparameter tuning with Optuna, and ONNX Runtime quantization. This reduced inference latency by 42% while improving F1 score from 0.89 to 0.94 in production.',
+        timestamp: 'Today at 14:30',
+        score: {
+          clarity: 94,
+          relevance: 96,
+          overall: 95,
+          feedback: 'Outstanding technical precision, clear quantifiable latency and accuracy metrics.'
+        }
+      }
+    ]
   },
   {
     id: 'cand-2',

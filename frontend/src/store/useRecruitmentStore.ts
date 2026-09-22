@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Job, Candidate, InterviewQuestion, ATSProvider, UserProfile, UserAccount } from '../types';
+import type { Job, Candidate, InterviewQuestion, ATSProvider, UserProfile, UserAccount, CandidateInterviewResponse } from '../types';
 
 import { INITIAL_JOBS, INITIAL_CANDIDATES, INITIAL_QUESTIONS, INITIAL_ATS_PROVIDERS } from '../services/mockData';
 
@@ -21,6 +21,10 @@ export function useRecruitmentStore() {
     }
     return INITIAL_CANDIDATES;
   });
+
+  useEffect(() => {
+    localStorage.setItem('rc_candidates', JSON.stringify(candidates));
+  }, [candidates]);
 
   const INITIAL_USERS: UserAccount[] = [
     {
@@ -308,6 +312,19 @@ export function useRecruitmentStore() {
     }));
   };
 
+  const addCandidateInterviewResponse = (candidateIdOrEmail: string, response: CandidateInterviewResponse) => {
+    setCandidates(prev => prev.map(cand => {
+      if (cand.id === candidateIdOrEmail || cand.email.toLowerCase() === candidateIdOrEmail.toLowerCase()) {
+        const existing = cand.interviewResponses || [];
+        return {
+          ...cand,
+          interviewResponses: [...existing, response]
+        };
+      }
+      return cand;
+    }));
+  };
+
   const calculateMatchScore = (candidateSkills: string[], requiredSkills: string[]): number => {
     if (!requiredSkills || requiredSkills.length === 0) return 85;
     const candSkillsLower = candidateSkills.map(s => s.toLowerCase());
@@ -342,6 +359,7 @@ export function useRecruitmentStore() {
     addJob,
     updateCandidateStatus,
     updateCandidateStatusByEmail,
+    addCandidateInterviewResponse,
     deleteCandidate,
     addSkillToCandidate,
     removeSkillFromCandidate,
