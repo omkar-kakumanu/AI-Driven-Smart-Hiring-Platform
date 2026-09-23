@@ -91,11 +91,20 @@ async def parse_resume(file: UploadFile = File(...)):
         email = extracted_info.get("email") or f"{filename.split('.')[0].lower()}@example.com"
         phone = extracted_info.get("phone") or "+1 (555) 019-2831"
         current_role = extracted_info.get("current_role")
-        total_exp = extracted_info.get("total_experience_years") or (len(extracted_info.get("experience", [])) * 2 if extracted_info.get("experience") else 3)
-        skills = extracted_info.get("skills") or []
-        education_list = extracted_info.get("education") or []
-        certifications = extracted_info.get("certifications") or []
-        experience = extracted_info.get("experience") or []
+        # Normalize list fields that may be serialized as comma-separated strings by DataFrame
+        raw_skills = extracted_info.get("skills") or []
+        skills = [s.strip() for s in raw_skills.split(",") if s.strip()] if isinstance(raw_skills, str) else raw_skills
+
+        raw_edu = extracted_info.get("education") or []
+        education_list = [e.strip() for e in raw_edu.split(",") if e.strip()] if isinstance(raw_edu, str) else raw_edu
+
+        raw_certs = extracted_info.get("certifications") or []
+        certifications = [c.strip() for c in raw_certs.split(",") if c.strip()] if isinstance(raw_certs, str) else raw_certs
+
+        raw_exp = extracted_info.get("experience") or []
+        experience = [e.strip() for e in raw_exp.split(",") if e.strip()] if isinstance(raw_exp, str) else raw_exp
+
+        total_exp = extracted_info.get("total_experience_years") or (len(experience) * 2 if experience else 3)
         projects = extracted_info.get("projects") or []
         achievements = extracted_info.get("achievements") or []
         linkedin = extracted_info.get("linkedin")
