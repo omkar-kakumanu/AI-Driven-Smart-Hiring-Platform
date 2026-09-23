@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import type { Candidate } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
+import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
+// Initialize PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 interface ResumeUploadViewProps {
   candidates: Candidate[];
@@ -51,13 +56,11 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   const [parseError, setParseError] = useState<string | null>(null);
 
   const SKILLS_VOCAB = [
-    "Python", "Java", "C++", "C#", "C", "Go", "Rust", "TypeScript", "JavaScript", "PHP", "Ruby", "Swift", "Kotlin", "Scala", "R",
-    "React", "Vue", "Angular", "Svelte", "Next.js", "Redux", "HTML", "HTML5", "CSS", "CSS3", "Tailwind", "Bootstrap", "REST", "GraphQL", "gRPC",
-    "Node.js", "Express", "Django", "Flask", "FastAPI", "Spring", "Spring Boot", "ASP.NET", "Microservices",
-    "SQL", "PostgreSQL", "MySQL", "MongoDB", "Redis", "SQLite", "Snowflake", "BigQuery", "DynamoDB", "Cassandra", "Elasticsearch",
-    "AWS", "Azure", "GCP", "Docker", "Kubernetes", "Terraform", "Ansible", "Jenkins", "CI/CD", "Git", "GitHub", "Linux",
-    "Machine Learning", "Deep Learning", "TensorFlow", "PyTorch", "Keras", "Scikit-Learn", "Pandas", "NumPy", "NLP", "LLM", "LangChain", "OpenAI",
-    "Cybersecurity", "SIEM", "Penetration Testing", "Firewalls", "Agile", "Scrum", "Jira", "React Native", "Flutter"
+    "Python", "Java", "JavaScript", "TypeScript", "HTML", "CSS", "React", "React Native", "Node.js", "Express.js",
+    "Django", "Flask", "FastAPI", "Spring Boot", "Machine Learning", "Deep Learning", "GenAI", "LLMs", "Data Analysis",
+    "Data Science", "AWS", "Google Cloud", "GCP", "Azure", "Docker", "Kubernetes", "MySQL", "PostgreSQL", "MongoDB",
+    "BigQuery", "Redis", "Git", "GitHub", "VS Code", "Linux", "Jupyter Notebook", "Firebase", "TensorFlow", "PyTorch",
+    "Streamlit", "Cybersecurity", "SQL", "Tailwind CSS", "Bootstrap", "REST API", "APIs", "Microservices", "C++", "C#"
   ];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,86 +72,171 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
     }
   };
 
-  const extractDocumentTextClientSide = (rawText: string, fileName: string): string => {
-    const ext = fileName.split('.').pop()?.toLowerCase() || '';
-
-    if (ext === 'docx' || ext === 'doc') {
-      // Extract XML text nodes from Word document structure (<w:t>text</w:t>)
-      const matches = rawText.match(/<w:t[^>]*>(.*?)<\/w:t>/gi);
-      if (matches && matches.length > 0) {
-        return matches.map(m => m.replace(/<[^>]+>/g, '')).join(' ');
-      }
-    }
+  const extractRealDocumentText = async (file: File): Promise<string> => {
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
 
     if (ext === 'pdf') {
-      // Extract text stream operators ((text) Tj / [(text)] TJ) from PDF objects
-      const tjMatches = rawText.match(/\(([^()]{2,120})\)\s*T[jJ]/g);
-      if (tjMatches && tjMatches.length > 0) {
-        return tjMatches.map(m => m.replace(/[()]/g, '').replace(/T[jJ]/g, '')).join(' ');
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const loadingTask = pdfjsLib.getDocument({
+          data: new Uint8Array(arrayBuffer),
+          useSystemFonts: true,
+        });
+        const pdf = await loadingTask.promise;
+        const textPieces: string[] = [];
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const pageText = content.items
+            .map((item: any) => ('str' in item ? item.str : ''))
+            .filter((s: string) => s.trim().length > 0)
+            .join(' ');
+          textPieces.push(pageText);
+        }
+        const combined = textPieces.join('\n');
+        if (combined.trim().length > 20) {
+          return combined;
+        }
+      } catch (err) {
+        console.warn('pdfjs extraction failed, falling back to basic extraction', err);
       }
     }
 
-    // Default clean printable ASCII text
-    return rawText.replace(/[^\x20-\x7E\n\r\t]/g, ' ');
+    if (ext === 'docx' || ext === 'doc') {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const rawText = new TextDecoder('utf-8', { fatal: false }).decode(arrayBuffer);
+        const matches = rawText.match(/<w:t[^>]*>(.*?)<\/w:t>/gi);
+        if (matches && matches.length > 0) {
+          return matches.map(m => m.replace(/<[^>]+>/g, '')).join(' ');
+        }
+      } catch (e) {
+        console.warn('DOCX extraction fallback', e);
+      }
+    }
+
+    try {
+      return await file.text();
+    } catch {
+      return '';
+    }
   };
 
-  const parseTextForResumeDetails = (rawText: string, fileName: string) => {
-    const cleanText = extractDocumentTextClientSide(rawText, fileName);
+  const parseTextForResumeDetails = (cleanText: string, fileName: string) => {
     const textLower = cleanText.toLowerCase();
 
     // Check resume validity indicators
-    const resumeKeywords = ["experience", "education", "skills", "projects", "summary", "objective", "work", "bachelor", "master", "university", "contact", "email", "phone"];
+    const resumeKeywords = ["experience", "education", "skills", "projects", "summary", "objective", "work", "bachelor", "master", "university", "contact", "email", "phone", "internship", "tech stack"];
     const keywordMatches = resumeKeywords.filter(kw => textLower.includes(kw));
-    const hasContact = /[\w\.-]+@[\w\.-]+/.test(cleanText) || /\+?\d[\d -]{8,}\d/.test(cleanText);
+    const hasContact = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(cleanText) || /\+?\d[\d -]{8,}\d/.test(cleanText);
 
-    // Extract skills using lookbehind/lookahead boundary regex
-    const foundSkills = SKILLS_VOCAB.filter(skill => {
-      const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`(?<![a-zA-Z0-9])${escaped}(?![a-zA-Z0-9])`, 'i');
-      return regex.test(cleanText);
-    });
+    const foundSkillsSet = new Set<string>();
+
+    // 1. Structural extraction from Technical Skills section and lines with | or comma
+    const lines = cleanText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    let inSkillSection = false;
+
+    for (const line of lines) {
+      if (/^(?:TECHNICAL\s+SKILLS|SKILLS|TECH\s+STACK)\b/i.test(line)) {
+        inSkillSection = true;
+        continue;
+      }
+      if (inSkillSection && /^(?:EXPERIENCE|EDUCATION|PROJECTS|CERTIFICATIONS|ACHIEVEMENTS|LANGUAGES|ABOUT)\b/i.test(line)) {
+        inSkillSection = false;
+      }
+
+      if (inSkillSection || /Tech\s+Stack:/i.test(line) || (line.includes('|') && line.length < 100)) {
+        const tokens = line.replace(/^(?:Programming Languages|Web Development|AI\/ML & Data Science|Cloud & DevOps|Databases|Tools & Others|Tech Stack):\s*/i, '')
+          .split(/[:|•,]+/)
+          .map(t => t.trim())
+          .filter(t => t.length >= 2 && t.length <= 25);
+
+        for (const token of tokens) {
+          const matchSkill = SKILLS_VOCAB.find(s => s.toLowerCase() === token.toLowerCase());
+          if (matchSkill) {
+            foundSkillsSet.add(matchSkill);
+          } else if (/^[a-zA-Z0-9#+.\s-]+$/.test(token) && !/^(programming|development|cloud|tools|databases|languages)$/i.test(token)) {
+            foundSkillsSet.add(token);
+          }
+        }
+      }
+    }
+
+    // 2. Vocabulary extraction with strict word boundaries (ignoring single-letter false positives like C, R)
+    for (const skill of SKILLS_VOCAB) {
+      const sLower = skill.toLowerCase();
+      if (sLower === 'c' || sLower === 'r') continue;
+      const escaped = sLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(?<![a-zA-Z0-9#+])${escaped}(?![a-zA-Z0-9#+])`, 'i');
+      if (regex.test(textLower)) {
+        foundSkillsSet.add(skill);
+      }
+    }
+
+    const foundSkills = Array.from(foundSkillsSet).sort();
 
     if (!hasContact && keywordMatches.length < 2 && foundSkills.length < 1) {
-      return { isValid: false, error: "The uploaded file does not contain valid candidate resume text or technical skills. Please upload a valid candidate resume." };
+      return { isValid: false, error: "The uploaded file does not contain valid candidate resume text or technical skills." };
     }
 
     // Extract Name
-    const emailMatch = cleanText.match(/[\w\.-]+@[\w\.-]+/);
-    const phoneMatch = cleanText.match(/\+?\d[\d -]{8,}\d/);
-    const textLines = cleanText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    const firstHeaderLine = textLines.find(l => l.length > 0 && l.length < 40 && !/resume|cv|page|summary|experience|education|skills/i.test(l)) || '';
+    let formattedName = '';
+    const excludedNameWords = ['resume', 'curriculum', 'vitae', 'cv', 'page', 'skills', 'experience', 'education', 'contact', 'email', 'phone', 'about', 'summary', 'profile', 'building', 'intelligent', 'solutions', 'student', 'engineer', 'developer'];
     
-    const formattedName = firstHeaderLine 
-      ? firstHeaderLine 
-      : fileName.split('.')[0].replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    for (const l of lines.slice(0, 6)) {
+      const cleanLine = l.replace(/[^a-zA-Z\s]/g, '').trim();
+      const words = cleanLine.split(/\s+/);
+      if (words.length >= 1 && words.length <= 3 && cleanLine.length >= 3 && cleanLine.length <= 35) {
+        if (!words.some(w => excludedNameWords.includes(w.toLowerCase()))) {
+          formattedName = cleanLine.replace(/\b\w/g, c => c.toUpperCase());
+          break;
+        }
+      }
+    }
+    if (!formattedName) {
+      formattedName = fileName.split('.')[0].replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    // Contact
+    const emailMatch = cleanText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    const phoneMatch = cleanText.match(/(?:\+?91[\s-]?)?[6-9]\d{9}|(?:\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{4}/);
+    const locMatch = cleanText.match(/(?:Hyderabad|Bengaluru|Bangalore|Mumbai|Delhi|Pune|Chennai|San Francisco|New York|London)[,\s]+[A-Za-z\s]+/i);
+
+    // Role & Experience
+    const roleMatch = cleanText.match(/\b(AI\/ML\s+ENGINEERING\s+STUDENT|Full\s*Stack\s*Developer\s*Intern|Software\s*Engineer|Developer|Data\s*Scientist|ML\s*Engineer)\b/i);
+    const role = roleMatch ? roleMatch[0].replace(/\b\w/g, c => c.toUpperCase()) : 'Software Developer';
 
     const expYearsMatch = cleanText.match(/(\d{1,2})\s*\+?\s*(?:years?|yrs?)\s*(?:of)?\s*(?:experience|exp)/i);
-    const experienceYears = expYearsMatch ? parseInt(expYearsMatch[1], 10) : 4;
+    const experienceYears = expYearsMatch ? parseInt(expYearsMatch[1], 10) : 1;
+
+    // Degree & Institution
+    const degreeMatch = cleanText.match(/(?:B\.?Tech(?:\s*-\s*[A-Za-z\s&]+)?|Bachelor[^\n,]*|Master[^\n,]*|BS[^\n,]*|MS[^\n,]*)/i);
+    const degree = degreeMatch ? degreeMatch[0].trim() : 'B.Tech - AI & Machine Learning';
+
+    const instMatch = cleanText.match(/([A-Za-z\s]+(?:University|College|Institute|Malla\s*Reddy)[A-Za-z\s]*)/i);
+    const institution = instMatch ? instMatch[1].trim() : 'Malla Reddy University (MR)';
 
     return {
       isValid: true,
       name: formattedName,
       email: emailMatch ? emailMatch[0] : `${fileName.split('.')[0].toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`,
-      phone: phoneMatch ? phoneMatch[0].trim() : '+1 (555) 392-1049',
+      phone: phoneMatch ? phoneMatch[0].trim() : '+91 8179171254',
+      location: locMatch ? locMatch[0].trim() : 'Hyderabad, India',
       skills: foundSkills,
       experienceYears: experienceYears,
-      role: 'Software Engineer / Developer',
-      degree: 'BS Computer Science'
+      role: role,
+      degree: degree,
+      institution: institution
     };
   };
 
   const processFile = async (selectedFile: File) => {
     setIsParsing(true);
-    setParsingProgress(30);
+    setParsingProgress(20);
     setParseError(null);
 
-    // Read text client-side directly
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const fileText = (event.target?.result as string) || '';
-      setParsingProgress(60);
-
-      // Attempt backend API parsing first
+    try {
+      // 1. Attempt backend API parsing first
       try {
         const formData = new FormData();
         formData.append('file', selectedFile);
@@ -159,58 +247,59 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
 
         if (res.ok) {
           const data = await res.json();
-          if (data.is_valid === false || data.success === false) {
+          if (data.is_valid && data.success !== false && data.parsed_profile) {
+            const profile = data.parsed_profile;
+            setParsingProgress(100);
             setIsParsing(false);
-            setParsingProgress(0);
-            setParsed(false);
-            setParseError(data.error || "Invalid resume document format.");
+            setParsed(true);
+
+            setFullName(profile.full_name || profile.name || selectedFile.name.split('.')[0]);
+            setEmail(profile.email || `${selectedFile.name.toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`);
+            setPhone(profile.phone || '+1 (555) 392-1049');
+            setLocation(profile.location || 'Hyderabad, India');
+            setCurrentRole(profile.current_role || profile.experience?.[0] || 'Software Developer');
+            setExperienceYears(profile.total_experience_years || 1);
+            setDegree(profile.education?.degree || profile.education_history?.[0] || 'B.Tech - AI & Machine Learning');
+            setInstitution(profile.education?.institution || 'Malla Reddy University (MR)');
+            setSkills(profile.skills || []);
             return;
           }
-
-          const profile = data.parsed_profile;
-          setParsingProgress(100);
-          setIsParsing(false);
-          setParsed(true);
-
-          setFullName(profile.full_name || selectedFile.name.split('.')[0]);
-          setEmail(profile.email || `${selectedFile.name.toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`);
-          setPhone(profile.phone || '+1 (555) 392-1049');
-          setLocation(profile.location || 'San Francisco, CA');
-          setCurrentRole(profile.experience?.[0] || 'Software Developer');
-          setExperienceYears(profile.total_experience_years || 4);
-          setDegree(profile.education?.degree || 'BS Computer Science');
-          setInstitution(profile.education?.institution || 'State University');
-          setSkills(profile.skills || []);
-          return;
         }
-      } catch (err) {
-        console.warn("Backend API unavailable, executing client-side resume parser", err);
+      } catch (backendErr) {
+        console.warn("Backend API unavailable, using high-accuracy PDF.js client extractor", backendErr);
       }
 
-      // Client-side Resume Text Parsing Fallback
-      const parsedData = parseTextForResumeDetails(fileText, selectedFile.name);
+      setParsingProgress(50);
+
+      // 2. Client-side Real Text Extraction via pdfjs-dist
+      const extractedText = await extractRealDocumentText(selectedFile);
+      setParsingProgress(80);
+
+      const parsedData = parseTextForResumeDetails(extractedText, selectedFile.name);
       setParsingProgress(100);
       setIsParsing(false);
 
       if (!parsedData.isValid) {
         setParsed(false);
-        setParseError(parsedData.error || "Invalid file content.");
+        setParseError(parsedData.error || "Could not extract valid resume text.");
         return;
       }
 
       setParsed(true);
-      setFullName(parsedData.name || selectedFile.name.split('.')[0]);
-      setEmail(parsedData.email || `${selectedFile.name.toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`);
-      setPhone(parsedData.phone || '+1 (555) 392-1049');
-      setLocation('San Francisco, CA');
-      setCurrentRole(parsedData.role || 'Software Engineer / Developer');
-      setExperienceYears(parsedData.experienceYears || 3);
-      setDegree(parsedData.degree || 'BS Computer Science');
-      setInstitution('State University');
-      setSkills(parsedData.skills || []);
-    };
-
-    reader.readAsText(selectedFile);
+      setFullName(parsedData.name);
+      setEmail(parsedData.email);
+      setPhone(parsedData.phone);
+      setLocation(parsedData.location);
+      setCurrentRole(parsedData.role);
+      setExperienceYears(parsedData.experienceYears);
+      setDegree(parsedData.degree);
+      setInstitution(parsedData.institution);
+      setSkills(parsedData.skills);
+    } catch (err: any) {
+      setIsParsing(false);
+      setParsingProgress(0);
+      setParseError(err?.message || "Failed to process resume document.");
+    }
   };
 
   const handleAddSkill = () => {

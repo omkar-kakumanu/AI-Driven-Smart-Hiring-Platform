@@ -1,5 +1,5 @@
 Rank,Candidate,Job Title,Skill Match (%),Hiring Score (%),Benchmark Status,Alert,Matched Skills,Missing Skills
-#1,Alex Chen,Backend Java Specialist,100.0,100.0,QUALIFIED (100.0% >= 85%),None (Meets >=85% Target),"Java, SQL, Docker",
-#2,Sarah Johnson,Backend Java Specialist,33.33,56.25,ALERT (33.33% < 85%),"ALERT: Skill match 33.33% is below 85% requirement. Upskilling recommended in: Java, Docker",SQL,"Java, Docker"
-#1,Sarah Johnson,Senior Machine Learning Engineer,60.0,76.0,ALERT (60.0% < 85%),"ALERT: Skill match 60.0% is below 85% requirement. Upskilling recommended in: AWS SageMaker, Kubernetes","SQL, TensorFlow, Python","AWS SageMaker, Kubernetes"
-#2,Alex Chen,Senior Machine Learning Engineer,60.0,66.0,ALERT (60.0% < 85%),"ALERT: Skill match 60.0% is below 85% requirement. Upskilling recommended in: AWS SageMaker, TensorFlow","SQL, Kubernetes, Python","AWS SageMaker, TensorFlow"
+#1,Alex Chen,Backend Java Specialist,100.0,100.0,QUALIFIED (100.0% >= 85%),None (Meets >=85% Target),"Docker, SQL, Java",
+#2,Sarah Johnson,Backend Java Specialist,33.33,56.25,ALERT (33.33% < 85%),"ALERT: Skill match 33.33% is below 85% requirement. Upskilling recommended in: Docker, Java",SQL,"Docker, Java"
+#1,Sarah Johnson,Senior Machine Learning Engineer,60.0,76.0,ALERT (60.0% < 85%),"ALERT: Skill match 60.0% is below 85% requirement. Upskilling recommended in: AWS SageMaker, Kubernetes","Python, SQL, TensorFlow","AWS SageMaker, Kubernetes"
+#2,Alex Chen,Senior Machine Learning Engineer,60.0,66.0,ALERT (60.0% < 85%),"ALERT: Skill match 60.0% is below 85% requirement. Upskilling recommended in: TensorFlow, AWS SageMaker","Python, SQL, Kubernetes","TensorFlow, AWS SageMaker"
