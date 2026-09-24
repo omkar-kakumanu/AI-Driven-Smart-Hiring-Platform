@@ -1,179 +1,211 @@
 """
 Voice-Based Screening Module for AI Recruitment Copilot
-Milestone 4 (Week 8) Deliverable
-
-Provides automated speech-to-text candidate response recognition using SpeechRecognition
-and text-to-speech AI interviewer voice prompting using pyttsx3.
-Includes headless/simulated fallback modes and structured scoring.
+Milestone 4 (Week 8) Evaluation Criteria:
+- Voice screening module operational (Speech-to-text + AI interviewer voice)
+- SpeechRecognition (for input) and pyttsx3 (for AI interviewer voice output)
 """
 
 import sys
 import time
-from typing import Dict, Any, Optional
+import speech_recognition as sr
+import pyttsx3
 
-try:
-    import speech_recognition as sr
-except ImportError:
-    sr = None
+# Standard interview prompts
+DEFAULT_INTERVIEW_PROMPT = (
+    "Hello, please introduce yourself and describe your experience with machine learning."
+)
+DEFAULT_CLOSING_PROMPT = (
+    "Thank you. Based on your response, we will proceed to the next round."
+)
 
-try:
-    import pyttsx3
-except ImportError:
-    pyttsx3 = None
+TECHNICAL_KEYWORDS = [
+    "machine learning", "deep learning", "python", "pytorch", "tensorflow",
+    "scikit-learn", "nlp", "computer vision", "neural network", "transformer",
+    "data science", "aws", "sagemaker", "docker", "kubernetes", "sql", "pipeline",
+    "feature engineering", "model training", "hyperparameter", "evaluation"
+]
 
 
-class VoiceScreeningEngine:
-    def __init__(self, voice_speed: int = 175, voice_volume: float = 0.9):
-        self.engine = None
-        self.tts_available = False
-        self.stt_available = sr is not None
+def init_tts_engine(rate=165, volume=0.9):
+    """Initialize pyttsx3 text-to-speech engine with safe settings."""
+    try:
+        engine = pyttsx3.init()
+        engine.setProperty("rate", rate)
+        engine.setProperty("volume", volume)
+        return engine
+    except Exception as e:
+        print(f"[VoiceScreening] TTS Init Warning: {e}")
+        return None
 
-        if pyttsx3 is not None:
-            try:
-                self.engine = pyttsx3.init()
-                self.engine.setProperty('rate', voice_speed)
-                self.engine.setProperty('volume', voice_volume)
-                self.tts_available = True
-            except Exception as e:
-                print(f"[VoiceScreening] Warning: pyttsx3 initialization failed ({e}). Using console fallback.")
-                self.tts_available = False
 
-    def speak(self, text: str):
-        """Speak text using pyttsx3 with graceful console fallback."""
-        print(f"\n[AI Interviewer Voice]: \"{text}\"")
-        if self.tts_available and self.engine:
-            try:
-                self.engine.say(text)
-                self.engine.runAndWait()
-            except Exception as e:
-                print(f"[VoiceScreening] Speech synthesis notice: {e}")
-
-    def listen_candidate_response(
-        self, 
-        prompt_text: Optional[str] = None, 
-        timeout: int = 5, 
-        phrase_time_limit: int = 15,
-        simulated_input: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """
-        Record candidate audio via microphone and convert to text using Google STT.
-        If simulated_input is provided or no microphone is found, uses the simulated/mock audio response.
-        """
-        if prompt_text:
-            self.speak(prompt_text)
-
-        # 1. Automated / Simulated Fallback Mode
-        if simulated_input is not None:
-            time.sleep(0.5)
-            print(f"[Candidate Speech Input (Simulated)]: \"{simulated_input}\"")
-            return {
-                "success": True,
-                "transcript": simulated_input,
-                "mode": "simulated",
-                "confidence": 0.96
-            }
-
-        if not self.stt_available:
-            return {
-                "success": False,
-                "error": "SpeechRecognition library not installed.",
-                "transcript": ""
-            }
-
-        recognizer = sr.Recognizer()
-        
-        # 2. Check for microphone availability
+def speak(text, engine=None):
+    """Speak text using pyttsx3 engine safely."""
+    tts = engine or init_tts_engine()
+    if tts:
         try:
-            mic = sr.Microphone()
-            with mic as source:
-                print("[Listening for candidate response via microphone...]")
-                recognizer.adjust_for_ambient_noise(source, duration=0.8)
-                audio = recognizer.listen(source, timeout=timeout, phrase_time_limit=phrase_time_limit)
-
-            print("[Transcribing audio stream...]")
-            transcript = recognizer.recognize_google(audio)
-            print(f"[Candidate Transcript]: \"{transcript}\"")
-            return {
-                "success": True,
-                "transcript": transcript,
-                "mode": "microphone",
-                "confidence": 0.94
-            }
+            tts.say(text)
+            tts.runAndWait()
         except Exception as e:
-            # Fallback to simulated input when running headlessly or if PyAudio is missing
-            fallback_text = (
-                "I have over 3 years of experience developing machine learning models in Python, "
-                "specifically optimizing transformers, fine-tuning LLMs, and deploying inference pipelines with FastAPI and Docker."
-            )
-            print(f"[VoiceScreening Notice] Microphone unavailable ({e}). Using high-confidence voice response fallback.")
-            return {
-                "success": True,
-                "transcript": fallback_text,
-                "mode": "fallback_simulation",
-                "confidence": 0.92,
-                "notice": str(e)
-            }
+            print(f"[VoiceScreening] Speech error: {e}")
+    else:
+        print(f"[AI Interviewer Voice]: {text}")
 
-    def evaluate_response(self, question: str, response: str, required_keywords: list = None) -> Dict[str, Any]:
-        """Evaluate transcribed response for clarity, relevance, and keyword presence."""
-        if not required_keywords:
-            required_keywords = ["experience", "python", "machine learning", "models", "optimization", "deploy"]
 
-        words = response.lower().split()
-        word_count = len(words)
-        
-        matched_keywords = [kw for kw in required_keywords if kw.lower() in response.lower()]
-        keyword_coverage = len(matched_keywords) / max(len(required_keywords), 1)
-
-        # Metrics computation
-        clarity_score = min(100, int(60 + min(word_count, 40) * 1.0))
-        relevance_score = min(100, int(keyword_coverage * 60 + (40 if word_count >= 15 else 20)))
-        overall_score = int(clarity_score * 0.4 + relevance_score * 0.6)
-
+def evaluate_candidate_response(response_text, required_keywords=None):
+    """
+    Evaluates candidate's spoken response:
+    - Calculates technical keyword coverage
+    - Calculates communication fluency & length score
+    - Generates hiring suitability score and feedback
+    """
+    if not response_text:
         return {
-            "clarity": clarity_score,
-            "relevance": relevance_score,
-            "overall": overall_score,
-            "word_count": word_count,
-            "matched_keywords": matched_keywords,
-            "passed": overall_score >= 70,
-            "feedback": (
-                "Outstanding technical depth and clear articulation of production ML experience."
-                if overall_score >= 85 else
-                "Good fundamental answer. Could elaborate further on deployment frameworks and metrics."
-            )
+            "score": 40.0,
+            "fluency_score": 30.0,
+            "technical_score": 40.0,
+            "detected_keywords": [],
+            "status": "Incomplete",
+            "feedback": "No response detected or transcription empty.",
+            "recommendation": "Reschedule Voice Screening"
         }
 
-
-def voice_screening(simulated_input: Optional[str] = None):
-    """
-    Standard voice screening workflow as specified in Milestone 4.
-    Runs speech prompt -> listens to candidate -> transcribes -> speaks closing response.
-    """
-    engine = VoiceScreeningEngine()
+    keywords = required_keywords or TECHNICAL_KEYWORDS
+    lower_resp = response_text.lower()
     
-    # Question Prompt
-    question = "Hello, please introduce yourself and describe your experience with machine learning."
-    result = engine.listen_candidate_response(prompt_text=question, simulated_input=simulated_input)
-
-    transcript = result.get("transcript", "")
-    evaluation = engine.evaluate_response(question, transcript)
-
-    # Closing Response
-    if evaluation.get("passed", True):
-        engine.speak("Thank you. Based on your response, we will proceed to the next round.")
+    detected = [kw for kw in keywords if kw in lower_resp]
+    word_count = len(response_text.split())
+    
+    # Fluency metric based on elaboration
+    if word_count < 10:
+        fluency_score = 50.0
+    elif word_count < 30:
+        fluency_score = 75.0
+    elif word_count < 80:
+        fluency_score = 92.0
     else:
-        engine.speak("Thank you for your time. Your response has been recorded for review.")
+        fluency_score = 96.0
 
-    print("\n[Screening Evaluation Summary]")
-    print(f"Overall Score: {evaluation['overall']}% (Clarity: {evaluation['clarity']}%, Relevance: {evaluation['relevance']}%)")
-    print(f"Evaluation Feedback: {evaluation['feedback']}")
+    # Technical depth metric based on keywords
+    tech_score = min(100.0, len(detected) * 22.0 + 35.0)
+    
+    overall_score = round(0.6 * tech_score + 0.4 * fluency_score, 1)
+    
+    if overall_score >= 80.0:
+        rec = "Strong Pass - Proceed to Technical Deep Dive"
+        status = "Interview Completed"
+    elif overall_score >= 65.0:
+        rec = "Pass - Qualified for Hiring Manager Round"
+        status = "Interview Completed"
+    else:
+        rec = "Borderline - Additional Screening Recommended"
+        status = "Screened"
+
     return {
-        "result": result,
-        "evaluation": evaluation
+        "score": overall_score,
+        "fluency_score": fluency_score,
+        "technical_score": tech_score,
+        "word_count": word_count,
+        "detected_keywords": detected,
+        "status": status,
+        "feedback": f"Candidate demonstrated {len(detected)} domain keywords with high articulation.",
+        "recommendation": rec
     }
 
 
+def voice_screening(audio_file=None, timeout=5, phrase_time_limit=10, simulate_text=None):
+    """
+    Step 2: Voice-Based Screening Module
+    Operational Speech-to-text + AI interviewer voice using SpeechRecognition & pyttsx3.
+    Supports live mic, audio file input, or deterministic simulated mode.
+    """
+    recognizer = sr.Recognizer()
+    engine = init_tts_engine()
+
+    print("\n--- Starting Voice Screening Module ---")
+    speak(DEFAULT_INTERVIEW_PROMPT, engine)
+
+    response = ""
+    error_message = None
+
+    # Deterministic simulation fallback
+    if simulate_text:
+        time.sleep(0.5)
+        response = simulate_text
+        print(f"Candidate Response (Simulated): {response}")
+    elif audio_file:
+        try:
+            with sr.AudioFile(audio_file) as source:
+                audio = recognizer.record(source)
+            response = recognizer.recognize_google(audio)
+            print("Candidate Response:", response)
+        except Exception as e:
+            error_message = str(e)
+            print("Error:", e)
+    else:
+        try:
+            mic = sr.Microphone()
+            with mic as source:
+                print("Listening... (Speak clearly into your microphone)")
+                recognizer.adjust_for_ambient_noise(source, duration=0.6)
+                audio = recognizer.listen(source, timeout=timeout, phrase_time_limit=phrase_time_limit)
+
+            print("Processing speech...")
+            response = recognizer.recognize_google(audio)
+            print("Candidate Response:", response)
+
+        except sr.WaitTimeoutError:
+            error_message = "Listening timed out with no speech detected."
+            print("Error:", error_message)
+        except sr.UnknownValueError:
+            error_message = "SpeechRecognition could not understand audio."
+            print("Error:", error_message)
+        except sr.RequestError as e:
+            error_message = f"Speech service unavailable; {e}"
+            print("Error:", error_message)
+        except Exception as e:
+            error_message = str(e)
+            print("Error:", e)
+
+    # Closing speech if valid response was recorded
+    if response:
+        speak(DEFAULT_CLOSING_PROMPT, engine)
+    else:
+        speak("We encountered an audio reception issue. Please retry.", engine)
+
+    evaluation = evaluate_candidate_response(response)
+    
+    return {
+        "success": bool(response),
+        "prompt": DEFAULT_INTERVIEW_PROMPT,
+        "candidate_response": response,
+        "closing_prompt": DEFAULT_CLOSING_PROMPT,
+        "evaluation": evaluation,
+        "error": error_message
+    }
+
+
+def simulate_screening(candidate_name="Sarah Johnson", role="Senior Machine Learning Engineer"):
+    """Simulation helper for automated testing and UI demonstration."""
+    sample_response = (
+        "Hello! I am a Machine Learning Engineer with 5 years of experience. "
+        "I specialize in building deep learning and NLP models using Python, PyTorch, "
+        "and TensorFlow. In my recent role, I deployed ML pipelines on AWS SageMaker and Docker, "
+        "optimizing model evaluation and inference latency."
+    )
+    return voice_screening(simulate_text=sample_response)
+
+
 if __name__ == "__main__":
-    test_arg = sys.argv[1] if len(sys.argv) > 1 else None
-    voice_screening(simulated_input=test_arg)
+    if "--live" in sys.argv:
+        print("[Mode: Live Microphone Screening]")
+        result = voice_screening()
+    else:
+        print("[Mode: Demonstration & Automated Verification]")
+        result = simulate_screening()
+
+    print("\n================ Screening Result ================")
+    print(f"Status: {result['evaluation']['status']}")
+    print(f"Score: {result['evaluation']['score']}%")
+    print(f"Detected Keywords: {', '.join(result['evaluation']['detected_keywords'])}")
+    print(f"Recommendation: {result['evaluation']['recommendation']}")
+    print("==================================================")
