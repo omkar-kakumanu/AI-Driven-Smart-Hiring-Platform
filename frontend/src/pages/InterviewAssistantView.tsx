@@ -89,9 +89,8 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
   const playRobotEntrance = () => {
     const stage = stageRef.current;
     if (!stage) return;
-    const studio = stage.querySelector('.fm-studio');
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (reduceMotion.matches || !studio) return;
+    if (reduceMotion.matches) return;
 
     stage.classList.remove('is-entering');
     const robot = stage.querySelector('.fm-robot');
@@ -100,10 +99,6 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
     }
     void (stage as HTMLElement).offsetWidth;
     stage.classList.add('is-entering');
-
-    studio.addEventListener('animationend', () => {
-      stage.classList.remove('is-entering');
-    }, { once: true });
   };
 
   useEffect(() => {
@@ -116,7 +111,6 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [sessionStatus, setSessionStatus] = useState<'Ready' | 'Active' | 'Completed'>('Active');
   const [latestEvaluation, setLatestEvaluation] = useState<{ clarity: number; relevance: number; overall: number; feedback: string } | null>(null);
-  const [isAvatarCollapsed, setIsAvatarCollapsed] = useState<boolean>(false);
 
   // Fetch Role-Specific Interview Questions from Python Microservice
   const fetchInterviewQuestions = async (role: string, cat: string) => {
@@ -403,7 +397,7 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-900 rounded-full font-bold text-xs mb-2 border border-blue-300">
             <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
-            Milestone 3 Core • AI Interview Simulation
+            Interview Intelligence • AI Interview Simulation
           </div>
           <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">AI Interview Simulation & Question Generation</h2>
           <p className="text-slate-500 text-xs mt-1 font-medium">Interactive neural interview simulation, real-time response evaluation, and question generator</p>
@@ -415,12 +409,12 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
               onClick={onNavigateToAts}
               className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl border border-blue-200 transition-all flex items-center gap-2 cursor-pointer shadow-xs"
             >
-              <span>🏢 Open ATS Integration Hub</span>
-              <span className="text-xs font-mono font-bold">➔</span>
+              <span>Open ATS Integration Hub</span>
+              <span className="text-xs font-mono font-bold">→</span>
             </button>
           )}
-          <span className="px-3.5 py-1.5 bg-amber-500 text-white font-extrabold text-xs rounded-xl shadow-sm">
-            Milestone 3
+          <span className="px-3 py-1 bg-slate-900 text-white font-bold text-xs rounded-xl shadow-sm">
+            AI Simulation
           </span>
         </div>
       </div>
@@ -429,8 +423,8 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
       {isMainAdmin && (
         <div className="bg-gradient-to-r from-purple-900 to-indigo-900 text-white p-4 rounded-2xl shadow-md flex flex-col md:flex-row items-center justify-between gap-4 border border-purple-700">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/30 border border-purple-400/40 flex items-center justify-center font-black text-xl shrink-0">
-              👑
+            <div className="w-10 h-10 rounded-xl bg-purple-500/30 border border-purple-400/40 flex items-center justify-center font-black text-xs text-purple-200 shrink-0">
+              ADMIN
             </div>
             <div>
               <p className="text-[11px] font-black text-purple-300 uppercase tracking-wider">Main Admin Privileges Enabled</p>
@@ -442,9 +436,9 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
 
           <button
             onClick={() => setShowAdminEditModal(true)}
-            className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black rounded-xl shadow-md transition-all whitespace-nowrap"
+            className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black rounded-xl shadow-md transition-all whitespace-nowrap cursor-pointer"
           >
-            ✏️ Edit Role & Experience
+            Edit Role & Experience
           </button>
         </div>
       )}
@@ -456,7 +450,7 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
         <div className="lg:col-span-6 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
           <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
             <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-black text-xs">
-              ❓
+              Q
             </div>
             <div>
               <h3 className="font-extrabold text-slate-900 text-base">Interview Question Generator</h3>
@@ -552,7 +546,7 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-xs">
-                  🗣️
+                  AI
                 </div>
                 <div>
                   <h3 className="font-extrabold text-slate-900 text-base">AI Interview Simulation</h3>
@@ -574,302 +568,173 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
               <span className={`px-2.5 py-1 text-xs font-black rounded-full border ${
                 sessionStatus === 'Active' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-emerald-100 text-emerald-800 border-emerald-300'
               }`}>
-                {sessionStatus === 'Active' ? 'Active Session' : '✓ Completed'}
+                {sessionStatus === 'Active' ? 'Active Session' : 'Completed'}
               </span>
             </div>
 
-            {/* Scoped Future Machine Motion Template Box for AI Interview Simulation */}
-            {isAvatarCollapsed ? (
-              <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 p-3.5 rounded-2xl border border-blue-700/60 flex items-center justify-between text-white shadow-md">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-600/40 border border-blue-400/30 flex items-center justify-center text-lg shadow-inner">
-                    🤖
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-xs tracking-tight">Future Machine™ AI Interrogator</span>
-                      <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[9px] font-mono rounded border border-emerald-500/30">
-                        ● ACTIVE
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-blue-200/80 font-medium">
-                      Autonomous Neural Simulation • Interviewing {activeCandidate.fullName}
-                    </p>
-                  </div>
-                </div>
+            {/* AI Interview Simulation Visual Stage */}
+            <div className="relative rounded-2xl overflow-hidden shadow-lg border border-blue-800/60 isolate">
+              <style>{`
+                .fm-stage {
+                  position: relative;
+                  width: 100%;
+                  height: 220px;
+                  isolation: isolate;
+                  overflow: hidden;
+                  border-radius: 1rem;
+                  background:
+                    radial-gradient(circle at 50% 46%, rgba(0,119,255,.48) 0%, rgba(0,102,235,.28) 35%, rgba(0,73,183,.15) 72%, rgba(0,58,150,.06) 100%),
+                    linear-gradient(128deg, #0753bf 0%, #0069e9 48%, #0755c4 100%);
+                }
+                .fm-stage::before {
+                  content: "";
+                  position: absolute;
+                  inset: -15%;
+                  z-index: -1;
+                  background:
+                    radial-gradient(ellipse at 51% 45%, rgba(0,127,255,.35), transparent 54%),
+                    radial-gradient(ellipse at 5% 15%, rgba(13,72,174,.24), transparent 44%),
+                    radial-gradient(ellipse at 92% 86%, rgba(7,63,162,.28), transparent 45%);
+                  filter: blur(28px);
+                }
+                .fm-robot {
+                  position: absolute;
+                  top: 50%;
+                  left: 50%;
+                  width: min(150px, 34%);
+                  height: auto;
+                  transform: translate(-50%, -50%);
+                  display: block;
+                  filter: drop-shadow(0 6px 20px rgba(0,30,100,.4));
+                  user-select: none;
+                  -webkit-user-drag: none;
+                }
+                @media (max-width: 500px) {
+                  .fm-robot { width: 105px; }
+                }
+              `}</style>
 
-                <div className="flex items-center gap-2.5">
-                  <button
-                    onClick={() => {
-                      setIsAvatarCollapsed(false);
-                      setTimeout(playRobotEntrance, 80);
-                    }}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold rounded-xl border border-blue-400/30 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
-                  >
-                    <span>⤢ Expand Avatar HUD</span>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="relative rounded-2xl overflow-hidden shadow-lg border border-blue-800/60 isolate">
-                <style>{`
-                  .fm-stage {
-                    position: relative;
-                    width: 100%;
-                    height: 220px;
-                    isolation: isolate;
-                    overflow: hidden;
-                    border-radius: 1rem;
-                    background:
-                      radial-gradient(circle at 50% 46%, rgba(0,119,255,.48) 0%, rgba(0,102,235,.28) 35%, rgba(0,73,183,.15) 72%, rgba(0,58,150,.06) 100%),
-                      linear-gradient(128deg, #0753bf 0%, #0069e9 48%, #0755c4 100%);
-                  }
-                  .fm-stage::before {
-                    content: "";
-                    position: absolute;
-                    inset: -15%;
-                    z-index: -1;
-                    background:
-                      radial-gradient(ellipse at 51% 45%, rgba(0,127,255,.35), transparent 54%),
-                      radial-gradient(ellipse at 5% 15%, rgba(13,72,174,.24), transparent 44%),
-                      radial-gradient(ellipse at 92% 86%, rgba(7,63,162,.28), transparent 45%);
-                    filter: blur(28px);
-                  }
-                  .fm-brand {
-                    position: absolute;
-                    top: 6.5%;
-                    left: 3.5%;
-                    margin: 0;
-                    white-space: nowrap;
-                    font-size: clamp(1.15rem, 1.8vw, 1.45rem);
-                    font-weight: 700;
-                    line-height: 1.1;
-                    letter-spacing: -0.025em;
-                    text-shadow: 0 1px 3px rgba(255,255,255,.25), 0 2px 5px rgba(0,24,68,.14);
-                    color: #fff;
-                  }
-                  .fm-brand sup {
-                    display: inline-block;
-                    margin-left: .03em;
-                    font-size: .43em;
-                    line-height: 1;
-                    letter-spacing: -.04em;
-                    vertical-align: top;
-                    transform: translateY(-.02em);
-                  }
-                  .fm-robot {
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    width: min(150px, 34%);
-                    height: auto;
-                    transform: translate(-50%, -50%);
-                    display: block;
-                    filter: drop-shadow(0 6px 20px rgba(0,30,100,.4));
-                    user-select: none;
-                    -webkit-user-drag: none;
-                  }
-                  .fm-studio {
-                    position: absolute;
-                    right: 3.5%;
-                    bottom: 6.5%;
-                    margin: 0;
-                    white-space: nowrap;
-                    font-size: clamp(1rem, 1.5vw, 1.25rem);
-                    font-weight: 300;
-                    font-style: italic;
-                    line-height: 1.1;
-                    letter-spacing: -.035em;
-                    text-shadow: 0 1px 4px rgba(0,28,75,.18);
-                    color: #fff;
-                  }
-                  .fm-edge-line {
-                    position: absolute;
-                    top: 4.5%;
-                    right: 1.8%;
-                    width: 2px;
-                    height: 16%;
-                    border-radius: 2px;
-                    background: rgba(202,226,249,.73);
-                    box-shadow: 0 0 6px rgba(197,227,255,.25);
-                  }
-                  @media (max-width: 500px) {
-                    .fm-robot { width: 105px; }
-                    .fm-brand { font-size: 1rem; }
-                    .fm-studio { font-size: 0.85rem; }
-                  }
-                  @media (prefers-reduced-motion: no-preference) {
-                    .fm-stage.is-entering .fm-brand { will-change: transform, opacity, clip-path; animation: fm-brand-reveal 1s cubic-bezier(.16,1,.3,1) .12s backwards; }
-                    .fm-stage.is-entering .fm-studio { will-change: transform, opacity, clip-path; animation: fm-studio-reveal .86s cubic-bezier(.16,1,.3,1) 1.08s backwards; }
-                    .fm-stage.is-entering .fm-edge-line { transform-origin: 50% 0; will-change: transform, opacity; animation: fm-edge-reveal .62s cubic-bezier(.22,1,.36,1) .22s backwards; }
-                    @keyframes fm-brand-reveal  { from { opacity: 0; clip-path: inset(0 0 100% 0); transform: translateY(18px); } }
-                    @keyframes fm-studio-reveal { from { opacity: 0; clip-path: inset(100% 0 0 0); transform: translateY(16px); } }
-                    @keyframes fm-edge-reveal   { from { opacity: 0; transform: scaleY(0); } }
-                  }
-                `}</style>
-
-                <div 
-                  ref={stageRef}
-                  className="fm-stage is-entering" 
-                  aria-label="Future Machine Robotics Studio - AI Interview Simulation"
+              <div 
+                ref={stageRef}
+                className="fm-stage is-entering" 
+                aria-label="AI Interview Simulation"
+              >
+                <svg 
+                  className="fm-robot" 
+                  viewBox="0 0 660 680" 
+                  role="img" 
+                  aria-labelledby="fmRobotTitle fmRobotDescription"
                 >
-                  <div className="fm-brand">
-                    <div className="flex items-center gap-1.5">
-                      <span>Future Machine<sup>TM</sup></span>
-                      <span className="px-1.5 py-0.5 bg-blue-500/30 text-blue-200 text-[9px] font-mono rounded border border-blue-400/30 tracking-normal">
-                        v3.8
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-semibold text-blue-200/90 block mt-0.5 tracking-normal">
-                      AI Interview Interrogator
-                    </span>
-                  </div>
+                  <title id="fmRobotTitle">AI Interview Simulation Avatar</title>
+                  <desc id="fmRobotDescription">A crisp white futuristic robot helmet with a deep navy visor and blue panel seams.</desc>
 
-                  <svg 
-                    className="fm-robot" 
-                    viewBox="0 0 660 680" 
-                    role="img" 
-                    aria-labelledby="fmRobotTitle fmRobotDescription"
-                  >
-                    <title id="fmRobotTitle">Future Machine robotic helmet</title>
-                    <desc id="fmRobotDescription">A crisp white futuristic robot helmet with a deep navy visor and blue panel seams.</desc>
+                  <defs>
+                    <linearGradient id="fm-shell" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0" stopColor="#ffffff" />
+                      <stop offset="0.56" stopColor="#fbfbfb" />
+                      <stop offset="1" stopColor="#f0f1f2" />
+                    </linearGradient>
+                    <linearGradient id="fm-visor" x1="0.1" y1="0" x2="0.9" y2="1">
+                      <stop offset="0" stopColor="#0c2b4e" />
+                      <stop offset="1" stopColor="#071d35" />
+                    </linearGradient>
+                    <filter id="fm-softEdge" x="-8%" y="-8%" width="116%" height="116%">
+                      <feGaussianBlur in="SourceAlpha" stdDeviation="1.15" result="blur" />
+                      <feOffset dy="1" result="offset" />
+                      <feColorMatrix in="offset" type="matrix" values="0 0 0 0 0.02 0 0 0 0 0.17 0 0 0 0 0.39 0 0 0 .14 0" />
+                      <feMerge>
+                        <feMergeNode />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
 
-                    <defs>
-                      <linearGradient id="fm-shell" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0" stopColor="#ffffff" />
-                        <stop offset="0.56" stopColor="#fbfbfb" />
-                        <stop offset="1" stopColor="#f0f1f2" />
-                      </linearGradient>
-                      <linearGradient id="fm-visor" x1="0.1" y1="0" x2="0.9" y2="1">
-                        <stop offset="0" stopColor="#0c2b4e" />
-                        <stop offset="1" stopColor="#071d35" />
-                      </linearGradient>
-                      <filter id="fm-softEdge" x="-8%" y="-8%" width="116%" height="116%">
-                        <feGaussianBlur in="SourceAlpha" stdDeviation="1.15" result="blur" />
-                        <feOffset dy="1" result="offset" />
-                        <feColorMatrix in="offset" type="matrix" values="0 0 0 0 0.02 0 0 0 0 0.17 0 0 0 0 0.39 0 0 0 .14 0" />
-                        <feMerge>
-                          <feMergeNode />
-                          <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                      </filter>
-                    </defs>
+                  <style>{`
+                    @media (prefers-reduced-motion: no-preference) {
+                      .piece { transform-box: fill-box; transform-origin: center; }
+                      .rear-left    { animation: assemble-left   .9s  cubic-bezier(.16,1,.3,1) .24s backwards; }
+                      .rear-right   { animation: assemble-right  .9s  cubic-bezier(.16,1,.3,1) .24s backwards; }
+                      .ear-left     { animation: dock-left       .82s cubic-bezier(.16,1,.3,1) .34s backwards; }
+                      .ear-right    { animation: dock-right      .82s cubic-bezier(.16,1,.3,1) .34s backwards; }
+                      .jaw-left     { animation: jaw-left-in     .88s cubic-bezier(.16,1,.3,1) .43s backwards; }
+                      .jaw-right    { animation: jaw-right-in    .88s cubic-bezier(.16,1,.3,1) .43s backwards; }
+                      .jaw-center   { animation: jaw-center-in   .92s cubic-bezier(.16,1,.3,1) .5s  backwards; }
+                      .visor        { animation: visor-seat      .92s cubic-bezier(.16,1,.3,1) .56s backwards; }
+                      .crown-fin    { animation: fin-seat        .96s cubic-bezier(.16,1,.3,1) .62s backwards; }
+                      .seams        { animation: detail-reveal   .62s cubic-bezier(.22,1,.36,1) .92s backwards; }
+                      .face-details { animation: detail-reveal   .68s cubic-bezier(.22,1,.36,1) 1.02s backwards; }
+                      @keyframes assemble-left  { from { opacity: 0; transform: translate(-20px,-9px) rotate(-1.2deg) scale(.985); } }
+                      @keyframes assemble-right { from { opacity: 0; transform: translate(20px,-9px) rotate(1.2deg) scale(.985); } }
+                      @keyframes dock-left      { from { opacity: 0; transform: translateX(-25px) scale(.98); } }
+                      @keyframes dock-right     { from { opacity: 0; transform: translateX(25px) scale(.98); } }
+                      @keyframes jaw-left-in    { from { opacity: 0; transform: translate(-15px,15px) rotate(-.8deg); } }
+                      @keyframes jaw-right-in   { from { opacity: 0; transform: translate(15px,15px) rotate(.8deg); } }
+                      @keyframes jaw-center-in  { from { opacity: 0; transform: translateY(18px) scale(.985); } }
+                      @keyframes visor-seat     { from { opacity: 0; transform: translateY(7px) scale(.955,.98); } }
+                      @keyframes fin-seat       { from { opacity: 0; transform: translateY(-24px) scaleY(.96); } }
+                      @keyframes detail-reveal  { from { opacity: 0; } }
+                    }
+                  `}</style>
 
-                    <style>{`
-                      @media (prefers-reduced-motion: no-preference) {
-                        .piece { transform-box: fill-box; transform-origin: center; }
-                        .rear-left    { animation: assemble-left   .9s  cubic-bezier(.16,1,.3,1) .24s backwards; }
-                        .rear-right   { animation: assemble-right  .9s  cubic-bezier(.16,1,.3,1) .24s backwards; }
-                        .ear-left     { animation: dock-left       .82s cubic-bezier(.16,1,.3,1) .34s backwards; }
-                        .ear-right    { animation: dock-right      .82s cubic-bezier(.16,1,.3,1) .34s backwards; }
-                        .jaw-left     { animation: jaw-left-in     .88s cubic-bezier(.16,1,.3,1) .43s backwards; }
-                        .jaw-right    { animation: jaw-right-in    .88s cubic-bezier(.16,1,.3,1) .43s backwards; }
-                        .jaw-center   { animation: jaw-center-in   .92s cubic-bezier(.16,1,.3,1) .5s  backwards; }
-                        .visor        { animation: visor-seat      .92s cubic-bezier(.16,1,.3,1) .56s backwards; }
-                        .crown-fin    { animation: fin-seat        .96s cubic-bezier(.16,1,.3,1) .62s backwards; }
-                        .seams        { animation: detail-reveal   .62s cubic-bezier(.22,1,.36,1) .92s backwards; }
-                        .face-details { animation: detail-reveal   .68s cubic-bezier(.22,1,.36,1) 1.02s backwards; }
-                        @keyframes assemble-left  { from { opacity: 0; transform: translate(-20px,-9px) rotate(-1.2deg) scale(.985); } }
-                        @keyframes assemble-right { from { opacity: 0; transform: translate(20px,-9px) rotate(1.2deg) scale(.985); } }
-                        @keyframes dock-left      { from { opacity: 0; transform: translateX(-25px) scale(.98); } }
-                        @keyframes dock-right     { from { opacity: 0; transform: translateX(25px) scale(.98); } }
-                        @keyframes jaw-left-in    { from { opacity: 0; transform: translate(-15px,15px) rotate(-.8deg); } }
-                        @keyframes jaw-right-in   { from { opacity: 0; transform: translate(15px,15px) rotate(.8deg); } }
-                        @keyframes jaw-center-in  { from { opacity: 0; transform: translateY(18px) scale(.985); } }
-                        @keyframes visor-seat     { from { opacity: 0; transform: translateY(7px) scale(.955,.98); } }
-                        @keyframes fin-seat       { from { opacity: 0; transform: translateY(-24px) scaleY(.96); } }
-                        @keyframes detail-reveal  { from { opacity: 0; } }
-                      }
-                    `}</style>
+                  <g filter="url(#fm-softEdge)">
+                    {/* Rear crown panels */}
+                    <path className="piece rear-left" fill="url(#fm-shell)" d="M72 256c-9-36-5-55 10-76l47-63c15-14 35-20 59-12l49-15 31 152-4 46-177 12z" />
+                    <path className="piece rear-right" fill="url(#fm-shell)" d="M588 256c9-36 5-55-10-76l-47-63c-15-14-35-20-59-12l-49-15-31 152 4 46 177 12z" />
 
-                    <g filter="url(#fm-softEdge)">
-                      {/* Rear crown panels */}
-                      <path className="piece rear-left" fill="url(#fm-shell)" d="M72 256c-9-36-5-55 10-76l47-63c15-14 35-20 59-12l49-15 31 152-4 46-177 12z" />
-                      <path className="piece rear-right" fill="url(#fm-shell)" d="M588 256c9-36 5-55-10-76l-47-63c-15-14-35-20-59-12l-49-15-31 152 4 46 177 12z" />
+                    {/* Side ear housings */}
+                    <g className="piece ear-left">
+                      <path fill="url(#fm-shell)" d="M63 251c-19 6-40 20-51 37C4 300 0 314 0 330v108c0 26 13 47 36 60l25 14 10-50 7-87z" />
+                      <path fill="#0864d9" d="M14 322c0-8 5-14 10-14s10 6 10 14v101c0 8-5 14-10 14s-10-6-10-14z" />
+                    </g>
+                    <g className="piece ear-right">
+                      <path fill="url(#fm-shell)" d="M597 251c19 6-40 20-51 37 8 12 12 26 12 42v108c0 26-13 47-36 60l-25 14-10-50-7-87z" />
+                      <path fill="#0864d9" d="M626 322c0-8 5-14 10-14s10 6 10 14v101c0 8-5 14-10 14s-10-6-10-14z" />
+                    </g>
 
-                      {/* Side ear housings */}
-                      <g className="piece ear-left">
-                        <path fill="url(#fm-shell)" d="M63 251c-19 6-40 20-51 37C4 300 0 314 0 330v108c0 26 13 47 36 60l25 14 10-50 7-87z" />
-                        <path fill="#0864d9" d="M14 322c0-8 5-14 10-14s10 6 10 14v101c0 8-5 14-10 14s-10-6-10-14z" />
-                      </g>
-                      <g className="piece ear-right">
-                        <path fill="url(#fm-shell)" d="M597 251c19 6 40 20 51 37 8 12 12 26 12 42v108c0 26-13 47-36 60l-25 14-10-50-7-87z" />
-                        <path fill="#0864d9" d="M626 322c0-8 5-14 10-14s10 6 10 14v101c0 8-5 14-10 14s-10-6-10-14z" />
-                      </g>
+                    {/* Lower cheek and jaw armor */}
+                    <path className="piece jaw-left" fill="url(#fm-shell)" d="M69 385l82 61 48 178-101-65c-22-14-33-35-35-63z" />
+                    <path className="piece jaw-right" fill="url(#fm-shell)" d="M591 385l-82 61-48 178 101-65c22-14 33-35 35-63z" />
+                    <path className="piece jaw-center" fill="url(#fm-shell)" d="M151 437l45 27 24 170 30 28q7 11 20 11h120q13 0 20-11l30-28 24-170 45-27-6-34-88 38H265l-108-38z" />
 
-                      {/* Lower cheek and jaw armor */}
-                      <path className="piece jaw-left" fill="url(#fm-shell)" d="M69 385l82 61 48 178-101-65c-22-14-33-35-35-63z" />
-                      <path className="piece jaw-right" fill="url(#fm-shell)" d="M591 385l-82 61-48 178 101-65c22-14 33-35 35-63z" />
-                      <path className="piece jaw-center" fill="url(#fm-shell)" d="M151 437l45 27 24 170 30 28q7 11 20 11h120q13 0 20-11l30-28 24-170 45-27-6-34-88 38H265l-108-38z" />
+                    {/* Blue seams */}
+                    <g className="piece seams">
+                      <path fill="#0763d9" d="M70 407l91 61 54 166-10-7-53-153-82-55z" />
+                      <path fill="#0763d9" d="M590 407l-91 61-54 166 10-7 53-153 82-55z" />
+                    </g>
 
-                      {/* Blue seams */}
-                      <g className="piece seams">
-                        <path fill="#0763d9" d="M70 407l91 61 54 166-10-7-53-153-82-55z" />
-                        <path fill="#0763d9" d="M590 407l-91 61-54 166 10-7 53-153 82-55z" />
-                      </g>
+                    {/* Visor */}
+                    <path className="piece visor" fill="url(#fm-visor)" d="M91 227c-18-4-30 8-28 28l15 111c2 14 8 24 20 32l73 45c5 4 12 6 19 6h280c7 0 14-2 19-6l73-45c12-8 18-18 20-32l15-111c2-20-10-32-28-28l-145 31c-35 7-60 11-94 11s-59-4-94-11z" />
 
-                      {/* Visor */}
-                      <path className="piece visor" fill="url(#fm-visor)" d="M91 227c-18-4-30 8-28 28l15 111c2 14 8 24 20 32l73 45c5 4 12 6 19 6h280c7 0 14-2 19-6l73-45c12-8 18-18 20-32l15-111c2-20-10-32-28-28l-145 31c-35 7-60 11-94 11s-59-4-94-11z" />
-
-                      {/* Crown fin */}
-                      <g className="piece crown-fin">
-                        <g transform="translate(26.4 0) scale(.92 1)">
-                          <path fill="url(#fm-shell)" stroke="#0763d9" strokeWidth="7" strokeLinejoin="round" d="M309 0h42c14 0 23 7 29 20l34 70c5 10 6 18 4 30l-28 141c-3 15-10 20-24 20h-72c-14 0-21-5-24-20l-28-141c-2-12-1-20 4-30l34-70c6-13 15-20 29-20z" />
-                          <path fill="#0763d9" d="M309 0h42v201c0 14-9 23-21 23s-21-9-21-23z" />
-                        </g>
-                      </g>
-
-                      {/* Expression and chin vents */}
-                      <g className="piece face-details">
-                        <path fill="#ffffff" d="M151 354h109v20H151z" />
-                        <path fill="#ffffff" d="M399 360l105-28 5 20-105 28z" />
-                        <rect x="276" y="522" width="108" height="18" rx="9" fill="url(#fm-visor)" />
-                        <rect x="276" y="549" width="108" height="18" rx="9" fill="url(#fm-visor)" />
+                    {/* Crown fin */}
+                    <g className="piece crown-fin">
+                      <g transform="translate(26.4 0) scale(.92 1)">
+                        <path fill="url(#fm-shell)" stroke="#0763d9" strokeWidth="7" strokeLinejoin="round" d="M309 0h42c14 0 23 7 29 20l34 70c5 10 6 18 4 30l-28 141c-3 15-10 20-24 20h-72c-14 0-21-5-24-20l-28-141c-2-12-1-20 4-30l34-70c6-13 15-20 29-20z" />
+                        <path fill="#0763d9" d="M309 0h42v201c0 14-9 23-21 23s-21-9-21-23z" />
                       </g>
                     </g>
-                  </svg>
 
-                  <div className="fm-studio">
-                    <p className="m-0 leading-none">Robotics Studio</p>
-                    <span className="text-[10px] font-normal not-italic text-blue-200/90 block mt-0.5 tracking-normal text-right">
-                      Simulation Engine
-                    </span>
-                  </div>
+                    {/* Expression and chin vents */}
+                    <g className="piece face-details">
+                      <path fill="#ffffff" d="M151 354h109v20H151z" />
+                      <path fill="#ffffff" d="M399 360l105-28 5 20-105 28z" />
+                      <rect x="276" y="522" width="108" height="18" rx="9" fill="url(#fm-visor)" />
+                      <rect x="276" y="549" width="108" height="18" rx="9" fill="url(#fm-visor)" />
+                    </g>
+                  </g>
+                </svg>
 
+                {/* Reassemble Control Only */}
+                <div className="absolute bottom-3 right-3 z-10 flex items-center">
                   <button
-                    onClick={() => setIsAvatarCollapsed(true)}
-                    className="absolute top-2.5 right-4 z-10 px-2 py-0.5 bg-black/25 hover:bg-black/45 text-blue-100 text-[10px] font-bold rounded-md border border-white/20 backdrop-blur-xs transition-all cursor-pointer flex items-center gap-1"
-                    title="Minimize avatar to maximize chat space"
+                    onClick={playRobotEntrance}
+                    className="px-3.5 py-1.5 bg-white/20 hover:bg-white/30 active:bg-white/40 backdrop-blur-md text-white text-xs font-bold rounded-xl border border-white/25 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    title="Trigger Mechanical Assembly Animation"
                   >
-                    <span>⤡ Minimize</span>
+                    <span>Reassemble</span>
                   </button>
-
-                  <span className="fm-edge-line" aria-hidden="true"></span>
-
-                  {/* Scoped Interactive Overlay Button */}
-                  <div className="absolute bottom-3 left-3.5 z-10 flex items-center gap-2.5">
-                    <button
-                      onClick={playRobotEntrance}
-                      className="px-3 py-1.5 bg-white/20 hover:bg-white/30 active:bg-white/40 backdrop-blur-md text-white text-xs font-bold rounded-xl border border-white/25 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
-                      title="Trigger Mechanical Assembly Animation"
-                    >
-                      <span>⚡ Re-assemble</span>
-                    </button>
-
-                    <div className="hidden sm:flex items-center gap-1.5 bg-black/25 px-2.5 py-1 rounded-lg border border-white/10 text-[10px] text-blue-100 font-mono backdrop-blur-xs">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      <span>Audio HUD</span>
-                      <div className="flex items-center gap-0.5 ml-1">
-                        <span className="w-0.5 h-2 bg-blue-300 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                        <span className="w-0.5 h-3 bg-cyan-300 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                        <span className="w-0.5 h-2.5 bg-white rounded-full animate-bounce"></span>
-                        <span className="w-0.5 h-1.5 bg-blue-200 rounded-full animate-bounce [animation-delay:-0.2s]"></span>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Real AI Evaluation Metric Badges */}
             {latestEvaluation && (
@@ -917,9 +782,9 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
                   />
                   <button
                     onClick={() => handleSendResponse()}
-                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 whitespace-nowrap"
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
                   >
-                    <span>➤ Send</span>
+                    <span>Send</span>
                   </button>
                 </div>
 
@@ -927,9 +792,9 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
                   <button
                     type="button"
                     onClick={() => handleSendResponse(`I'd be happy to discuss my experience with ${selectedJobPosition} deployment, scaling, and optimization techniques.`)}
-                    className="text-blue-600 hover:underline font-semibold"
+                    className="text-blue-600 hover:underline font-semibold cursor-pointer"
                   >
-                    💡 Quick AI Auto-Response
+                    Quick AI Suggestion
                   </button>
                   <span className="text-slate-400 font-medium">Question {Math.min(currentQuestionIndex + 1, questions.length)} of {questions.length}</span>
                 </div>
@@ -937,7 +802,7 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
             ) : (
               <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-center space-y-2">
                 <p className="text-xs font-extrabold text-emerald-950">
-                  🎉 Interview Completed! Candidate responses evaluated and recorded into ATS review.
+                  Interview Completed! Candidate responses evaluated and recorded into ATS review.
                 </p>
                 <div className="flex items-center justify-center gap-3">
                   <button
@@ -953,7 +818,7 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
                         }
                       ]);
                     }}
-                    className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all"
+                    className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all cursor-pointer"
                   >
                     Restart Session
                   </button>
@@ -967,8 +832,8 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-sm">
-                    📋
+                  <span className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
+                    LOG
                   </span>
                   <div>
                     <h3 className="font-extrabold text-slate-900 text-base">Recorded Candidate Responses & Staging</h3>
@@ -1020,31 +885,31 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
                     onClick={() => handleStageCandidate('Shortlisted')}
                     className="px-3 py-1 bg-purple-100 hover:bg-purple-200 text-purple-900 text-xs font-extrabold rounded-lg border border-purple-300 transition-all cursor-pointer"
                   >
-                    ✓ Shortlist
+                    Shortlist
                   </button>
                   <button
                     onClick={() => handleStageCandidate('Interview Completed')}
                     className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-900 text-xs font-extrabold rounded-lg border border-blue-300 transition-all cursor-pointer"
                   >
-                    🎙️ Interview Done
+                    Interview Completed
                   </button>
                   <button
                     onClick={() => handleStageCandidate('Offered')}
                     className="px-3 py-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-900 text-xs font-extrabold rounded-lg border border-indigo-300 transition-all cursor-pointer"
                   >
-                    💼 Make Offer
+                    Make Offer
                   </button>
                   <button
                     onClick={() => handleStageCandidate('Hired')}
                     className="px-3 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 text-xs font-extrabold rounded-lg border border-emerald-300 transition-all cursor-pointer"
                   >
-                    🎉 Mark Hired
+                    Mark Hired
                   </button>
                   <button
                     onClick={() => handleStageCandidate('Rejected')}
                     className="px-3 py-1 bg-rose-100 hover:bg-rose-200 text-rose-900 text-xs font-extrabold rounded-lg border border-rose-300 transition-all cursor-pointer"
                   >
-                    ✕ Reject
+                    Reject
                   </button>
                 </div>
               ) : (
@@ -1102,7 +967,7 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
 
                     {resp.score?.feedback && (
                       <p className="text-[11px] text-emerald-800 font-medium bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
-                        💡 <span className="font-bold">AI Evaluator Feedback:</span> {resp.score.feedback}
+                        <span className="font-bold">AI Evaluator Feedback:</span> {resp.score.feedback}
                       </p>
                     )}
                   </div>
@@ -1119,13 +984,13 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
             </div>
           </div>
 
-          {/* Bottom Panel: Dedicated Milestone 3 ATS Integration Hub Gateway */}
+          {/* Bottom Panel: Dedicated ATS Integration Hub Gateway */}
           <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border-2 border-indigo-500/40 rounded-2xl p-6 shadow-md text-white space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 bg-amber-400 text-slate-950 font-black text-[10px] rounded-md uppercase">
-                    Milestone 3 Core
+                  <span className="px-2.5 py-0.5 bg-blue-500 text-white font-black text-[10px] rounded-md uppercase">
+                    ATS Core Engine
                   </span>
                   <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 font-bold text-[10px] rounded-md border border-emerald-500/30">
                     REST API v2.4 Active
@@ -1143,7 +1008,7 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
                   className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-black text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all flex items-center gap-2 shrink-0 cursor-pointer"
                 >
                   <span>Open ATS Integration Hub</span>
-                  <span className="text-sm font-bold">➔</span>
+                  <span className="text-sm font-bold">→</span>
                 </button>
               )}
             </div>
@@ -1191,9 +1056,9 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
           <div className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                <span>👑 Admin: Edit Role & Experience</span>
+                <span>Admin: Edit Role & Experience</span>
               </h3>
-              <button onClick={() => setShowAdminEditModal(false)} className="text-slate-400 hover:text-slate-600 font-black">✕</button>
+              <button onClick={() => setShowAdminEditModal(false)} className="text-slate-400 hover:text-slate-600 font-black cursor-pointer">×</button>
             </div>
 
             <div className="space-y-3 text-xs">

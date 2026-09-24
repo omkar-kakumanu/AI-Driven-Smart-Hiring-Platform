@@ -172,7 +172,9 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
       <div className="p-8 max-w-7xl mx-auto space-y-8 font-sans">
         <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center space-y-4 shadow-sm">
           <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-2xl font-black">
-            🔍
+            <svg className="w-7 h-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
           </div>
           <h3 className="text-xl font-extrabold text-slate-900">No Candidates Found</h3>
           {searchQuery ? (
@@ -187,7 +189,7 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
           {onClearSearch && searchQuery && (
             <button
               onClick={onClearSearch}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer"
             >
               Clear Search Filter
             </button>
@@ -203,7 +205,7 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-xs mb-2">
-            Milestone 2 Candidate-Job Matching Engine
+            Neural Matching • Candidate-Job Matching Engine
           </div>
           <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Candidate Skill Alignment & Gap Analysis</h2>
           <p className="text-slate-500 text-xs mt-1 font-medium">Select a target job position to evaluate candidate skill fit, experience compatibility, and training gaps.</p>
@@ -218,8 +220,8 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
       {isMainAdmin && selectedCandidate && (
         <div className="p-4 bg-gradient-to-r from-purple-900 to-indigo-900 text-white rounded-2xl shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/30 border border-purple-400/40 flex items-center justify-center font-black text-xl shrink-0">
-              👑
+            <div className="w-10 h-10 rounded-xl bg-purple-500/30 border border-purple-400/40 flex items-center justify-center font-black text-xs text-purple-200 shrink-0">
+              ADMIN
             </div>
             <div>
               <p className="text-[11px] font-black text-purple-300 uppercase tracking-wider">Main Admin Special Privileges</p>
@@ -317,7 +319,7 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span> ≥85% Qualified Top Tier
             </span>
             <span className="flex items-center gap-1.5 text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-300">
-              <span className="w-2 h-2 rounded-full bg-amber-500"></span> ⚠️ &lt;85% Skill Alert
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span> &lt;85% Skill Alert
             </span>
           </div>
         </div>
@@ -382,18 +384,18 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
                     <td className="py-3 px-3 text-center">
                       {isTopTier ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
-                          ✓ ≥85% Qualified (Top Match)
+                          ≥85% Qualified (Top Match)
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-rose-50 text-rose-800 border border-rose-200">
-                          ⚠️ Alert: &lt;85% ({item.skillScorePct}%)
+                          Alert: &lt;85% ({item.skillScorePct}%)
                         </span>
                       )}
                     </td>
                     <td className="py-3 px-3 text-right">
                       <button
                         type="button"
-                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                           isSelected ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300'
                         }`}
                       >
@@ -416,7 +418,7 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
           {currentMatch.skillScorePct < 85 ? (
             <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl flex items-start gap-3 shadow-sm">
               <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black text-sm shrink-0">
-                ⚠️
+                !
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -434,8 +436,8 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
             </div>
           ) : (
             <div className="p-4 bg-emerald-50 border-2 border-emerald-300 rounded-2xl flex items-start gap-3 shadow-sm">
-              <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-sm shrink-0">
-                ✓
+              <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-xs shrink-0">
+                FIT
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -546,11 +548,12 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
                   ) : (
                     currentMatch.matchedSkills.map((sk, i) => (
                       <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white text-emerald-800 border border-emerald-300 font-bold rounded-lg text-[11px]">
-                        ✓ {sk}
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span>{sk}</span>
                         {isMainAdmin && (
                           <button
                             onClick={() => selectedCandidate && onRemoveSkillFromCandidate && onRemoveSkillFromCandidate(selectedCandidate.id, sk)}
-                            className="hover:text-rose-600 font-black text-xs"
+                            className="hover:text-rose-600 font-black text-xs cursor-pointer ml-0.5"
                             title={`Main Admin: Remove ${sk}`}
                           >
                             ×
@@ -570,11 +573,12 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
                   ) : (
                     currentMatch.missingSkills.map((sk, i) => (
                       <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white text-rose-800 border border-rose-300 font-bold rounded-lg text-[11px]">
-                        ✗ {sk}
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                        <span>{sk}</span>
                         {isMainAdmin && (
                           <button
                             onClick={() => selectedCandidate && onAddSkillToCandidate && onAddSkillToCandidate(selectedCandidate.id, sk)}
-                            className="ml-1 px-1.5 py-0.5 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-black rounded transition-colors"
+                            className="ml-1 px-1.5 py-0.5 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-black rounded transition-colors cursor-pointer"
                             title={`Main Admin: Add ${sk} to candidate`}
                           >
                             + Add

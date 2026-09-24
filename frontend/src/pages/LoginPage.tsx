@@ -75,7 +75,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
     if (emailClean === 'admin@copilot.com' && (password === 'admin123' || mode === 'ADMIN')) {
       const storedAdmin = userAccounts.find(u => u.email.toLowerCase() === 'admin@copilot.com');
       onLogin({
-        name: storedAdmin?.name || 'Alex Vance (Main Super-Admin)',
+        name: (storedAdmin?.name && !storedAdmin.name.includes('Alex Vance')) ? storedAdmin.name : 'J Manju Raghvin (Main Super-Admin)',
         role: storedAdmin?.role || 'System Administrator & Hiring Director',
         email: 'admin@copilot.com',
         userType: 'ADMIN',
@@ -616,16 +616,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
 
               <button
                 type="button"
-                onClick={() => handleGoogleSelect('alex.vance@gmail.com', 'Alex Vance', 'System Administrator & Hiring Director', true)}
+                onClick={() => handleGoogleSelect('j.manju.raghvin@gmail.com', 'J Manju Raghvin', 'System Administrator & Hiring Director', true)}
                 className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-2xl hover:border-slate-900 hover:bg-slate-50 transition-all text-left cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center">
-                    AV
+                    JM
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-slate-900 block group-hover:text-slate-900">Alex Vance (Admin)</span>
-                    <span className="text-[10px] text-slate-500 font-medium">alex.vance@gmail.com</span>
+                    <span className="text-xs font-bold text-slate-900 block group-hover:text-slate-900">J Manju Raghvin (Admin)</span>
+                    <span className="text-[10px] text-slate-500 font-medium">j.manju.raghvin@gmail.com</span>
                   </div>
                 </div>
                 <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />

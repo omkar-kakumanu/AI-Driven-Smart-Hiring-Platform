@@ -355,7 +355,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
           <div className="flex items-center gap-2.5">
             <span className="w-2.5 h-2.5 rounded-full bg-purple-600 animate-pulse"></span>
             <span>
-              <strong>🔒 Candidate Self-Service Mode:</strong> You are viewing your personal candidate profile & uploaded resume record. Full directory access across all candidate resumes is reserved for Recruiters and Administrators.
+              <strong>Candidate Self-Service Mode:</strong> You are viewing your personal candidate profile & uploaded resume record. Full directory access across all candidate resumes is reserved for Recruiters and Administrators.
             </span>
           </div>
           <span className="px-2.5 py-1 bg-purple-100 border border-purple-300 rounded-lg text-[10px] font-bold uppercase tracking-wider text-purple-800">
@@ -450,11 +450,11 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
               <div className="flex items-center gap-2">
                 {skills.length >= 4 ? (
                   <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-black rounded-full border border-emerald-300 flex items-center gap-1">
-                    ✓ ≥85% Skill Target Met ({Math.min(98, 65 + skills.length * 6)}%)
+                    ≥85% Skill Target Met ({Math.min(98, 65 + skills.length * 6)}%)
                   </span>
                 ) : (
                   <span className="px-2.5 py-1 bg-amber-100 text-amber-900 text-xs font-black rounded-full border border-amber-300 flex items-center gap-1">
-                    ⚠️ Alert: &lt;85% Skill Match ({Math.max(45, skills.length * 18)}%)
+                    Alert: &lt;85% Skill Match ({Math.max(45, skills.length * 18)}%)
                   </span>
                 )}
                 <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full border border-blue-200">
@@ -476,7 +476,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
           {parsed && skills.length < 4 && (
             <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-xl space-y-1 text-xs">
               <p className="font-extrabold text-amber-950 flex items-center gap-1.5">
-                ⚠️ Candidate Skill Gap Alert (&lt;85% Benchmark)
+                Candidate Skill Gap Alert (&lt;85% Benchmark)
               </p>
               <p className="text-amber-900 font-medium">
                 This candidate profile has {skills.length} technical skills extracted ({Math.max(45, skills.length * 18)}% estimated match), which is below the <strong>85% qualification standard</strong>. Add more skills below or upskill to qualify for high-tier matching.
@@ -797,13 +797,13 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                                     {cand.matchScore}%
                                   </span>
                                   <span className="text-[10px] font-black text-emerald-700 mt-0.5">
-                                    ✓ ≥85% Top Fit
+                                    ≥85% Top Fit
                                   </span>
                                 </div>
                               ) : (
                                 <div className="inline-flex flex-col items-center">
                                   <span className="px-2.5 py-0.5 bg-rose-50 text-rose-800 border border-rose-300 rounded-full font-black text-xs flex items-center gap-1">
-                                    ⚠️ {cand.matchScore}%
+                                    {cand.matchScore}%
                                   </span>
                                   <span className="text-[10px] font-black text-rose-700 mt-0.5">
                                     Alert: &lt;85% Match
@@ -829,10 +829,10 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                                       if (isNaN(newExp)) return alert("Invalid experience number.");
                                       onUpdateCandidateRoleAndExperience && onUpdateCandidateRoleAndExperience(cand.id, newRole.trim(), newExp);
                                     }}
-                                    className="px-2.5 py-1 text-xs font-bold text-purple-700 hover:text-white hover:bg-purple-700 border border-purple-300 rounded-lg transition-colors inline-flex items-center gap-1"
+                                    className="px-2.5 py-1 text-xs font-bold text-purple-700 hover:text-white hover:bg-purple-700 border border-purple-300 rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
                                     title="Main Admin: Edit candidate role title & experience"
                                   >
-                                    ✏️ Edit
+                                    Edit
                                   </button>
                                 )}
                                 <button

@@ -29,7 +29,7 @@ export function useRecruitmentStore() {
   const INITIAL_USERS: UserAccount[] = [
     {
       id: 'usr-admin-1',
-      name: 'Alex Vance (Main Super-Admin)',
+      name: 'J Manju Raghvin (Main Super-Admin)',
       email: 'admin@copilot.com',
       role: 'System Administrator & Hiring Director',
       userType: 'ADMIN',
@@ -74,13 +74,15 @@ export function useRecruitmentStore() {
       }
     }
 
-    // Always guarantee Super Admin account admin@copilot.com exists in userAccounts with valid credentials
+    // Always guarantee Super Admin account admin@copilot.com exists with J Manju Raghvin
     const adminIndex = accounts.findIndex(u => u.id === 'usr-admin-1' || u.email.toLowerCase() === 'admin@copilot.com');
     if (adminIndex >= 0) {
+      const curName = accounts[adminIndex].name;
+      const finalName = (!curName || curName.includes('Alex Vance')) ? 'J Manju Raghvin (Main Super-Admin)' : curName;
       accounts[adminIndex] = {
         ...accounts[adminIndex],
         id: 'usr-admin-1',
-        name: accounts[adminIndex].name || 'Alex Vance (Main Super-Admin)',
+        name: finalName,
         email: 'admin@copilot.com',
         userType: 'ADMIN',
         status: 'APPROVED',
@@ -94,11 +96,20 @@ export function useRecruitmentStore() {
     return accounts;
   });
 
-
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('rc_user_profile');
-    return saved ? JSON.parse(saved) : {
-      name: 'Alex Vance (Main Super-Admin)',
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.name && parsed.name.includes('Alex Vance')) {
+          parsed.name = 'J Manju Raghvin (Main Super-Admin)';
+          localStorage.setItem('rc_user_profile', JSON.stringify(parsed));
+        }
+        return parsed;
+      } catch (e) {}
+    }
+    return {
+      name: 'J Manju Raghvin (Main Super-Admin)',
       role: 'System Administrator & Hiring Director',
       email: 'admin@copilot.com',
       userType: 'ADMIN',
@@ -171,7 +182,7 @@ export function useRecruitmentStore() {
   };
 
   const makeUserAdmin = (userId: string) => {
-    // Single Admin Policy: Keep only Alex Vance as Admin, or explicitly confirm transfer
+    // Single Admin Policy: Keep only J Manju Raghvin as Admin, or explicitly confirm transfer
     setUserAccounts(prev => prev.map(u => u.id === userId ? { ...u, userType: 'ADMIN' as const, status: 'APPROVED' as const } : u));
   };
 

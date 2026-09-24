@@ -245,7 +245,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           </span>
                         ) : (
                           <span className="px-2.5 py-1 bg-rose-50 text-rose-800 border border-rose-200 font-black text-xs rounded-full">
-                            ⚠️ {cand.matchScore}% (&lt;85% Alert)
+                            {cand.matchScore}% (&lt;85% Alert)
                           </span>
                         )}
                         <button onClick={() => onNavigate('matching')} className="text-xs font-bold text-blue-600 hover:text-blue-800">

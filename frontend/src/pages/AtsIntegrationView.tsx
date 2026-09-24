@@ -212,11 +212,11 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-100 text-amber-900 rounded-full font-bold text-xs border border-amber-300">
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-              Milestone 3 Core • ATS Integration Hub
+              Integration Center • ATS Integration Hub
             </div>
             {isMainAdmin && (
               <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-100 text-purple-900 rounded-full font-bold text-xs border border-purple-300">
-                👑 Super-Admin Mode
+                Super-Admin Mode
               </div>
             )}
           </div>
@@ -232,7 +232,7 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
               onClick={onNavigateToInterview}
               className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition-all flex items-center gap-2 cursor-pointer shadow-xs"
             >
-              <span>🎙️ AI Interview Simulation</span>
+              <span>AI Interview Simulation</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </button>
           )}
@@ -322,8 +322,8 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
           <div className="p-5 bg-white border-2 border-slate-200 hover:border-emerald-500 rounded-2xl shadow-xs transition-all space-y-3">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-900 flex items-center justify-center text-2xl font-black border border-emerald-300">
-                  🏢
+                <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-900 flex items-center justify-center text-sm font-black border border-emerald-300">
+                  GH
                 </div>
                 <div>
                   <h4 className="font-extrabold text-slate-950 text-base">Greenhouse ATS</h4>
@@ -346,8 +346,8 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
           <div className="p-5 bg-white border-2 border-slate-200 hover:border-amber-500 rounded-2xl shadow-xs transition-all space-y-3">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center text-2xl font-black border border-amber-300">
-                  ⚡
+                <div className="w-11 h-11 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center text-sm font-black border border-amber-300">
+                  LV
                 </div>
                 <div>
                   <h4 className="font-extrabold text-slate-950 text-base">Lever ATS</h4>
@@ -370,12 +370,12 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
           <div className="p-5 bg-white border-2 border-slate-200 hover:border-blue-500 rounded-2xl shadow-xs transition-all space-y-3">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-blue-100 text-blue-900 flex items-center justify-center text-2xl font-black border border-blue-300">
-                  💼
+                <div className="w-11 h-11 rounded-xl bg-blue-100 text-blue-900 flex items-center justify-center text-sm font-black border border-blue-300">
+                  WD
                 </div>
                 <div>
                   <h4 className="font-extrabold text-slate-950 text-base">Workday HCM</h4>
-                  <p className="text-[11px] text-slate-500 font-semibold">Enterprise Enterprise REST</p>
+                  <p className="text-[11px] text-slate-500 font-semibold">Enterprise REST</p>
                 </div>
               </div>
               <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[11px] font-black rounded-lg border border-emerald-300">

@@ -12,23 +12,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, use
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'candidates', label: 'Candidates & Resumes' },
-    { id: 'matching', label: 'Matching & Skill Gap', badge: 'M2' },
-    { id: 'interview-assistant', label: 'AI Interview Simulation', badge: 'M3' },
-    { id: 'ats-integration', label: 'ATS Integration Hub', badge: 'M3' },
+    { id: 'matching', label: 'Matching & Skill Gap' },
+    { id: 'interview-assistant', label: 'AI Interview Simulation' },
+    { id: 'ats-integration', label: 'ATS Integration Hub' },
     { id: 'settings', label: 'System Settings & Approvals' },
   ];
 
-
-
   return (
-    <aside className="w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col h-screen sticky top-0">
-      {/* Brand Header */}
-      <div className="p-5 border-b border-slate-800 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm tracking-wider">
+    <aside className="w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col h-screen sticky top-0 select-none">
+      {/* Brand Header: Click takes to dashboard */}
+      <div 
+        onClick={() => setCurrentTab('dashboard')}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setCurrentTab('dashboard'); }}
+        className="p-5 border-b border-slate-800 flex items-center gap-3 cursor-pointer hover:bg-slate-800/40 transition-colors group"
+        title="Go to Dashboard"
+      >
+        <div className="w-9 h-9 rounded-xl bg-blue-600 group-hover:bg-blue-500 flex items-center justify-center text-white font-black text-sm tracking-wider shadow-md shadow-blue-500/20 transition-all">
           RC
         </div>
         <div>
-          <h1 className="font-bold text-white text-base tracking-tight leading-none">Recruitment Copilot</h1>
+          <h1 className="font-extrabold text-white text-base tracking-tight leading-none group-hover:text-blue-400 transition-colors">
+            Recruitment Copilot
+          </h1>
           <p className="text-xs text-slate-400 mt-1 font-medium">Hiring Platform</p>
         </div>
       </div>
@@ -42,18 +49,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, use
             <button
               key={item.id}
               onClick={() => setCurrentTab(item.id)}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${isActive
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer ${isActive
                   ? 'bg-blue-600 text-white font-semibold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
                 }`}
             >
               <span>{item.label}</span>
-              {item.badge && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold ${isActive ? 'bg-white/20 text-white' : 'bg-slate-800 text-blue-400 border border-slate-700'
-                  }`}>
-                  {item.badge}
-                </span>
-              )}
             </button>
           );
         })}

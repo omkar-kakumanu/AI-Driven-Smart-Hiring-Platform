@@ -284,9 +284,9 @@ export const INITIAL_QUESTIONS: InterviewQuestion[] = [
 ];
 
 export const INITIAL_ATS_PROVIDERS: ATSProvider[] = [
-  { id: 'greenhouse', name: 'Greenhouse ATS', logo: '🏢', status: 'Connected', lastSync: 'Just now', candidateCount: 0 },
-  { id: 'lever', name: 'Lever Recruiter', logo: '⚡', status: 'Connected', lastSync: '15 mins ago', candidateCount: 0 },
-  { id: 'workday', name: 'Workday HCM', logo: '💼', status: 'Disconnected', lastSync: 'Never', candidateCount: 0 }
+  { id: 'greenhouse', name: 'Greenhouse ATS', logo: 'GH', status: 'Connected', lastSync: 'Just now', candidateCount: 0 },
+  { id: 'lever', name: 'Lever Recruiter', logo: 'LV', status: 'Connected', lastSync: '15 mins ago', candidateCount: 0 },
+  { id: 'workday', name: 'Workday HCM', logo: 'WD', status: 'Disconnected', lastSync: 'Never', candidateCount: 0 }
 ];
 
 export const MOCK_JOBS = INITIAL_JOBS;
