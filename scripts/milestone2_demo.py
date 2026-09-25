@@ -17,8 +17,10 @@ import os
 import json
 import pandas as pd
 
-# Add ai-service to sys.path
-sys.path.append(os.path.join(os.path.dirname(__file__), 'ai-service'))
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+REPORTS_DIR = os.path.join(BASE_DIR, "reports")
+os.makedirs(REPORTS_DIR, exist_ok=True)
+sys.path.append(os.path.join(BASE_DIR, "ai-service"))
 
 from matching_engine import (
     calculate_match,
@@ -154,8 +156,8 @@ def run_milestone2_pipeline():
     # -------------------------------------------------------------------------
     # EXPORTING REPORTS FOR AUDITABILITY & VISIBILITY
     # -------------------------------------------------------------------------
-    csv_filename = "milestone2_batch_report.csv"
-    json_filename = "milestone2_skill_gap_report.json"
+    csv_filename = os.path.join(REPORTS_DIR, "milestone2_batch_report.csv")
+    json_filename = os.path.join(REPORTS_DIR, "milestone2_skill_gap_report.json")
 
     df_batch.to_csv(csv_filename, index=False)
     with open(json_filename, 'w') as f:

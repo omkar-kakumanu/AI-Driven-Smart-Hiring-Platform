@@ -14,8 +14,9 @@ import unittest
 import pandas as pd
 
 # Add directories to system path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "ai-service"))
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(BASE_DIR)
+sys.path.append(os.path.join(BASE_DIR, "ai-service"))
 
 from voice_screening import (
     voice_screening,

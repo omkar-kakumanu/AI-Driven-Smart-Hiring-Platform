@@ -1,4 +1,9 @@
+import os
 import pandas as pd
+
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+REPORTS_DIR = os.path.join(BASE_DIR, "reports")
+os.makedirs(REPORTS_DIR, exist_ok=True)
 
 # -------------------------------
 # Step 1: Candidate & Job Profiles
@@ -96,13 +101,16 @@ def run_batch_pipeline():
     print(df.to_string(index=False))
     print("=" * 100)
     
-    df.to_csv("matching_results.csv", index=False)
+    csv_path = os.path.join(REPORTS_DIR, "matching_results.csv")
+    xlsx_path = os.path.join(REPORTS_DIR, "matching_results.xlsx")
+    
+    df.to_csv(csv_path, index=False)
     
     try:
-        df.to_excel("matching_results.xlsx", index=False)
-        print("\nSuccessfully exported matching_results.csv and matching_results.xlsx!")
+        df.to_excel(xlsx_path, index=False)
+        print(f"\nSuccessfully exported {csv_path} and {xlsx_path}!")
     except Exception as e:
-        print(f"\nSuccessfully exported matching_results.csv! (Excel export notice: {e})")
+        print(f"\nSuccessfully exported {csv_path}! (Excel export notice: {e})")
 
     return df
 
