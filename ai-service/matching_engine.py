@@ -201,13 +201,16 @@ def process_batch_matching(candidates_list: List[Dict[str, Any]], jobs_list: Lis
         df = df[column_order]
 
     if export_files and not df.empty:
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        reports_dir = os.path.join(base_dir, "reports")
+        os.makedirs(reports_dir, exist_ok=True)
         try:
-            df.to_csv("matching_results.csv", index=False)
+            df.to_csv(os.path.join(reports_dir, "matching_results.csv"), index=False)
         except Exception:
             pass
 
         try:
-            df.to_excel("matching_results.xlsx", index=False)
+            df.to_excel(os.path.join(reports_dir, "matching_results.xlsx"), index=False)
         except Exception:
             pass
 

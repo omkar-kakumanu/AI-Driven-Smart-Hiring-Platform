@@ -39,11 +39,15 @@
 
 ```
 /recruitment-copilot
-├── frontend/             # React 18 + TypeScript + Vite + CSS Dashboard
+├── frontend/             # React 18 + TypeScript + Vite + Tailwind CSS Dashboard
 ├── backend/              # Python + FastAPI REST APIs & SQLAlchemy ORM
-├── ai-service/           # Python + FastAPI NLP, PyMuPDF, spaCy Parsing & Matching Engine
+├── ai-service/           # Python + FastAPI NLP, Groq LPU, Matching & Voice Screening Engine
 ├── database/             # Database Schemas & SQLite/PostgreSQL setup
-└── docs/                 # Architectural, API, and Database Documentation
+├── docs/                 # Architectural, API, and Database Documentation
+├── reports/              # Batch matching results, CSV/XLSX exports & skill-gap audit reports
+├── scripts/              # Pipeline runners, batch matching & milestone test scripts
+├── streamlit_app.py      # Streamlit Interactive Copilot Prototype
+└── requirements.txt      # Python dependencies
 ```
 
 ---

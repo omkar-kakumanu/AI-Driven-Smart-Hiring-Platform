@@ -5,18 +5,18 @@
   "skill_match_pct": 60.0,
   "is_qualified": false,
   "benchmark_status": "ALERT (60.0% < 85%)",
-  "alert": "Alert: Skill match 60.0% is below 85% requirement. Upskilling recommended in: Kubernetes, AWS SageMaker",
+  "alert": "Alert: Skill match 60.0% is below 85% requirement. Upskilling recommended in: AWS SageMaker, Kubernetes",
   "matched_skills": [
-    "SQL",
+    "TensorFlow",
     "Python",
-    "TensorFlow"
+    "SQL"
   ],
   "missing_skills": [
-    "Kubernetes",
-    "AWS SageMaker"
+    "AWS SageMaker",
+    "Kubernetes"
   ],
   "recommendations": [
-    "Consider training in Kubernetes",
-    "Consider training in AWS SageMaker"
+    "Consider training in AWS SageMaker",
+    "Consider training in Kubernetes"
   ]
 }
