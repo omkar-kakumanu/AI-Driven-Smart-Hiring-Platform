@@ -86,13 +86,25 @@ export default function App() {
 
   const handleLogin = (profile: UserProfile & { userType: 'ADMIN' | 'USER'; status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'REVOKED'; isSuperAdmin?: boolean }) => {
     const isAdminAccount = profile.userType === 'ADMIN' || profile.email.toLowerCase() === 'admin@copilot.com';
+    const emailClean = profile.email.toLowerCase();
+
+    // Determine account-specific avatar from profile or stored user avatars map
+    let accountAvatar: string | undefined = profile.avatar;
+    try {
+      const storedAvatars = JSON.parse(localStorage.getItem('rc_user_avatars') || '{}');
+      if (accountAvatar === undefined && storedAvatars[emailClean] !== undefined) {
+        accountAvatar = storedAvatars[emailClean] || undefined;
+      }
+    } catch (e) {}
+
     store.updateUserProfile({
       name: profile.name,
       role: profile.role,
       email: profile.email,
       userType: isAdminAccount ? 'ADMIN' : profile.userType,
       status: profile.status,
-      isSuperAdmin: isAdminAccount
+      isSuperAdmin: isAdminAccount,
+      avatar: accountAvatar
     });
     setIsAuthenticated(true);
     localStorage.setItem('rc_is_authenticated', 'true');
@@ -102,6 +114,12 @@ export default function App() {
     setIsAuthenticated(false);
     localStorage.setItem('rc_is_authenticated', 'false');
     localStorage.removeItem('rc_user_profile');
+    store.updateUserProfile({
+      name: '',
+      role: '',
+      email: '',
+      avatar: undefined
+    });
   };
 
   if (!isAuthenticated) {

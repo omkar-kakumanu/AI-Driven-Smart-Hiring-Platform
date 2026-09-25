@@ -98,6 +98,13 @@ export function useRecruitmentStore() {
 
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('rc_user_profile');
+    let profile: UserProfile = {
+      name: 'J Manju Raghvin (Main Super-Admin)',
+      role: 'System Administrator & Hiring Director',
+      email: 'admin@copilot.com',
+      userType: 'ADMIN',
+      status: 'APPROVED'
+    };
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -105,16 +112,23 @@ export function useRecruitmentStore() {
           parsed.name = 'J Manju Raghvin (Main Super-Admin)';
           localStorage.setItem('rc_user_profile', JSON.stringify(parsed));
         }
-        return parsed;
+        profile = parsed;
       } catch (e) {}
     }
-    return {
-      name: 'J Manju Raghvin (Main Super-Admin)',
-      role: 'System Administrator & Hiring Director',
-      email: 'admin@copilot.com',
-      userType: 'ADMIN',
-      status: 'APPROVED'
-    };
+
+    // Isolate avatar strictly per user email from rc_user_avatars
+    try {
+      const storedAvatars = JSON.parse(localStorage.getItem('rc_user_avatars') || '{}');
+      if (profile.email && storedAvatars[profile.email.toLowerCase()] !== undefined) {
+        profile.avatar = storedAvatars[profile.email.toLowerCase()] || undefined;
+      } else {
+        profile.avatar = undefined;
+      }
+    } catch (e) {
+      profile.avatar = undefined;
+    }
+
+    return profile;
   });
 
   const [questions] = useState<InterviewQuestion[]>(INITIAL_QUESTIONS);
@@ -143,20 +157,53 @@ export function useRecruitmentStore() {
 
   const updateUserProfile = (updates: Partial<UserProfile>) => {
     setUserProfile(prev => {
+      const targetEmail = (updates.email || prev.email || '').toLowerCase();
+      
+      // Store avatar isolated per user email to prevent leaking across other accounts
+      if (updates.avatar !== undefined && targetEmail) {
+        try {
+          const storedAvatars = JSON.parse(localStorage.getItem('rc_user_avatars') || '{}');
+          if (updates.avatar) {
+            storedAvatars[targetEmail] = updates.avatar;
+          } else {
+            delete storedAvatars[targetEmail];
+          }
+          localStorage.setItem('rc_user_avatars', JSON.stringify(storedAvatars));
+        } catch (e) {}
+      }
+
       const updated = { ...prev, ...updates };
+
+      // Update corresponding account in userAccounts
       setUserAccounts(prevAccounts => prevAccounts.map(u => {
-        if (u.email.toLowerCase() === prev.email.toLowerCase() || (updates.email && u.email.toLowerCase() === updates.email.toLowerCase())) {
+        if (u.email.toLowerCase() === targetEmail) {
           return {
             ...u,
             name: updates.name || u.name,
             role: updates.role || u.role,
-            email: updates.email || u.email
+            email: updates.email || u.email,
+            avatar: updates.avatar !== undefined ? (updates.avatar || undefined) : u.avatar
           };
         }
         return u;
       }));
+
+      // If user is candidate, update corresponding candidate record
+      if (updates.avatar !== undefined && targetEmail) {
+        setCandidates(prevCands => prevCands.map(c => {
+          if (c.email.toLowerCase() === targetEmail) {
+            return { ...c, avatar: updates.avatar || undefined };
+          }
+          return c;
+        }));
+      }
+
       return updated;
     });
+  };
+
+  const updateCandidateAvatar = (candidateId: string, newAvatar: string | undefined) => {
+    setCandidates(prev => prev.map(c => c.id === candidateId ? { ...c, avatar: newAvatar } : c));
   };
 
   const approveUser = (userId: string) => {
@@ -374,7 +421,8 @@ export function useRecruitmentStore() {
     deleteCandidate,
     addSkillToCandidate,
     removeSkillFromCandidate,
-    updateCandidateRoleAndExperience
+    updateCandidateRoleAndExperience,
+    updateCandidateAvatar
   };
 }
 

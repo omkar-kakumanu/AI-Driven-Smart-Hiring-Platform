@@ -122,6 +122,7 @@ export interface UserAccount {
   createdAt: string;
   password?: string;
   isSuperAdmin?: boolean;
+  avatar?: string;
 }
 
 
