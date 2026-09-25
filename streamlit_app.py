@@ -14,6 +14,19 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
+from dotenv import load_dotenv
+from groq import Groq
+
+load_dotenv()
+
+# Groq Client Initialization
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+groq_client = None
+if GROQ_API_KEY:
+    try:
+        groq_client = Groq(api_key=GROQ_API_KEY)
+    except Exception as e:
+        pass
 
 # Add ai-service to path if available
 AI_SERVICE_DIR = os.path.join(os.path.dirname(__file__), "ai-service")

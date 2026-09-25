@@ -14,6 +14,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, use
     { id: 'candidates', label: 'Candidates & Resumes' },
     { id: 'matching', label: 'Matching & Skill Gap' },
     { id: 'interview-assistant', label: 'AI Interview Simulation' },
+    { id: 'voice-screening', label: 'Voice Screening Module', badge: 'Live' },
     { id: 'ats-integration', label: 'ATS Integration Hub' },
     { id: 'settings', label: 'System Settings & Approvals' },
   ];

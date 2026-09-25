@@ -286,15 +286,15 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
       }
 
       setParsed(true);
-      setFullName(parsedData.name);
-      setEmail(parsedData.email);
-      setPhone(parsedData.phone);
-      setLocation(parsedData.location);
-      setCurrentRole(parsedData.role);
-      setExperienceYears(parsedData.experienceYears);
-      setDegree(parsedData.degree);
-      setInstitution(parsedData.institution);
-      setSkills(parsedData.skills);
+      setFullName(parsedData.name || '');
+      setEmail(parsedData.email || '');
+      setPhone(parsedData.phone || '');
+      setLocation(parsedData.location || '');
+      setCurrentRole(parsedData.role || '');
+      setExperienceYears(parsedData.experienceYears || 0);
+      setDegree(parsedData.degree || '');
+      setInstitution(parsedData.institution || '');
+      setSkills(parsedData.skills || []);
     } catch (err: any) {
       setIsParsing(false);
       setParsingProgress(0);

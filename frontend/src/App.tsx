@@ -8,6 +8,7 @@ import { ResumeUploadView } from './pages/ResumeUploadView';
 import { MatchingView } from './pages/MatchingView';
 import { SettingsView } from './pages/SettingsView';
 import { InterviewAssistantView } from './pages/InterviewAssistantView';
+import { VoiceScreeningView } from './pages/VoiceScreeningView';
 import { AtsIntegrationView } from './pages/AtsIntegrationView';
 import { useRecruitmentStore } from './store/useRecruitmentStore';
 import type { UserProfile } from './types';
@@ -152,6 +153,8 @@ export default function App() {
         return { title: 'Matching & Skill Analysis', subtitle: 'Candidate-job matching and skill-gap analysis' };
       case 'interview-assistant':
         return { title: 'AI Interview Simulation', subtitle: 'Simulate technical & behavioral candidate interviews with interactive AI evaluations' };
+      case 'voice-screening':
+        return { title: 'Voice-Based Screening Module', subtitle: 'Live Speech-to-Text audio screening, AI interviewer voice synthesis, and communication analytics' };
       case 'ats-integration':
         return { title: 'ATS Integration Hub', subtitle: 'Bi-directional candidate synchronization with Greenhouse, Lever, and Workday' };
       case 'settings':
@@ -232,6 +235,19 @@ export default function App() {
               onUpdateCandidateStatusByEmail={store.updateCandidateStatusByEmail}
               onUpdateCandidateRoleAndExperience={store.updateCandidateRoleAndExperience}
               onSaveCandidateInterviewResponse={store.addCandidateInterviewResponse}
+              onNavigateToAts={() => setCurrentTab('ats-integration')}
+              onNavigateToVoiceScreening={() => setCurrentTab('voice-screening')}
+            />
+          )}
+          {currentTab === 'voice-screening' && (
+            <VoiceScreeningView 
+              candidates={roleFilteredCandidates}
+              jobs={store.jobs}
+              isMainAdmin={isMainAdmin}
+              isCandidateUser={isCandidateUser}
+              onUpdateCandidateStatusByEmail={store.updateCandidateStatusByEmail}
+              onSaveCandidateInterviewResponse={store.addCandidateInterviewResponse}
+              onNavigateToInterview={() => setCurrentTab('interview-assistant')}
               onNavigateToAts={() => setCurrentTab('ats-integration')}
             />
           )}
