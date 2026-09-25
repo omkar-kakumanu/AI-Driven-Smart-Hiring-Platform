@@ -93,18 +93,17 @@ export function useRecruitmentStore() {
       accounts.unshift(INITIAL_USERS[0]);
     }
 
+    // Ensure each account has its own isolated avatar
+    accounts = accounts.map(u => ({
+      ...u,
+      avatar: u.avatar || localStorage.getItem(`rc_avatar_${u.email.toLowerCase()}`) || undefined
+    }));
+
     return accounts;
   });
 
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('rc_user_profile');
-    let profile: UserProfile = {
-      name: 'J Manju Raghvin (Main Super-Admin)',
-      role: 'System Administrator & Hiring Director',
-      email: 'admin@copilot.com',
-      userType: 'ADMIN',
-      status: 'APPROVED'
-    };
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -112,23 +111,26 @@ export function useRecruitmentStore() {
           parsed.name = 'J Manju Raghvin (Main Super-Admin)';
           localStorage.setItem('rc_user_profile', JSON.stringify(parsed));
         }
-        profile = parsed;
+        const userEmail = (parsed.email || '').toLowerCase();
+        const perEmailAvatar = localStorage.getItem(`rc_avatar_${userEmail}`);
+        if (perEmailAvatar) {
+          parsed.avatar = perEmailAvatar;
+        } else if (perEmailAvatar === '') {
+          parsed.avatar = undefined;
+        }
+        return parsed;
       } catch (e) {}
     }
-
-    // Isolate avatar strictly per user email from rc_user_avatars
-    try {
-      const storedAvatars = JSON.parse(localStorage.getItem('rc_user_avatars') || '{}');
-      if (profile.email && storedAvatars[profile.email.toLowerCase()] !== undefined) {
-        profile.avatar = storedAvatars[profile.email.toLowerCase()] || undefined;
-      } else {
-        profile.avatar = undefined;
-      }
-    } catch (e) {
-      profile.avatar = undefined;
-    }
-
-    return profile;
+    const defaultEmail = 'admin@copilot.com';
+    const adminAvatar = localStorage.getItem(`rc_avatar_${defaultEmail}`) || undefined;
+    return {
+      name: 'J Manju Raghvin (Main Super-Admin)',
+      role: 'System Administrator & Hiring Director',
+      email: defaultEmail,
+      userType: 'ADMIN',
+      status: 'APPROVED',
+      avatar: adminAvatar
+    };
   });
 
   const [questions] = useState<InterviewQuestion[]>(INITIAL_QUESTIONS);
@@ -158,52 +160,84 @@ export function useRecruitmentStore() {
   const updateUserProfile = (updates: Partial<UserProfile>) => {
     setUserProfile(prev => {
       const targetEmail = (updates.email || prev.email || '').toLowerCase();
+      let newAvatar = updates.avatar !== undefined ? updates.avatar : prev.avatar;
       
-      // Store avatar isolated per user email to prevent leaking across other accounts
-      if (updates.avatar !== undefined && targetEmail) {
-        try {
-          const storedAvatars = JSON.parse(localStorage.getItem('rc_user_avatars') || '{}');
-          if (updates.avatar) {
-            storedAvatars[targetEmail] = updates.avatar;
-          } else {
-            delete storedAvatars[targetEmail];
-          }
-          localStorage.setItem('rc_user_avatars', JSON.stringify(storedAvatars));
-        } catch (e) {}
+      if (updates.avatar !== undefined) {
+        if (updates.avatar) {
+          localStorage.setItem(`rc_avatar_${targetEmail}`, updates.avatar);
+        } else {
+          localStorage.removeItem(`rc_avatar_${targetEmail}`);
+          newAvatar = undefined;
+        }
       }
 
-      const updated = { ...prev, ...updates };
+      const updated: UserProfile = {
+        ...prev,
+        ...updates,
+        avatar: newAvatar
+      };
 
-      // Update corresponding account in userAccounts
       setUserAccounts(prevAccounts => prevAccounts.map(u => {
-        if (u.email.toLowerCase() === targetEmail) {
+        if (u.email.toLowerCase() === prev.email.toLowerCase() || (updates.email && u.email.toLowerCase() === targetEmail)) {
           return {
             ...u,
             name: updates.name || u.name,
             role: updates.role || u.role,
             email: updates.email || u.email,
-            avatar: updates.avatar !== undefined ? (updates.avatar || undefined) : u.avatar
+            avatar: newAvatar
           };
         }
         return u;
       }));
 
-      // If user is candidate, update corresponding candidate record
-      if (updates.avatar !== undefined && targetEmail) {
-        setCandidates(prevCands => prevCands.map(c => {
-          if (c.email.toLowerCase() === targetEmail) {
-            return { ...c, avatar: updates.avatar || undefined };
-          }
-          return c;
-        }));
-      }
+      setCandidates(prevCands => prevCands.map(c => {
+        if (c.email.toLowerCase() === targetEmail) {
+          return {
+            ...c,
+            avatar: newAvatar
+          };
+        }
+        return c;
+      }));
 
       return updated;
     });
   };
 
-  const updateCandidateAvatar = (candidateId: string, newAvatar: string | undefined) => {
-    setCandidates(prev => prev.map(c => c.id === candidateId ? { ...c, avatar: newAvatar } : c));
+  const setUserProfileExplicit = (profile: UserProfile) => {
+    const emailLower = (profile.email || '').toLowerCase();
+    const perEmailAvatar = localStorage.getItem(`rc_avatar_${emailLower}`);
+    const finalAvatar = profile.avatar !== undefined ? profile.avatar : (perEmailAvatar || undefined);
+    
+    const finalProfile: UserProfile = {
+      ...profile,
+      avatar: finalAvatar
+    };
+    setUserProfile(finalProfile);
+    localStorage.setItem('rc_user_profile', JSON.stringify(finalProfile));
+  };
+
+  const updateCandidateAvatar = (candidateId: string, avatar: string | undefined) => {
+    setCandidates(prev => prev.map(c => {
+      if (c.id === candidateId) {
+        return { ...c, avatar };
+      }
+      return c;
+    }));
+  };
+
+  const deleteCandidateInterviewResponse = (candidateIdOrEmail: string, responseIdOrQuestion: string) => {
+    setCandidates(prev => prev.map(c => {
+      if (c.id === candidateIdOrEmail || c.email.toLowerCase() === candidateIdOrEmail.toLowerCase()) {
+        return {
+          ...c,
+          interviewResponses: (c.interviewResponses || []).filter(
+            r => r.id !== responseIdOrQuestion && r.question !== responseIdOrQuestion
+          )
+        };
+      }
+      return c;
+    }));
   };
 
   const approveUser = (userId: string) => {
@@ -418,10 +452,12 @@ export function useRecruitmentStore() {
     updateCandidateStatus,
     updateCandidateStatusByEmail,
     addCandidateInterviewResponse,
+    deleteCandidateInterviewResponse,
     deleteCandidate,
     addSkillToCandidate,
     removeSkillFromCandidate,
     updateCandidateRoleAndExperience,
+    setUserProfileExplicit,
     updateCandidateAvatar
   };
 }

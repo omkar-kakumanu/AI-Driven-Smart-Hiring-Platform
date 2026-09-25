@@ -42,13 +42,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
 
   // Google SSO Login Handler
   const handleGoogleSelect = (selectedEmail: string, selectedName: string, userRole: string, isAdmin = false) => {
+    const cleanMail = selectedEmail.trim().toLowerCase();
+    const stored = userAccounts.find(u => u.email.toLowerCase() === cleanMail);
+    const savedAvatar = localStorage.getItem(`rc_avatar_${cleanMail}`) || stored?.avatar || undefined;
     onLogin({
       name: selectedName,
       role: userRole,
       email: selectedEmail,
       userType: isAdmin ? 'ADMIN' : 'USER',
       status: 'APPROVED',
-      isSuperAdmin: isAdmin
+      isSuperAdmin: isAdmin,
+      avatar: savedAvatar
     });
     setShowGoogleModal(false);
   };
@@ -74,13 +78,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
     // 1. GLOBAL PRIORITY CHECK: Default Super-Admin ALWAYS logs in as Administrator
     if (emailClean === 'admin@copilot.com' && (password === 'admin123' || mode === 'ADMIN')) {
       const storedAdmin = userAccounts.find(u => u.email.toLowerCase() === 'admin@copilot.com');
+      const savedAvatar = localStorage.getItem('rc_avatar_admin@copilot.com') || storedAdmin?.avatar || undefined;
       onLogin({
         name: (storedAdmin?.name && !storedAdmin.name.includes('Alex Vance')) ? storedAdmin.name : 'J Manju Raghvin (Main Super-Admin)',
         role: storedAdmin?.role || 'System Administrator & Hiring Director',
         email: 'admin@copilot.com',
         userType: 'ADMIN',
         status: 'APPROVED',
-        isSuperAdmin: true
+        isSuperAdmin: true,
+        avatar: savedAvatar
       });
       return;
     }
@@ -88,26 +94,32 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
     // 2. GLOBAL PRIORITY CHECK: Default Recruiter
     if (emailClean === 'recruiter@copilot.com' && (password === 'recruiter123' || mode === 'RECRUITER')) {
       const stored = userAccounts.find(u => u.email.toLowerCase() === 'recruiter@copilot.com');
+      const savedAvatar = localStorage.getItem('rc_avatar_recruiter@copilot.com') || stored?.avatar || undefined;
       onLogin({
         name: stored?.name || 'Sarah Jenkins',
         role: stored?.role || 'Talent Acquisition Specialist',
         email: 'recruiter@copilot.com',
         userType: 'USER',
         status: 'APPROVED',
-        isSuperAdmin: false
+        isSuperAdmin: false,
+        avatar: savedAvatar
       });
       return;
     }
 
     // 3. GLOBAL PRIORITY CHECK: Default Candidate
     if ((emailClean === 'candidate@copilot.com' || emailClean === 'sarah.johnson@example.com') && (password === 'candidate123' || mode === 'CANDIDATE')) {
+      const targetMail = 'sarah.johnson@example.com';
+      const stored = userAccounts.find(u => u.email.toLowerCase() === targetMail || u.email.toLowerCase() === 'candidate@copilot.com');
+      const savedAvatar = localStorage.getItem(`rc_avatar_${targetMail}`) || stored?.avatar || undefined;
       onLogin({
         name: 'Sarah Johnson',
         role: 'Candidate Applicant',
-        email: 'sarah.johnson@example.com',
+        email: targetMail,
         userType: 'USER',
         status: 'APPROVED',
-        isSuperAdmin: false
+        isSuperAdmin: false,
+        avatar: savedAvatar
       });
       return;
     }
@@ -126,6 +138,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
       setActiveStep(3);
     } else if (mode === 'CANDIDATE') {
       const found = userAccounts.find(u => u.email.toLowerCase() === emailClean);
+      const savedAvatar = localStorage.getItem(`rc_avatar_${emailClean}`) || found?.avatar || undefined;
       if (found) {
         onLogin({
           name: found.name,
@@ -133,7 +146,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
           email: found.email,
           userType: 'USER',
           status: 'APPROVED',
-          isSuperAdmin: false
+          isSuperAdmin: false,
+          avatar: savedAvatar
         });
         return;
       }
@@ -143,7 +157,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
         email: emailClean,
         userType: 'USER',
         status: 'APPROVED',
-        isSuperAdmin: false
+        isSuperAdmin: false,
+        avatar: savedAvatar
       });
     } else if (mode === 'RECRUITER') {
       const found = userAccounts.find(u => u.email.toLowerCase() === emailClean);
@@ -159,13 +174,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
         setStatusNotice({ type: 'REVOKED', message: `Access Revoked: Account access for "${found.email}" has been revoked by an Administrator.` });
         return;
       }
+      const savedAvatar = localStorage.getItem(`rc_avatar_${emailClean}`) || found.avatar || undefined;
       onLogin({
         name: found.name,
         role: found.role,
         email: found.email,
         userType: found.userType === 'ADMIN' ? 'ADMIN' : 'USER',
         status: 'APPROVED',
-        isSuperAdmin: found.userType === 'ADMIN'
+        isSuperAdmin: found.userType === 'ADMIN',
+        avatar: savedAvatar
       });
     } else if (mode === 'ADMIN') {
       const foundAdmin = userAccounts.find(u => u.email.toLowerCase() === emailClean && u.userType === 'ADMIN');
@@ -173,13 +190,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
         setStatusNotice({ type: 'ERROR', message: `No Administrator account registered for "${email}". Use admin@copilot.com with admin123.` });
         return;
       }
+      const savedAvatar = localStorage.getItem(`rc_avatar_${emailClean}`) || foundAdmin.avatar || undefined;
       onLogin({
         name: foundAdmin.name,
         role: foundAdmin.role,
         email: foundAdmin.email,
         userType: 'ADMIN',
         status: 'APPROVED',
-        isSuperAdmin: true
+        isSuperAdmin: true,
+        avatar: savedAvatar
       });
     }
   };

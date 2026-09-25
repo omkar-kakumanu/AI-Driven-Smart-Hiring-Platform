@@ -86,25 +86,20 @@ export default function App() {
 
   const handleLogin = (profile: UserProfile & { userType: 'ADMIN' | 'USER'; status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'REVOKED'; isSuperAdmin?: boolean }) => {
     const isAdminAccount = profile.userType === 'ADMIN' || profile.email.toLowerCase() === 'admin@copilot.com';
-    const emailClean = profile.email.toLowerCase();
+    const targetEmail = profile.email.toLowerCase();
+    const existingAccount = store.userAccounts.find(u => u.email.toLowerCase() === targetEmail);
+    const isolatedAvatar = profile.avatar !== undefined 
+      ? profile.avatar 
+      : (localStorage.getItem(`rc_avatar_${targetEmail}`) || existingAccount?.avatar || undefined);
 
-    // Determine account-specific avatar from profile or stored user avatars map
-    let accountAvatar: string | undefined = profile.avatar;
-    try {
-      const storedAvatars = JSON.parse(localStorage.getItem('rc_user_avatars') || '{}');
-      if (accountAvatar === undefined && storedAvatars[emailClean] !== undefined) {
-        accountAvatar = storedAvatars[emailClean] || undefined;
-      }
-    } catch (e) {}
-
-    store.updateUserProfile({
+    store.setUserProfileExplicit({
       name: profile.name,
       role: profile.role,
       email: profile.email,
       userType: isAdminAccount ? 'ADMIN' : profile.userType,
       status: profile.status,
       isSuperAdmin: isAdminAccount,
-      avatar: accountAvatar
+      avatar: isolatedAvatar
     });
     setIsAuthenticated(true);
     localStorage.setItem('rc_is_authenticated', 'true');
@@ -114,12 +109,6 @@ export default function App() {
     setIsAuthenticated(false);
     localStorage.setItem('rc_is_authenticated', 'false');
     localStorage.removeItem('rc_user_profile');
-    store.updateUserProfile({
-      name: '',
-      role: '',
-      email: '',
-      avatar: undefined
-    });
   };
 
   if (!isAuthenticated) {
@@ -230,6 +219,7 @@ export default function App() {
               onAddSkillToCandidate={store.addSkillToCandidate}
               onRemoveSkillFromCandidate={store.removeSkillFromCandidate}
               onUpdateCandidateRoleAndExperience={store.updateCandidateRoleAndExperience}
+              onUpdateCandidateAvatar={store.updateCandidateAvatar}
               onNavigateToMatching={() => setCurrentTab('matching')}
             />
           )}
@@ -265,6 +255,7 @@ export default function App() {
               isCandidateUser={isCandidateUser}
               onUpdateCandidateStatusByEmail={store.updateCandidateStatusByEmail}
               onSaveCandidateInterviewResponse={store.addCandidateInterviewResponse}
+              onDeleteCandidateInterviewResponse={store.deleteCandidateInterviewResponse}
               onNavigateToInterview={() => setCurrentTab('interview-assistant')}
               onNavigateToAts={() => setCurrentTab('ats-integration')}
             />

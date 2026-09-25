@@ -18,6 +18,7 @@ interface ResumeUploadViewProps {
   onAddSkillToCandidate?: (candidateId: string, skill: string) => void;
   onRemoveSkillFromCandidate?: (candidateId: string, skill: string) => void;
   onUpdateCandidateRoleAndExperience?: (candidateId: string, role: string, exp: number) => void;
+  onUpdateCandidateAvatar?: (candidateId: string, avatar: string | undefined) => void;
   onNavigateToMatching: () => void;
 }
 
@@ -32,6 +33,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   onAddSkillToCandidate,
   onRemoveSkillFromCandidate,
   onUpdateCandidateRoleAndExperience,
+  onUpdateCandidateAvatar,
   onNavigateToMatching
 }) => {
   const [adminAddSkillCandId, setAdminAddSkillCandId] = useState<string | null>(null);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface UserAvatarProps {
   name: string;
@@ -14,6 +14,10 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   className = ''
 }) => {
   const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    setImageError(false);
+  }, [avatar]);
 
   // Compute initials from full name (e.g., "Sarah Jenkins" -> "SJ")
   const getInitials = (fullName: string): string => {

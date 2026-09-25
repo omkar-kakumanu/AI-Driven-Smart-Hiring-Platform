@@ -56,7 +56,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setAvatar(reader.result as string);
+        const dataUrl = reader.result as string;
+        setAvatar(dataUrl);
+        if (onUpdateUserProfile) {
+          onUpdateUserProfile({ name, role, email, avatar: dataUrl });
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -64,6 +68,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const handleClearImage = () => {
     setAvatar(undefined);
+    if (onUpdateUserProfile) {
+      onUpdateUserProfile({ name, role, email, avatar: undefined });
+    }
   };
 
   return (
@@ -236,12 +243,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 {userAccounts.map((user) => (
                   <tr key={user.id} className="hover:bg-slate-50">
                     <td className="py-3 px-3 font-bold text-slate-900">
-                      {user.name}
-                      {user.isSuperAdmin && (
-                        <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-900 text-[10px] font-black rounded border border-blue-200">
-                          Main Super-Admin
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <UserAvatar 
+                          name={user.name} 
+                          avatar={user.avatar || localStorage.getItem(`rc_avatar_${user.email.toLowerCase()}`) || undefined} 
+                          size="xs" 
+                        />
+                        <span>{user.name}</span>
+                        {user.isSuperAdmin && (
+                          <span className="px-2 py-0.5 bg-blue-100 text-blue-900 text-[10px] font-black rounded border border-blue-200">
+                            Main Super-Admin
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-3 text-slate-700">{user.email}</td>
                     <td className="py-3 px-3 text-slate-600">{user.role}</td>
