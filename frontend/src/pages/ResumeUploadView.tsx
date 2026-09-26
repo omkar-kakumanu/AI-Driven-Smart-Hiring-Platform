@@ -233,10 +233,10 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   };
 
   const processFile = async (selectedFile: File) => {
+    setCandidateAvatar('');
     setIsParsing(true);
     setParsingProgress(20);
     setParseError(null);
-    setCandidateAvatar(''); // Reset candidate photo so previous candidate's image is not inherited
 
     try {
       // 1. Attempt backend API parsing first
@@ -333,11 +333,14 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
       avatar: candidateAvatar || undefined
     });
 
+    // Reset form and avatar to avoid leaking to next candidate
     setCandidateAvatar('');
     setFullName('');
     setEmail('');
     setPhone('');
     setLocation('');
+    setCurrentRole('');
+    setSkills([]);
     setFile(null);
     setParsed(false);
 
@@ -346,6 +349,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   };
 
   const loadSampleResume = () => {
+    setCandidateAvatar('');
     const sampleText = `
     Sarah Johnson
     Email: sarah.johnson@example.com | Phone: +1 (555) 019-2831
@@ -728,7 +732,36 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                               </span>
                             </td>
                             <td className="py-3.5 px-4 font-bold text-slate-900 flex items-center gap-2.5">
-                              <UserAvatar name={cand.fullName} avatar={cand.avatar} size="sm" />
+                              <div className="relative group shrink-0">
+                                <UserAvatar name={cand.fullName} avatar={cand.avatar} size="sm" />
+                                {onUpdateCandidateAvatar && !isCandidateUser && (
+                                  <label 
+                                    className="absolute -bottom-1 -right-1 bg-white hover:bg-slate-100 text-slate-600 rounded-full p-1 border border-slate-300 shadow-xs cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="Upload photo for this candidate"
+                                  >
+                                    <input 
+                                      type="file"
+                                      accept="image/*"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          const reader = new FileReader();
+                                          reader.onload = (ev) => {
+                                            onUpdateCandidateAvatar(cand.id, ev.target?.result as string);
+                                          };
+                                          reader.readAsDataURL(file);
+                                        }
+                                      }}
+                                    />
+                                    <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                      <polyline points="17 8 12 3 7 8" />
+                                      <line x1="12" y1="3" x2="12" y2="15" />
+                                    </svg>
+                                  </label>
+                                )}
+                              </div>
                               <div>
                                 <p>{cand.fullName}</p>
                                 <p className="text-[10px] text-slate-400 font-normal">{cand.email}</p>

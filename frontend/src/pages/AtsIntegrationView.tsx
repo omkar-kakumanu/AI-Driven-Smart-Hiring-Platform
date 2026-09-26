@@ -464,7 +464,11 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <UserAvatar name={cand.name} size="md" />
+                  <UserAvatar 
+                    name={cand.name} 
+                    avatar={candidates.find(c => c.email.toLowerCase() === cand.email.toLowerCase() || c.fullName.toLowerCase() === cand.name.toLowerCase())?.avatar} 
+                    size="md" 
+                  />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-extrabold text-slate-950 text-sm truncate">{cand.name}</p>

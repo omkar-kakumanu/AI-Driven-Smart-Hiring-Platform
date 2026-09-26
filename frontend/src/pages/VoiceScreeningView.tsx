@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { RotateCcw, Trash2 } from 'lucide-react';
 import type { Candidate, Job, CandidateInterviewResponse } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
 
@@ -9,6 +10,7 @@ interface VoiceScreeningViewProps {
   isCandidateUser?: boolean;
   onUpdateCandidateStatusByEmail?: (email: string, status: Candidate['status']) => void;
   onSaveCandidateInterviewResponse?: (candidateId: string, response: CandidateInterviewResponse) => void;
+  onDeleteCandidateInterviewResponse?: (candidateIdOrEmail: string, responseIdOrQuestion: string) => void;
   onNavigateToInterview?: () => void;
   onNavigateToAts?: () => void;
 }
@@ -71,6 +73,7 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
   isCandidateUser = false,
   onUpdateCandidateStatusByEmail,
   onSaveCandidateInterviewResponse,
+  onDeleteCandidateInterviewResponse,
   onNavigateToInterview,
   onNavigateToAts
 }) => {
@@ -97,6 +100,7 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
   const [isAiSpeaking, setIsAiSpeaking] = useState<boolean>(false);
   const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [reRecordingRecordId, setReRecordingRecordId] = useState<string | null>(null);
 
   // Review mode & separate candidate view state
   const [inspectionMode, setInspectionMode] = useState<'individual' | 'overview'>('individual');
@@ -467,6 +471,66 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
 
       const feedback = `Candidate demonstrated clear articulation (${clarity}% clarity) with solid coverage of core keywords (${detected.join(', ') || 'software, architecture'}). Spoke at an optimal conversational pace with professional confidence.`;
 
+      if (reRecordingRecordId) {
+        const existing = screeningHistory.find(r => r.id === reRecordingRecordId);
+        const updatedRecord: VoiceScreeningRecord = {
+          ...(existing || {}),
+          id: reRecordingRecordId,
+          candidateId: activeCandidate.id,
+          candidateName: activeCandidate.fullName,
+          candidateEmail: activeCandidate.email,
+          role: activeCandidate.currentRole || 'Software Engineer',
+          question: activeQuestion.question,
+          transcript: text,
+          durationSeconds: durationSec || 45,
+          audioUrl: audioBlobUrl || existing?.audioUrl || undefined,
+          scores: {
+            communication,
+            clarity,
+            fluency,
+            technicalDepth: techDepth,
+            overall
+          },
+          detectedKeywords: detected.length > 0 ? detected : ["python", "architecture", "system"],
+          recommendation,
+          feedback,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " (Re-recorded)",
+          isReviewed: false
+        };
+
+        setLatestEvaluation(updatedRecord);
+        setScreeningHistory(prev => {
+          const next = prev.map(r => r.id === reRecordingRecordId ? updatedRecord : r);
+          localStorage.setItem('rc_voice_screenings', JSON.stringify(next));
+          return next;
+        });
+        setReRecordingRecordId(null);
+        setIsEvaluating(false);
+
+        if (onSaveCandidateInterviewResponse) {
+          onSaveCandidateInterviewResponse(activeCandidate.id, {
+            id: `resp-voice-${Date.now()}`,
+            question: activeQuestion.question,
+            answer: text,
+            category: 'Voice Screening (Re-recorded)',
+            score: {
+              clarity,
+              relevance: techDepth,
+              overall,
+              feedback
+            },
+            timestamp: new Date().toLocaleString()
+          });
+        }
+
+        if (overall >= 75 && onUpdateCandidateStatusByEmail) {
+          onUpdateCandidateStatusByEmail(activeCandidate.email, 'Interview Completed');
+        }
+
+        showToast(`Voice Response Re-recorded and Report Updated! New Score: ${overall}%`);
+        return;
+      }
+
       const record: VoiceScreeningRecord = {
         id: `voice-${Date.now()}`,
         candidateId: activeCandidate.id,
@@ -492,7 +556,11 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
       };
 
       setLatestEvaluation(record);
-      setScreeningHistory(prev => [record, ...prev]);
+      setScreeningHistory(prev => {
+        const next = [record, ...prev];
+        localStorage.setItem('rc_voice_screenings', JSON.stringify(next));
+        return next;
+      });
       setIsEvaluating(false);
 
       if (onSaveCandidateInterviewResponse) {
@@ -517,6 +585,70 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
 
       showToast(`Voice Screening Completed. Overall Score: ${overall}%`);
     }, 700);
+  };
+
+  // Re-record an existing voice screening report
+  const handleStartReRecording = (record: VoiceScreeningRecord) => {
+    resetVoiceRecording();
+
+    const cand = candidates.find(c => c.id === record.candidateId || c.email.toLowerCase() === record.candidateEmail.toLowerCase())
+      || candidatePool.find(c => c.id === record.candidateId || c.email.toLowerCase() === record.candidateEmail.toLowerCase());
+    if (cand) {
+      setSelectedCandidateId(cand.id);
+      setInspectedCandidateId(cand.id);
+    }
+
+    const qIdx = PRESET_SCREENING_QUESTIONS.findIndex(pq => pq.question.trim().toLowerCase() === record.question.trim().toLowerCase());
+    if (qIdx >= 0) {
+      setSelectedQuestionIndex(qIdx);
+    }
+
+    setReRecordingRecordId(record.id);
+    setLiveTranscript('');
+    setRecordingSeconds(0);
+    setAudioBlobUrl(null);
+
+    const consoleEl = document.getElementById('voice-recording-console');
+    if (consoleEl) {
+      consoleEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    showToast(`Re-recording mode active for ${record.candidateName}. Record your new response above.`);
+  };
+
+  const handleCancelReRecording = () => {
+    setReRecordingRecordId(null);
+    resetVoiceRecording();
+    showToast("Re-recording cancelled.");
+  };
+
+  // Delete an existing voice screening report
+  const handleDeleteScreeningRecord = (recordId: string, candidateName?: string) => {
+    const target = screeningHistory.find(r => r.id === recordId);
+    const displayName = candidateName || target?.candidateName || 'this candidate';
+    if (!window.confirm(`Are you sure you want to delete this voice screening record for ${displayName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    setScreeningHistory(prev => {
+      const updated = prev.filter(r => r.id !== recordId);
+      localStorage.setItem('rc_voice_screenings', JSON.stringify(updated));
+      return updated;
+    });
+
+    if (latestEvaluation?.id === recordId) {
+      setLatestEvaluation(null);
+    }
+
+    if (reRecordingRecordId === recordId) {
+      setReRecordingRecordId(null);
+    }
+
+    if (onDeleteCandidateInterviewResponse && target) {
+      onDeleteCandidateInterviewResponse(target.candidateId || target.candidateEmail, target.question);
+    }
+
+    showToast("Voice screening report deleted successfully.");
   };
 
   // Toggle Mark as Reviewed for a Voice Screening Record
@@ -578,11 +710,11 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
   };
 
   // Filter candidates for individual inspection view
-  const candidatePool = candidates.length > 0 ? candidates : [
-    { id: 'cand-1', fullName: 'Sarah Johnson', email: 'sarah.johnson@example.com', currentRole: 'Senior Machine Learning Engineer', totalExperienceYears: 5, status: 'Applied' as const },
-    { id: 'cand-2', fullName: 'Abhishek Kumar', email: 'abhishek.kumar@example.com', currentRole: 'Frontend React & UI Engineer', totalExperienceYears: 3, status: 'Interview Completed' as const },
-    { id: 'cand-3', fullName: 'Marcus Rodriguez', email: 'marcus.rodriguez@example.com', currentRole: 'Cloud DevOps & Security Specialist', totalExperienceYears: 4, status: 'Shortlisted' as const },
-    { id: 'cand-4', fullName: 'Priya Sharma', email: 'priya.sharma@example.com', currentRole: 'Full Stack MERN Developer', totalExperienceYears: 4, status: 'Applied' as const }
+  const candidatePool: Array<Partial<Candidate> & { id: string; fullName: string; email: string; currentRole: string; totalExperienceYears: number; status: Candidate['status']; avatar?: string }> = candidates.length > 0 ? candidates : [
+    { id: 'cand-1', fullName: 'Sarah Johnson', email: 'sarah.johnson@example.com', currentRole: 'Senior Machine Learning Engineer', totalExperienceYears: 5, status: 'Applied' as const, avatar: undefined },
+    { id: 'cand-2', fullName: 'Abhishek Kumar', email: 'abhishek.kumar@example.com', currentRole: 'Frontend React & UI Engineer', totalExperienceYears: 3, status: 'Interview Completed' as const, avatar: undefined },
+    { id: 'cand-3', fullName: 'Marcus Rodriguez', email: 'marcus.rodriguez@example.com', currentRole: 'Cloud DevOps & Security Specialist', totalExperienceYears: 4, status: 'Shortlisted' as const, avatar: undefined },
+    { id: 'cand-4', fullName: 'Priya Sharma', email: 'priya.sharma@example.com', currentRole: 'Full Stack MERN Developer', totalExperienceYears: 4, status: 'Applied' as const, avatar: undefined }
   ];
 
   const filteredCandidatePool = candidatePool.filter(c => {
@@ -652,7 +784,30 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
       </div>
 
       {/* Interactive Voice Recording Console */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
+      <div id="voice-recording-console" className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
+        
+        {/* Re-recording Active Alert Banner */}
+        {reRecordingRecordId && (
+          <div className="p-4 bg-amber-50 border border-amber-300 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-950">
+            <div className="flex items-center gap-2.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+              <div>
+                <span className="font-bold">Re-recording Mode Active:</span>
+                <span className="ml-1 text-amber-900">
+                  Recording a new verbal answer for <strong>{activeCandidate.fullName}</strong>. Evaluating will update and overwrite the existing report.
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleCancelReRecording}
+              className="px-3 py-1.5 bg-white hover:bg-amber-100 text-amber-900 font-bold rounded-lg border border-amber-300 transition-colors text-xs shrink-0 self-start sm:self-auto cursor-pointer"
+            >
+              Cancel Re-recording
+            </button>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div>
             <h2 className="text-base font-bold text-slate-900">Conduct Live Voice Screening</h2>
@@ -847,13 +1002,33 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
 
         {latestEvaluation && (
           <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="px-2 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-bold uppercase">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <span className="px-2 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-bold uppercase w-fit">
                 Screening Completed
               </span>
-              <span className="text-xs font-bold text-emerald-900">
-                Score: {latestEvaluation.scores.overall}%
-              </span>
+              <div className="flex items-center gap-2.5">
+                <span className="text-xs font-bold text-emerald-900 mr-1">
+                  Score: {latestEvaluation.scores.overall}%
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleStartReRecording(latestEvaluation)}
+                  className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-300 transition-colors flex items-center gap-1 cursor-pointer"
+                  title="Re-record candidate verbal response for this question"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Re-record</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteScreeningRecord(latestEvaluation.id, latestEvaluation.candidateName)}
+                  className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg border border-rose-200 transition-colors flex items-center gap-1 cursor-pointer"
+                  title="Delete this voice screening report"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Delete Report</span>
+                </button>
+              </div>
             </div>
             <p className="text-xs font-semibold text-emerald-950 leading-relaxed">
               Recommendation: {latestEvaluation.recommendation}
@@ -961,7 +1136,7 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
                     >
                       <div className="flex items-center justify-between gap-2 mb-1.5">
                         <div className="flex items-center gap-2">
-                          <UserAvatar name={cand.fullName} size="sm" />
+                          <UserAvatar name={cand.fullName} avatar={cand.avatar} size="sm" />
                           <div>
                             <p className="text-xs font-bold text-slate-900">{cand.fullName}</p>
                             <p className="text-[10px] text-slate-500 truncate max-w-[150px]">{cand.currentRole}</p>
@@ -1000,7 +1175,7 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <UserAvatar name={inspectedCandidate.fullName} size="md" />
+                    <UserAvatar name={inspectedCandidate.fullName} avatar={inspectedCandidate.avatar} size="md" />
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-sm font-bold text-slate-900">{inspectedCandidate.fullName}</h3>
@@ -1087,10 +1262,30 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
                           <p className="text-[11px] text-slate-500 font-medium">Recorded: {screening.timestamp} • Duration: {screening.durationSeconds}s</p>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs font-bold text-emerald-700">
-                            Overall Score: {screening.scores.overall}%
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          <span className="text-xs font-bold text-emerald-700 mr-1">
+                            Overall: {screening.scores.overall}%
                           </span>
+
+                          <button
+                            type="button"
+                            onClick={() => handleStartReRecording(screening)}
+                            className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg border border-blue-200 transition-colors flex items-center gap-1 cursor-pointer"
+                            title="Re-record verbal answer for this question"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            <span>Re-record</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteScreeningRecord(screening.id, screening.candidateName)}
+                            className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg border border-rose-200 transition-colors flex items-center gap-1 cursor-pointer"
+                            title="Delete this voice screening report"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Delete</span>
+                          </button>
 
                           <button
                             type="button"
@@ -1231,7 +1426,11 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
                       <tr key={rec.id} className="hover:bg-slate-50/70 transition-colors">
                         <td className="p-3.5">
                           <div className="flex items-center gap-2.5">
-                            <UserAvatar name={rec.candidateName} size="sm" />
+                            <UserAvatar 
+                              name={rec.candidateName} 
+                              avatar={(candidates.find(c => c.id === rec.candidateId || c.email.toLowerCase() === rec.candidateEmail.toLowerCase()) || candidatePool.find(c => c.id === rec.candidateId || c.email.toLowerCase() === rec.candidateEmail.toLowerCase()))?.avatar} 
+                              size="sm" 
+                            />
                             <div>
                               <p className="font-bold text-slate-900">{rec.candidateName}</p>
                               <p className="text-[10px] text-slate-500">{rec.role}</p>
@@ -1265,7 +1464,7 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
                         </td>
 
                         <td className="p-3.5">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-1.5">
                             <button
                               type="button"
                               onClick={() => {
@@ -1275,6 +1474,26 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
                               className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-xs font-bold cursor-pointer"
                             >
                               Inspect Dossier
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleStartReRecording(rec)}
+                              className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded text-xs font-bold cursor-pointer flex items-center gap-1 border border-amber-200"
+                              title="Re-record voice screening response for this question"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              <span>Re-record</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteScreeningRecord(rec.id, rec.candidateName)}
+                              className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded text-xs font-bold cursor-pointer flex items-center gap-1 border border-rose-200"
+                              title="Delete this voice screening report"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Delete</span>
                             </button>
 
                             {!isCandidateUser && (

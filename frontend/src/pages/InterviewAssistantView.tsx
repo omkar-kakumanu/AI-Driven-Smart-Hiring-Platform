@@ -1225,7 +1225,7 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
             <div className="p-4 bg-slate-50/80 border border-slate-200 rounded-xl space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <UserAvatar name={activeCandidate.fullName} size="md" />
+                  <UserAvatar name={activeCandidate.fullName} avatar={activeCandidate.avatar} size="md" />
                   <div>
                     <p className="font-extrabold text-slate-900 text-sm">{activeCandidate.fullName}</p>
                     <p className="text-xs text-slate-500 font-medium">{activeCandidate.currentRole} • {activeCandidate.email}</p>
@@ -1386,7 +1386,7 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
             {/* Quick candidate status sync preview */}
             <div className="p-3.5 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-2.5 min-w-0">
-                <UserAvatar name={activeCandidate.fullName} size="sm" />
+                <UserAvatar name={activeCandidate.fullName} avatar={activeCandidate.avatar} size="sm" />
                 <div className="min-w-0">
                   <p className="font-bold text-white text-xs truncate">{activeCandidate.fullName}</p>
                   <p className="text-[11px] text-indigo-300 truncate">{activeCandidate.currentRole}</p>
