@@ -136,6 +136,32 @@ export interface UserProfile {
   avatar?: string;
 }
 
+export interface ScheduledInterview {
+  id: string;
+  candidateId: string;
+  candidateName: string;
+  candidateEmail: string;
+  candidateRole: string;
+  jobId: string;
+  jobTitle: string;
+  interviewType: 'AI_SCREENING' | 'TECHNICAL' | 'SYSTEM_DESIGN' | 'BEHAVIORAL' | 'HIRING_MANAGER';
+  scheduledDate: string; // YYYY-MM-DD
+  scheduledTime: string; // e.g. 14:30
+  durationMinutes: number;
+  interviewerName: string;
+  meetingLink: string;
+  status: 'SCHEDULED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+  notes?: string;
+  createdAt: string;
+}
 
-
-
+export interface CandidateNotification {
+  id: string;
+  candidateEmail: string;
+  title: string;
+  message: string;
+  type: 'STATUS_UPDATE' | 'INTERVIEW_INVITE' | 'SCREENING_RESULT' | 'GENERAL';
+  timestamp: string;
+  isRead: boolean;
+  actionUrl?: string;
+}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { LandingPage } from './pages/LandingPage';
@@ -10,6 +10,8 @@ import { SettingsView } from './pages/SettingsView';
 import { InterviewAssistantView } from './pages/InterviewAssistantView';
 import { VoiceScreeningView } from './pages/VoiceScreeningView';
 import { AtsIntegrationView } from './pages/AtsIntegrationView';
+import { CandidatePortalView } from './pages/CandidatePortalView';
+import { NewJobModal } from './components/NewJobModal';
 import { useRecruitmentStore } from './store/useRecruitmentStore';
 import type { UserProfile } from './types';
 
@@ -21,11 +23,6 @@ export default function App() {
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [showNewJobModal, setShowNewJobModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
-  // New Job Form State
-  const [jobTitle, setJobTitle] = useState('');
-  const [jobDepartment, setJobDepartment] = useState('');
-  const [jobSkills, setJobSkills] = useState('');
 
   // Central Reactive Recruitment Store
   const store = useRecruitmentStore();
@@ -103,7 +100,18 @@ export default function App() {
     });
     setIsAuthenticated(true);
     localStorage.setItem('rc_is_authenticated', 'true');
+    if (profile.role?.toLowerCase().includes('candidate') || profile.email?.toLowerCase().includes('candidate') || profile.email?.toLowerCase() === 'sarah.johnson@example.com') {
+      setCurrentTab('candidate-portal');
+    } else {
+      setCurrentTab('dashboard');
+    }
   };
+
+  useEffect(() => {
+    if (isCandidateUser && currentTab === 'dashboard') {
+      setCurrentTab('candidate-portal');
+    }
+  }, [isCandidateUser]);
 
   const handleLogout = () => {
     setIsAuthenticated(false);
@@ -125,30 +133,6 @@ export default function App() {
     return <LandingPage onEnterApp={() => setInApp(true)} />;
   }
 
-  const handleCreateJob = () => {
-    if (!jobTitle.trim()) return alert("Please enter job title.");
-    store.addJob({
-      title: jobTitle,
-      department: jobDepartment || 'Engineering',
-      location: 'San Francisco, CA (Hybrid)',
-      employmentType: 'Full-time',
-      minSalary: 140000,
-      maxSalary: 190000,
-      description: 'Role responsible for core backend and system architecture.',
-      requiredSkills: jobSkills ? jobSkills.split(',').map((s: string) => s.trim()) : ['Python', 'Java', 'React'],
-      preferredSkills: ['Docker', 'AWS'],
-      minExperienceYears: 3,
-      educationRequirement: 'BS in Computer Science',
-      status: 'ACTIVE'
-    });
-
-    setShowNewJobModal(false);
-    setJobTitle('');
-    setJobDepartment('');
-    setJobSkills('');
-    alert("New Job Requirement Profile Created Successfully!");
-  };
-
   const getHeaderInfo = () => {
     switch (currentTab) {
       case 'dashboard':
@@ -164,6 +148,8 @@ export default function App() {
         return { title: 'Voice-Based Screening Module', subtitle: 'Live Speech-to-Text audio screening, AI interviewer voice synthesis, and communication analytics' };
       case 'ats-integration':
         return { title: 'ATS Integration Hub', subtitle: 'Bi-directional candidate synchronization with Greenhouse, Lever, and Workday' };
+      case 'candidate-portal':
+        return { title: 'Candidate Career Portal', subtitle: 'Live application ATS pipeline tracker, scheduled interviews, and AI performance reports' };
       case 'settings':
         return { title: 'System Settings', subtitle: 'Configure user access approvals and database settings' };
       default:
@@ -243,6 +229,10 @@ export default function App() {
               onUpdateCandidateStatusByEmail={store.updateCandidateStatusByEmail}
               onUpdateCandidateRoleAndExperience={store.updateCandidateRoleAndExperience}
               onSaveCandidateInterviewResponse={store.addCandidateInterviewResponse}
+              scheduledInterviews={store.scheduledInterviews}
+              onScheduleInterview={store.scheduleInterview}
+              onUpdateInterviewStatus={store.updateInterviewStatus}
+              onCancelInterview={store.cancelInterview}
               onNavigateToAts={() => setCurrentTab('ats-integration')}
               onNavigateToVoiceScreening={() => setCurrentTab('voice-screening')}
             />
@@ -269,6 +259,19 @@ export default function App() {
               onNavigateToInterview={() => setCurrentTab('interview-assistant')}
             />
           )}
+          {currentTab === 'candidate-portal' && (
+            <CandidatePortalView 
+              candidates={roleFilteredCandidates}
+              jobs={store.jobs}
+              currentCandidateEmail={store.userProfile?.email || 'candidate@copilot.com'}
+              scheduledInterviews={store.scheduledInterviews}
+              notifications={store.candidateNotifications}
+              onMarkNotificationRead={store.markNotificationRead}
+              onNavigateToVoiceScreening={() => setCurrentTab('voice-screening')}
+              onNavigateToInterviewPractice={() => setCurrentTab('interview-assistant')}
+              onNavigateToResume={() => setCurrentTab('candidates')}
+            />
+          )}
           {currentTab === 'settings' && (
             <SettingsView 
               userProfile={store.userProfile}
@@ -286,50 +289,15 @@ export default function App() {
         </main>
       </div>
 
-      {/* New Job Modal */}
-      {showNewJobModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-lg shadow-2xl space-y-4">
-            <h3 className="text-lg font-extrabold text-slate-900">Create New Job Requirement Profile</h3>
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Job Title</label>
-                <input 
-                  type="text" 
-                  value={jobTitle}
-                  onChange={e => setJobTitle(e.target.value)}
-                  placeholder="e.g. Senior Machine Learning Engineer" 
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-blue-500" 
-                />
-              </div>
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Department</label>
-                <input 
-                  type="text" 
-                  value={jobDepartment}
-                  onChange={e => setJobDepartment(e.target.value)}
-                  placeholder="e.g. AI & Data Science" 
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-blue-500" 
-                />
-              </div>
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Required Technical Skills (comma separated)</label>
-                <input 
-                  type="text" 
-                  value={jobSkills}
-                  onChange={e => setJobSkills(e.target.value)}
-                  placeholder="Python, TensorFlow, MLOps, AWS, Docker" 
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-blue-500" 
-                />
-              </div>
-            </div>
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button onClick={() => setShowNewJobModal(false)} className="px-4 py-2 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50">Cancel</button>
-              <button onClick={handleCreateJob} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20">Create Job</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* AI-Assisted New Job Modal */}
+      <NewJobModal
+        isOpen={showNewJobModal}
+        onClose={() => setShowNewJobModal(false)}
+        onCreateJob={(job) => {
+          store.addJob(job);
+          alert(`New Job Profile "${job.title}" created & published successfully!`);
+        }}
+      />
     </div>
   );
 };

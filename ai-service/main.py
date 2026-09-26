@@ -590,6 +590,123 @@ def interview_chat(payload: InterviewChatRequest):
         "next_question": next_question
     }
 
+class GenerateJDRequest(BaseModel):
+    job_title: str
+    department: Optional[str] = "Engineering"
+    experience_years: Optional[int] = 3
+    industry: Optional[str] = "Technology / SaaS"
+    skills_hint: Optional[List[str]] = []
+
+@app.post("/api/ai/generate-jd")
+def generate_job_description(payload: GenerateJDRequest):
+    """
+    AI-Assisted Job Description & Specification Generator.
+    Synthesizes executive role summary, key responsibilities, required & preferred technical skills,
+    education requirements, and competitive compensation benchmarks.
+    """
+    title = payload.job_title.strip()
+    dept = (payload.department or "Engineering").strip()
+    exp_years = payload.experience_years or 3
+    hints = [s.strip() for s in (payload.skills_hint or []) if s.strip()]
+
+    # Intelligent fallback templates for robust offline/dev operation
+    title_lower = title.lower()
+    
+    # Infer skills if none provided
+    if not hints:
+        if any(w in title_lower for w in ["ai", "machine learning", "data scientist", "ml", "nlp"]):
+            hints = ["Python", "PyTorch", "Transformers", "Scikit-Learn", "MLOps", "Docker"]
+            dept = dept or "AI & Data Science"
+        elif any(w in title_lower for w in ["front", "react", "ui", "ux", "web"]):
+            hints = ["React", "TypeScript", "Next.js", "Tailwind CSS", "HTML5/CSS3", "REST APIs"]
+            dept = dept or "Product Engineering"
+        elif any(w in title_lower for w in ["cloud", "devops", "sre", "infrastructure"]):
+            hints = ["AWS", "Kubernetes", "Docker", "Terraform", "CI/CD", "Linux"]
+            dept = dept or "Cloud Infrastructure"
+        elif any(w in title_lower for w in ["product manager", "pm"]):
+            hints = ["Product Roadmapping", "Agile/Scrum", "Data Analytics", "User Research", "Jira"]
+            dept = dept or "Product Management"
+        else:
+            hints = ["Python", "PostgreSQL", "FastAPI", "Docker", "Git", "System Design"]
+
+    preferred = ["Cloud Architecture (AWS/GCP)", "Microservices", "CI/CD Automation", "Mentorship"]
+    min_sal = max(70000, 45000 + exp_years * 20000)
+    max_sal = min_sal + 45000
+
+    generated_jd = {
+        "job_title": title,
+        "department": dept,
+        "min_experience_years": exp_years,
+        "education_requirement": "Bachelor's or Master's degree in Computer Science, Software Engineering, or related technical field",
+        "description": f"We are seeking an exceptional {title} to join our high-impact {dept} team. In this role, you will architect, build, and deploy production-grade systems while collaborating cross-functionally to drive core product innovation and technical excellence.",
+        "responsibilities": [
+            f"Lead the architectural design, implementation, and optimization of scalable systems for {title} initiatives.",
+            f"Collaborate with product designers, engineering leads, and stakeholders to define technical roadmaps.",
+            f"Write resilient, clean, well-tested production code adhering to top-tier software engineering best practices.",
+            f"Drive continuous improvement in system latency, reliability, security, and developer productivity.",
+            f"Mentor junior and mid-level engineers through rigorous code reviews and engineering design sessions."
+        ],
+        "required_skills": hints,
+        "preferred_skills": preferred,
+        "min_salary": min_sal,
+        "max_salary": max_sal,
+        "location": "San Francisco, CA (Hybrid / Remote Option)",
+        "employment_type": "Full-time"
+    }
+
+    # Attempt Groq LLM synthesis if available
+    if client:
+        try:
+            prompt = (
+                f"You are an expert Chief Talent Officer and Technical Recruiter. Write a world-class job description for:\n"
+                f"Role: {title}\n"
+                f"Department: {dept}\n"
+                f"Target Experience: {exp_years} years\n"
+                f"Core Skills: {', '.join(hints)}\n\n"
+                "Return ONLY a valid JSON object matching this schema:\n"
+                "{\n"
+                '  "description": "2-3 sentences overview of the role and impact",\n'
+                '  "responsibilities": ["bullet 1", "bullet 2", "bullet 3", "bullet 4"],\n'
+                '  "required_skills": ["skill1", "skill2", "skill3", "skill4", "skill5"],\n'
+                '  "preferred_skills": ["skill1", "skill2", "skill3"],\n'
+                '  "min_salary": number,\n'
+                '  "max_salary": number\n'
+                "}"
+            )
+            chat_completion = client.chat.completions.create(
+                model="qwen/qwen3.8-27b",
+                messages=[
+                    {"role": "system", "content": "You are a professional HR and recruitment AI that outputs only raw JSON."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=600
+            )
+            raw_text = chat_completion.choices[0].message.content or ""
+            # Extract JSON block if wrapped in markdown
+            match = re.search(r"\{.*\}", raw_text, re.DOTALL)
+            if match:
+                ai_data = json.loads(match.group(0))
+                if "description" in ai_data:
+                    generated_jd["description"] = ai_data["description"]
+                if "responsibilities" in ai_data and isinstance(ai_data["responsibilities"], list):
+                    generated_jd["responsibilities"] = ai_data["responsibilities"]
+                if "required_skills" in ai_data and isinstance(ai_data["required_skills"], list):
+                    generated_jd["required_skills"] = ai_data["required_skills"]
+                if "preferred_skills" in ai_data and isinstance(ai_data["preferred_skills"], list):
+                    generated_jd["preferred_skills"] = ai_data["preferred_skills"]
+                if "min_salary" in ai_data:
+                    generated_jd["min_salary"] = int(ai_data["min_salary"])
+                if "max_salary" in ai_data:
+                    generated_jd["max_salary"] = int(ai_data["max_salary"])
+        except Exception as e:
+            print(f"[AI Service] Groq generate-jd error: {e}")
+
+    return {
+        "success": True,
+        "job": generated_jd
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

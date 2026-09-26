@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Job, Candidate, InterviewQuestion, ATSProvider, UserProfile, UserAccount, CandidateInterviewResponse } from '../types';
+import type { Job, Candidate, InterviewQuestion, ATSProvider, UserProfile, UserAccount, CandidateInterviewResponse, ScheduledInterview, CandidateNotification } from '../types';
 
 import { INITIAL_JOBS, INITIAL_CANDIDATES, INITIAL_QUESTIONS, INITIAL_ATS_PROVIDERS } from '../services/mockData';
 
@@ -137,6 +137,105 @@ export function useRecruitmentStore() {
   const [atsProviders] = useState<ATSProvider[]>(INITIAL_ATS_PROVIDERS);
   const [activeJobId, setActiveJobId] = useState<string>(jobs[0]?.id || '');
   const [activeCandidateId, setActiveCandidateId] = useState<string>('');
+
+  const DEFAULT_SCHEDULED_INTERVIEWS: ScheduledInterview[] = [
+    {
+      id: 'int-101',
+      candidateId: 'cand-1',
+      candidateName: 'Sarah Johnson',
+      candidateEmail: 'candidate@copilot.com',
+      candidateRole: 'Senior Full Stack Engineer',
+      jobId: 'job-1',
+      jobTitle: 'Senior Full Stack Engineer (React/Node)',
+      interviewType: 'AI_SCREENING',
+      scheduledDate: '2026-09-28',
+      scheduledTime: '15:00',
+      durationMinutes: 45,
+      interviewerName: 'AI Voice Screening Agent',
+      meetingLink: 'https://meet.copilot.ai/room/sarah-johnson-ai-screening',
+      status: 'CONFIRMED',
+      notes: 'Focus on React 19 architecture, asynchronous state, and micro-frontend patterns.',
+      createdAt: '2026-09-25'
+    },
+    {
+      id: 'int-102',
+      candidateId: 'cand-2',
+      candidateName: 'Michael Chen',
+      candidateEmail: 'm.chen@example.com',
+      candidateRole: 'Senior Machine Learning Specialist',
+      jobId: 'job-2',
+      jobTitle: 'AI/ML Research Scientist',
+      interviewType: 'TECHNICAL',
+      scheduledDate: '2026-09-29',
+      scheduledTime: '11:00',
+      durationMinutes: 60,
+      interviewerName: 'Sarah Jenkins (Talent Acquisition)',
+      meetingLink: 'https://meet.copilot.ai/room/mchen-tech-deepdive',
+      status: 'SCHEDULED',
+      notes: 'Transformers, fine-tuning LLMs, and vector search evaluation.',
+      createdAt: '2026-09-25'
+    }
+  ];
+
+  const DEFAULT_NOTIFICATIONS: CandidateNotification[] = [
+    {
+      id: 'notif-1',
+      candidateEmail: 'candidate@copilot.com',
+      title: 'Interview Scheduled: AI Voice Screening',
+      message: 'Your AI Voice Screening has been confirmed for Sept 28, 2026 at 3:00 PM.',
+      type: 'INTERVIEW_INVITE',
+      timestamp: '2026-09-25T14:30:00Z',
+      isRead: false
+    },
+    {
+      id: 'notif-2',
+      candidateEmail: 'candidate@copilot.com',
+      title: 'Resume Successfully Parsed',
+      message: 'Your resume was analyzed with a 94% job match score for Senior Full Stack Engineer.',
+      type: 'SCREENING_RESULT',
+      timestamp: '2026-09-25T10:15:00Z',
+      isRead: true
+    },
+    {
+      id: 'notif-3',
+      candidateEmail: 'candidate@copilot.com',
+      title: 'Application Moved to Screening Stage',
+      message: 'Recruiter Sarah Jenkins has advanced your profile to the Screened stage.',
+      type: 'STATUS_UPDATE',
+      timestamp: '2026-09-24T16:00:00Z',
+      isRead: true
+    }
+  ];
+
+  const [scheduledInterviews, setScheduledInterviews] = useState<ScheduledInterview[]>(() => {
+    const saved = localStorage.getItem('rc_scheduled_interviews');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return DEFAULT_SCHEDULED_INTERVIEWS;
+  });
+
+  const [candidateNotifications, setCandidateNotifications] = useState<CandidateNotification[]>(() => {
+    const saved = localStorage.getItem('rc_candidate_notifications');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return DEFAULT_NOTIFICATIONS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('rc_scheduled_interviews', JSON.stringify(scheduledInterviews));
+  }, [scheduledInterviews]);
+
+  useEffect(() => {
+    localStorage.setItem('rc_candidate_notifications', JSON.stringify(candidateNotifications));
+  }, [candidateNotifications]);
 
   useEffect(() => {
     localStorage.setItem('rc_jobs', JSON.stringify(jobs));
@@ -426,6 +525,72 @@ export function useRecruitmentStore() {
     return score > 0 ? Math.min(98, Math.max(50, score)) : 65;
   };
 
+  const scheduleInterview = (interview: Omit<ScheduledInterview, 'id' | 'createdAt'>) => {
+    const newInterview: ScheduledInterview = {
+      ...interview,
+      id: `int-${Date.now()}`,
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+    setScheduledInterviews(prev => [newInterview, ...prev]);
+
+    // Advance candidate stage in ATS pipeline to 'Interview in progress'
+    setCandidates(prev => prev.map(cand => {
+      if (cand.id === interview.candidateId || cand.email.toLowerCase() === interview.candidateEmail.toLowerCase()) {
+        const curStatus = (cand.status || '').toLowerCase();
+        if (curStatus === 'applied' || curStatus === 'screened' || curStatus === 'shortlisted') {
+          return { ...cand, status: 'Interview in progress' as const };
+        }
+      }
+      return cand;
+    }));
+
+    // Trigger real-time candidate notification
+    const newNotif: CandidateNotification = {
+      id: `notif-${Date.now()}`,
+      candidateEmail: interview.candidateEmail,
+      title: `Interview Scheduled: ${interview.interviewType.replace(/_/g, ' ')}`,
+      message: `Your interview for "${interview.jobTitle}" has been scheduled for ${interview.scheduledDate} at ${interview.scheduledTime} with ${interview.interviewerName}.`,
+      type: 'INTERVIEW_INVITE',
+      timestamp: new Date().toISOString(),
+      isRead: false,
+      actionUrl: interview.meetingLink
+    };
+    setCandidateNotifications(prev => [newNotif, ...prev]);
+
+    return newInterview;
+  };
+
+  const updateInterviewStatus = (id: string, status: ScheduledInterview['status']) => {
+    setScheduledInterviews(prev => prev.map(item => {
+      if (item.id === id) {
+        return { ...item, status };
+      }
+      return item;
+    }));
+  };
+
+  const cancelInterview = (id: string) => {
+    updateInterviewStatus(id, 'CANCELLED');
+  };
+
+  const deleteInterview = (id: string) => {
+    setScheduledInterviews(prev => prev.filter(item => item.id !== id));
+  };
+
+  const markNotificationRead = (id: string) => {
+    setCandidateNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+  };
+
+  const addCandidateNotification = (notification: Omit<CandidateNotification, 'id' | 'timestamp' | 'isRead'>) => {
+    const newNotif: CandidateNotification = {
+      ...notification,
+      id: `notif-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      isRead: false
+    };
+    setCandidateNotifications(prev => [newNotif, ...prev]);
+  };
+
   return {
     jobs,
     candidates,
@@ -458,7 +623,16 @@ export function useRecruitmentStore() {
     removeSkillFromCandidate,
     updateCandidateRoleAndExperience,
     setUserProfileExplicit,
-    updateCandidateAvatar
+    updateCandidateAvatar,
+
+    scheduledInterviews,
+    scheduleInterview,
+    updateInterviewStatus,
+    cancelInterview,
+    deleteInterview,
+    candidateNotifications,
+    markNotificationRead,
+    addCandidateNotification
   };
 }
 

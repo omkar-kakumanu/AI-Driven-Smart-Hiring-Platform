@@ -9,15 +9,34 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, userProfile }) => {
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard' },
-    { id: 'candidates', label: 'Candidates & Resumes' },
-    { id: 'matching', label: 'Matching & Skill Gap' },
-    { id: 'interview-assistant', label: 'AI Interview Simulation' },
-    { id: 'voice-screening', label: 'Voice Screening Module', badge: 'Live' },
-    { id: 'ats-integration', label: 'ATS Integration Hub' },
-    { id: 'settings', label: 'System Settings & Approvals' },
-  ];
+  const isCandidateUser = Boolean(
+    userProfile?.userType !== 'ADMIN' &&
+    userProfile?.email?.toLowerCase() !== 'admin@copilot.com' &&
+    userProfile?.email?.toLowerCase() !== 'recruiter@copilot.com' && (
+      userProfile?.role?.toLowerCase().includes('candidate') ||
+      userProfile?.email?.toLowerCase().includes('candidate') ||
+      userProfile?.email?.toLowerCase() === 'sarah.johnson@example.com'
+    )
+  );
+
+  const menuItems = isCandidateUser
+    ? [
+        { id: 'candidate-portal', label: 'My Candidate Portal' },
+        { id: 'interview-assistant', label: 'Interview & Questions' },
+        { id: 'voice-screening', label: 'Voice Screening Module' },
+        { id: 'candidates', label: 'My Resume & Profile' },
+        { id: 'settings', label: 'Account Settings' },
+      ]
+    : [
+        { id: 'dashboard', label: 'Dashboard' },
+        { id: 'candidates', label: 'Candidates & Resumes' },
+        { id: 'matching', label: 'Matching & Skill Gap' },
+        { id: 'interview-assistant', label: 'AI Interview Simulation' },
+        { id: 'voice-screening', label: 'Voice Screening Module' },
+        { id: 'ats-integration', label: 'ATS Integration Hub' },
+        { id: 'candidate-portal', label: 'Candidate Portal (Preview)' },
+        { id: 'settings', label: 'System Settings & Approvals' },
+      ];
 
   return (
     <aside className="w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col h-screen sticky top-0 select-none">
