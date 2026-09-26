@@ -321,29 +321,39 @@ export const InterviewSchedulingModule: React.FC<InterviewSchedulingModuleProps>
                       <span className="text-[10px]">↗</span>
                     </a>
 
-                    {!isCandidateUser && (
-                      <div className="flex items-center gap-1.5">
-                        {interview.status !== 'COMPLETED' && (
-                          <button
-                            onClick={() => onUpdateInterviewStatus(interview.id, 'COMPLETED')}
-                            title="Mark as Completed"
-                            className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                          >
-                            ✓ Complete
-                          </button>
-                        )}
+                    {/* Actions: Admin & Recruiter can manage all; Candidates can only cancel their own */}
+                    {(() => {
+                      const isOwner = !isCandidateUser || (interview.candidateEmail.toLowerCase() === (currentCandidateEmail || '').toLowerCase());
+                      if (!isOwner) return null;
 
-                        {interview.status !== 'CANCELLED' && (
-                          <button
-                            onClick={() => onCancelInterview(interview.id)}
-                            title="Cancel Interview"
-                            className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                          >
-                            ✕ Cancel
-                          </button>
-                        )}
-                      </div>
-                    )}
+                      return (
+                        <div className="flex items-center gap-1.5">
+                          {!isCandidateUser && interview.status !== 'COMPLETED' && (
+                            <button
+                              onClick={() => onUpdateInterviewStatus(interview.id, 'COMPLETED')}
+                              title="Mark as Completed"
+                              className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                            >
+                              ✓ Complete
+                            </button>
+                          )}
+
+                          {interview.status !== 'CANCELLED' && (
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Are you sure you want to cancel this interview for ${interview.candidateName}?`)) {
+                                  onCancelInterview(interview.id);
+                                }
+                              }}
+                              title="Cancel Interview"
+                              className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                            >
+                              ✕ Cancel
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 

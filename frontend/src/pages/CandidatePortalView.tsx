@@ -12,6 +12,7 @@ interface CandidatePortalViewProps {
   onNavigateToVoiceScreening?: () => void;
   onNavigateToInterviewPractice?: () => void;
   onNavigateToResume?: () => void;
+  onCancelInterview?: (id: string) => void;
 }
 
 export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
@@ -23,7 +24,8 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
   onMarkNotificationRead,
   onNavigateToVoiceScreening,
   onNavigateToInterviewPractice,
-  onNavigateToResume
+  onNavigateToResume,
+  onCancelInterview
 }) => {
   // Find current candidate or fallback to first candidate
   const activeCandidate = candidates.find(
@@ -286,17 +288,32 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-200/60">
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 flex-wrap gap-2">
                     <span className="text-[11px] text-slate-400 font-medium">Platform: Secure Video Conference</span>
-                    <a
-                      href={interview.meetingLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black shadow-md shadow-blue-500/20 flex items-center gap-1.5 transition-all"
-                    >
-                      <span>📹 Join Meeting Room</span>
-                      <span className="text-[10px]">↗</span>
-                    </a>
+                    <div className="flex items-center gap-2">
+                      {interview.status !== 'CANCELLED' && onCancelInterview && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm("Are you sure you want to cancel your scheduled interview?")) {
+                              onCancelInterview(interview.id);
+                            }
+                          }}
+                          className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold border border-rose-200 transition-all cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                      <a
+                        href={interview.meetingLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black shadow-md shadow-blue-500/20 flex items-center gap-1.5 transition-all"
+                      >
+                        <span>📹 Join Meeting Room</span>
+                        <span className="text-[10px]">↗</span>
+                      </a>
+                    </div>
                   </div>
                 </div>
               ))

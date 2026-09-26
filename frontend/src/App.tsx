@@ -226,9 +226,11 @@ export default function App() {
               jobs={store.jobs}
               isMainAdmin={isMainAdmin}
               isCandidateUser={isCandidateUser}
+              currentCandidateEmail={store.userProfile?.email}
               onUpdateCandidateStatusByEmail={store.updateCandidateStatusByEmail}
               onUpdateCandidateRoleAndExperience={store.updateCandidateRoleAndExperience}
               onSaveCandidateInterviewResponse={store.addCandidateInterviewResponse}
+              onDeleteCandidateInterviewResponse={store.deleteCandidateInterviewResponse}
               scheduledInterviews={store.scheduledInterviews}
               onScheduleInterview={store.scheduleInterview}
               onUpdateInterviewStatus={store.updateInterviewStatus}
@@ -243,6 +245,7 @@ export default function App() {
               jobs={store.jobs}
               isMainAdmin={isMainAdmin}
               isCandidateUser={isCandidateUser}
+              currentCandidateEmail={store.userProfile?.email}
               onUpdateCandidateStatusByEmail={store.updateCandidateStatusByEmail}
               onSaveCandidateInterviewResponse={store.addCandidateInterviewResponse}
               onDeleteCandidateInterviewResponse={store.deleteCandidateInterviewResponse}
@@ -270,6 +273,7 @@ export default function App() {
               onNavigateToVoiceScreening={() => setCurrentTab('voice-screening')}
               onNavigateToInterviewPractice={() => setCurrentTab('interview-assistant')}
               onNavigateToResume={() => setCurrentTab('candidates')}
+              onCancelInterview={store.cancelInterview}
             />
           )}
           {currentTab === 'settings' && (

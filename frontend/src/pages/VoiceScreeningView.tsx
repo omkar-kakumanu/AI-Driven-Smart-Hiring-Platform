@@ -8,6 +8,7 @@ interface VoiceScreeningViewProps {
   jobs?: Job[];
   isMainAdmin?: boolean;
   isCandidateUser?: boolean;
+  currentCandidateEmail?: string;
   onUpdateCandidateStatusByEmail?: (email: string, status: Candidate['status']) => void;
   onSaveCandidateInterviewResponse?: (candidateId: string, response: CandidateInterviewResponse) => void;
   onDeleteCandidateInterviewResponse?: (candidateIdOrEmail: string, responseIdOrQuestion: string) => void;
@@ -71,12 +72,24 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
   jobs: _jobs = [],
   isMainAdmin: _isMainAdmin = false,
   isCandidateUser = false,
+  currentCandidateEmail,
   onUpdateCandidateStatusByEmail,
   onSaveCandidateInterviewResponse,
   onDeleteCandidateInterviewResponse,
   onNavigateToInterview,
   onNavigateToAts
 }) => {
+  // Candidate ownership security check:
+  // Admins & Recruiters can edit/delete/re-record ANY candidate.
+  // Candidates can ONLY edit/delete/re-record THEIR OWN records.
+  const canModifyRecord = (recCandidateEmail?: string, recCandidateId?: string): boolean => {
+    if (!isCandidateUser) return true; // Admins and recruiters have full permissions on all candidates
+    const myEmail = (currentCandidateEmail || candidates[0]?.email || '').toLowerCase().trim();
+    const myId = (candidates[0]?.id || '').trim();
+    if (recCandidateEmail && recCandidateEmail.toLowerCase().trim() === myEmail) return true;
+    if (recCandidateId && (recCandidateId.toLowerCase().trim() === myEmail || recCandidateId.trim() === myId)) return true;
+    return false;
+  };
   // Selected candidate for screening studio
   const [selectedCandidateId, setSelectedCandidateId] = useState<string>(candidates[0]?.id || 'cand-1');
   const activeCandidate = candidates.find(c => c.id === selectedCandidateId) || candidates[0] || {
@@ -589,10 +602,15 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
 
   // Re-record an existing voice screening report
   const handleStartReRecording = (record: VoiceScreeningRecord) => {
+    if (!canModifyRecord(record.candidateEmail, record.candidateId)) {
+      alert("Permission Denied: As a candidate, you may only re-record voice screening responses for your own profile.");
+      return;
+    }
+
     resetVoiceRecording();
 
     const cand = candidates.find(c => c.id === record.candidateId || c.email.toLowerCase() === record.candidateEmail.toLowerCase())
-      || candidatePool.find(c => c.id === record.candidateId || c.email.toLowerCase() === record.candidateEmail.toLowerCase());
+      || (candidatePool ? candidatePool.find(c => c.id === record.candidateId || c.email.toLowerCase() === record.candidateEmail.toLowerCase()) : undefined);
     if (cand) {
       setSelectedCandidateId(cand.id);
       setInspectedCandidateId(cand.id);
@@ -625,6 +643,13 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
   // Delete an existing voice screening report
   const handleDeleteScreeningRecord = (recordId: string, candidateName?: string) => {
     const target = screeningHistory.find(r => r.id === recordId);
+    if (!target) return;
+
+    if (!canModifyRecord(target.candidateEmail, target.candidateId)) {
+      alert("Permission Denied: As a candidate, you may only delete your own voice screening reports.");
+      return;
+    }
+
     const displayName = candidateName || target?.candidateName || 'this candidate';
     if (!window.confirm(`Are you sure you want to delete this voice screening record for ${displayName}? This action cannot be undone.`)) {
       return;
@@ -819,8 +844,9 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
             <span className="text-xs font-semibold text-slate-500">Candidate:</span>
             <select
               value={selectedCandidateId}
+              disabled={isCandidateUser}
               onChange={e => setSelectedCandidateId(e.target.value)}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-75 disabled:cursor-not-allowed"
             >
               {candidatePool.map(cand => (
                 <option key={cand.id} value={cand.id}>
@@ -1267,25 +1293,33 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
                             Overall: {screening.scores.overall}%
                           </span>
 
-                          <button
-                            type="button"
-                            onClick={() => handleStartReRecording(screening)}
-                            className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg border border-blue-200 transition-colors flex items-center gap-1 cursor-pointer"
-                            title="Re-record verbal answer for this question"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                            <span>Re-record</span>
-                          </button>
+                          {canModifyRecord(screening.candidateEmail, screening.candidateId) ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleStartReRecording(screening)}
+                                className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg border border-blue-200 transition-colors flex items-center gap-1 cursor-pointer"
+                                title="Re-record verbal answer for this question"
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                                <span>Re-record</span>
+                              </button>
 
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteScreeningRecord(screening.id, screening.candidateName)}
-                            className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg border border-rose-200 transition-colors flex items-center gap-1 cursor-pointer"
-                            title="Delete this voice screening report"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            <span>Delete</span>
-                          </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteScreeningRecord(screening.id, screening.candidateName)}
+                                className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg border border-rose-200 transition-colors flex items-center gap-1 cursor-pointer"
+                                title="Delete this voice screening report"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                <span>Delete</span>
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-1 rounded">
+                              Read-only
+                            </span>
+                          )}
 
                           <button
                             type="button"
@@ -1476,25 +1510,33 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
                               Inspect Dossier
                             </button>
 
-                            <button
-                              type="button"
-                              onClick={() => handleStartReRecording(rec)}
-                              className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded text-xs font-bold cursor-pointer flex items-center gap-1 border border-amber-200"
-                              title="Re-record voice screening response for this question"
-                            >
-                              <RotateCcw className="w-3 h-3" />
-                              <span>Re-record</span>
-                            </button>
+                            {canModifyRecord(rec.candidateEmail, rec.candidateId) ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartReRecording(rec)}
+                                  className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded text-xs font-bold cursor-pointer flex items-center gap-1 border border-amber-200"
+                                  title="Re-record voice screening response for this question"
+                                >
+                                  <RotateCcw className="w-3 h-3" />
+                                  <span>Re-record</span>
+                                </button>
 
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteScreeningRecord(rec.id, rec.candidateName)}
-                              className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded text-xs font-bold cursor-pointer flex items-center gap-1 border border-rose-200"
-                              title="Delete this voice screening report"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              <span>Delete</span>
-                            </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteScreeningRecord(rec.id, rec.candidateName)}
+                                  className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded text-xs font-bold cursor-pointer flex items-center gap-1 border border-rose-200"
+                                  title="Delete this voice screening report"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  <span>Delete</span>
+                                </button>
+                              </>
+                            ) : (
+                              <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-1 rounded">
+                                Read-only
+                              </span>
+                            )}
 
                             {!isCandidateUser && (
                               <button

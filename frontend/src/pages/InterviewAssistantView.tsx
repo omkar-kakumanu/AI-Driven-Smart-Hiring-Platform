@@ -17,6 +17,8 @@ interface InterviewAssistantViewProps {
   onScheduleInterview?: (interview: Omit<ScheduledInterview, 'id' | 'createdAt'>) => void;
   onUpdateInterviewStatus?: (id: string, status: ScheduledInterview['status']) => void;
   onCancelInterview?: (id: string) => void;
+  currentCandidateEmail?: string;
+  onDeleteCandidateInterviewResponse?: (candidateIdOrEmail: string, responseIdOrQuestion: string) => void;
 }
 
 interface InterviewQuestionItem {
@@ -54,7 +56,9 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
   scheduledInterviews = [],
   onScheduleInterview,
   onUpdateInterviewStatus,
-  onCancelInterview
+  onCancelInterview,
+  currentCandidateEmail,
+  onDeleteCandidateInterviewResponse
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'SIMULATION' | 'SCHEDULING'>('SIMULATION');
   // Job positions available for questions
@@ -81,6 +85,8 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
     totalExperienceYears: 5,
     status: 'Applied'
   };
+
+  const canModifyActiveCandidate = !isCandidateUser || (activeCandidate.email.toLowerCase() === (currentCandidateEmail || candidates[0]?.email || '').toLowerCase());
 
   // Admin Quick Role & Experience Editing State
   const [adminRoleInput, setAdminRoleInput] = useState<string>(activeCandidate.currentRole || '');
@@ -723,8 +729,9 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
                     <div className="relative">
                       <button
                         type="button"
-                        onClick={() => setIsCandidateDropdownOpen(prev => !prev)}
-                        className="flex items-center gap-2 px-3 py-1 bg-slate-50 hover:bg-white active:bg-blue-50/50 border border-slate-300 hover:border-blue-500 rounded-xl shadow-xs transition-all cursor-pointer group"
+                        onClick={() => { if (!isCandidateUser) setIsCandidateDropdownOpen(prev => !prev); }}
+                        disabled={isCandidateUser}
+                        className={`flex items-center gap-2 px-3 py-1 bg-slate-50 border border-slate-300 rounded-xl shadow-xs transition-all ${isCandidateUser ? 'cursor-default' : 'hover:bg-white active:bg-blue-50/50 hover:border-blue-500 cursor-pointer group'}`}
                       >
                         <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center font-black text-[9px] shadow-xs">
                           {activeCandidate.fullName.split(' ').map(n => n[0]).join('').slice(0, 2)}
@@ -735,14 +742,16 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
                         <span className="text-[10px] font-semibold text-slate-500 bg-slate-200/70 px-1.5 py-0.5 rounded leading-none">
                           {activeCandidate.currentRole || 'Role'}
                         </span>
-                        <svg 
-                          className={`w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition-transform duration-200 ${isCandidateDropdownOpen ? 'rotate-180 text-blue-600' : ''}`} 
-                          fill="none" 
-                          viewBox="0 0 24 24" 
-                          stroke="currentColor"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                        </svg>
+                        {!isCandidateUser && (
+                          <svg 
+                            className={`w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition-transform duration-200 ${isCandidateDropdownOpen ? 'rotate-180 text-blue-600' : ''}`} 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        )}
                       </button>
 
                       {/* Dropdown Menu Popover */}
@@ -1383,15 +1392,31 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
                         </span>
                       </div>
 
-                      {resp.score && (
-                        <div className="flex items-center gap-2 text-xs font-bold">
-                          <span className="text-emerald-700">Clarity: {resp.score.clarity}%</span>
-                          <span className="text-emerald-700">Relevance: {resp.score.relevance}%</span>
-                          <span className="px-2 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-black">
-                            Overall {resp.score.overall}%
-                          </span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {resp.score && (
+                          <div className="flex items-center gap-2 text-xs font-bold">
+                            <span className="text-emerald-700">Clarity: {resp.score.clarity}%</span>
+                            <span className="text-emerald-700">Relevance: {resp.score.relevance}%</span>
+                            <span className="px-2 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-black">
+                              Overall {resp.score.overall}%
+                            </span>
+                          </div>
+                        )}
+                        {onDeleteCandidateInterviewResponse && canModifyActiveCandidate && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`Delete interview response for "${resp.question}"?`)) {
+                                onDeleteCandidateInterviewResponse(activeCandidate.id || activeCandidate.email, resp.id || resp.question);
+                              }
+                            }}
+                            className="px-2 py-0.5 text-[10px] font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded transition-colors cursor-pointer"
+                            title="Delete this interview answer"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="space-y-1">
