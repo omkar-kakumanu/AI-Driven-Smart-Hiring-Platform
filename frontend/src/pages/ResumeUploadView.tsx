@@ -236,6 +236,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
     setIsParsing(true);
     setParsingProgress(20);
     setParseError(null);
+    setCandidateAvatar(''); // Reset candidate photo so previous candidate's image is not inherited
 
     try {
       // 1. Attempt backend API parsing first
@@ -331,6 +332,14 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
       institution,
       avatar: candidateAvatar || undefined
     });
+
+    setCandidateAvatar('');
+    setFullName('');
+    setEmail('');
+    setPhone('');
+    setLocation('');
+    setFile(null);
+    setParsed(false);
 
     alert(`Candidate "${fullName}" profile saved successfully!`);
     onNavigateToMatching();
