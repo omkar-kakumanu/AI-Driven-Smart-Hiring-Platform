@@ -3,11 +3,57 @@ import type { Job, Candidate, InterviewQuestion, ATSProvider, UserProfile, UserA
 
 import { INITIAL_JOBS, INITIAL_CANDIDATES, INITIAL_QUESTIONS, INITIAL_ATS_PROVIDERS } from '../services/mockData';
 
+const normalizeIndianJob = (job: Job): Job => {
+  let location = job.location || 'Bengaluru, Karnataka (Hybrid)';
+  if (location.includes('San Francisco') || location.includes('CA')) location = 'Bengaluru, Karnataka (Hybrid)';
+  else if (location.includes('Austin') || location.includes('TX')) location = 'Hyderabad, Telangana (Hybrid)';
+  else if (location.includes('Seattle') || location.includes('WA')) location = 'Pune, Maharashtra (Hybrid)';
+  else if (location.includes('New York') || location.includes('NY')) location = 'Gurugram, Delhi NCR (Hybrid)';
+  else if (location.includes('Chicago') || location.includes('IL')) location = 'Chennai, Tamil Nadu (Hybrid)';
+  else if (location.includes('Denver') || location.includes('CO')) location = 'Noida, Delhi NCR (Remote)';
+  else if (location.includes('Los Angeles')) location = 'Mumbai, Maharashtra (Hybrid)';
+  else if (location.includes('Washington')) location = 'Bengaluru, Karnataka (Whitefield)';
+
+  let minSalary = job.minSalary || 1600000;
+  let maxSalary = job.maxSalary || 2600000;
+  // If stored in US dollar scale (< 1,000,000, e.g. 140000 for $140k), convert to Indian LPA * 10
+  if (minSalary > 0 && minSalary < 1000000) {
+    minSalary = minSalary * 10;
+  }
+  if (maxSalary > 0 && maxSalary < 1000000) {
+    maxSalary = maxSalary * 10;
+  }
+
+  return {
+    ...job,
+    location,
+    minSalary,
+    maxSalary
+  };
+};
+
 export function useRecruitmentStore() {
   const [jobs, setJobs] = useState<Job[]>(() => {
     const saved = localStorage.getItem('rc_jobs');
-    return saved ? JSON.parse(saved) : INITIAL_JOBS;
+    let loadedJobs = INITIAL_JOBS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          loadedJobs = parsed;
+        }
+      } catch (e) {
+        // Fallback
+      }
+    }
+    const normalized = loadedJobs.map(normalizeIndianJob);
+    localStorage.setItem('rc_jobs', JSON.stringify(normalized));
+    return normalized;
   });
+
+  useEffect(() => {
+    localStorage.setItem('rc_jobs', JSON.stringify(jobs));
+  }, [jobs]);
 
   const [candidates, setCandidates] = useState<Candidate[]>(() => {
     const saved = localStorage.getItem('rc_candidates');
@@ -15,9 +61,7 @@ export function useRecruitmentStore() {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {
-        // Fallback
-      }
+      } catch (e) {}
     }
     return INITIAL_CANDIDATES;
   });
