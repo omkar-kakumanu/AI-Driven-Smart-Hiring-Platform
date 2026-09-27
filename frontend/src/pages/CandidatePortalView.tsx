@@ -12,6 +12,8 @@ interface CandidatePortalViewProps {
   onNavigateToVoiceScreening?: () => void;
   onNavigateToInterviewPractice?: () => void;
   onNavigateToResume?: () => void;
+  onNavigateToMatching?: () => void;
+  onNavigateToAts?: () => void;
   onCancelInterview?: (id: string) => void;
 }
 
@@ -25,6 +27,8 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
   onNavigateToVoiceScreening,
   onNavigateToInterviewPractice,
   onNavigateToResume,
+  onNavigateToMatching,
+  onNavigateToAts,
   onCancelInterview
 }) => {
   // Find current candidate or fallback to first candidate
@@ -106,7 +110,7 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
       
       {/* Top Welcome Hero Banner */}
       <div className="relative overflow-hidden bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-indigo-700/50">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="relative z-[1] flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-5">
             <UserAvatar
               name={activeCandidate.fullName}
@@ -138,24 +142,46 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
             </div>
 
             <div className="flex flex-col gap-2">
-              {onNavigateToVoiceScreening && (
-                <button
-                  onClick={onNavigateToVoiceScreening}
-                  className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer"
-                >
-                  <span>🎙️ Voice Screening Assessment</span>
-                  <span className="text-xs">→</span>
-                </button>
-              )}
-              {onNavigateToInterviewPractice && (
-                <button
-                  onClick={onNavigateToInterviewPractice}
-                  className="px-4 py-2 bg-white/15 hover:bg-white/25 text-white rounded-xl text-xs font-bold transition-all border border-white/20 flex items-center gap-2 cursor-pointer"
-                >
-                  <span>🤖 Practice AI Interview</span>
-                  <span className="text-xs">→</span>
-                </button>
-              )}
+              <div className="flex flex-wrap gap-2">
+                {onNavigateToMatching && (
+                  <button
+                    onClick={onNavigateToMatching}
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>🎯 Skill Gap Analysis</span>
+                    <span className="text-xs">→</span>
+                  </button>
+                )}
+                {onNavigateToAts && (
+                  <button
+                    onClick={onNavigateToAts}
+                    className="px-3.5 py-2 bg-white/15 hover:bg-white/25 text-white rounded-xl text-xs font-bold transition-all border border-white/20 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>📊 ATS Status</span>
+                    <span className="text-xs">→</span>
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {onNavigateToVoiceScreening && (
+                  <button
+                    onClick={onNavigateToVoiceScreening}
+                    className="px-3.5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>🎙️ Voice Screening</span>
+                    <span className="text-xs">→</span>
+                  </button>
+                )}
+                {onNavigateToInterviewPractice && (
+                  <button
+                    onClick={onNavigateToInterviewPractice}
+                    className="px-3.5 py-2 bg-white/15 hover:bg-white/25 text-white rounded-xl text-xs font-bold transition-all border border-white/20 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>🤖 Practice Interview</span>
+                    <span className="text-xs">→</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -168,9 +194,20 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
             <h3 className="text-lg font-black text-slate-900">Application Pipeline Tracker</h3>
             <p className="text-xs font-medium text-slate-500">Live recruitment progress and stage transitions</p>
           </div>
-          <span className="text-xs font-bold px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl w-fit">
-            Current Stage: {PIPELINE_STAGES[currentStageIndex]?.title}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl w-fit">
+              Current Stage: {PIPELINE_STAGES[currentStageIndex]?.title}
+            </span>
+            {onNavigateToAts && (
+              <button
+                onClick={onNavigateToAts}
+                className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
+              >
+                <span>Full ATS Sync Hub</span>
+                <span>→</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Stepper Timeline */}
@@ -222,6 +259,89 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
               );
             })}
           </div>
+        </div>
+      {/* Active Job Openings & Instant Fit Score */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div>
+            <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+              <span>💼 Active Job Openings & Instant Fit Match</span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-blue-100 text-blue-800">
+                {(jobs.length > 0 ? jobs : [targetJob]).length} Roles Available
+              </span>
+            </h3>
+            <p className="text-xs font-medium text-slate-500">
+              Benchmark your skills and experience against active company openings
+            </p>
+          </div>
+          {onNavigateToMatching && (
+            <button
+              onClick={onNavigateToMatching}
+              className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
+            >
+              <span>Detailed Skill Gap Analysis</span>
+              <span>→</span>
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {(jobs.length > 0 ? jobs : [targetJob]).map(job => {
+            const candSkills = (activeCandidate.skills || []).map(s => s.toLowerCase());
+            const reqSkills = (job.requiredSkills || []).map(s => s.toLowerCase());
+            const matched = reqSkills.filter(s => candSkills.includes(s));
+            const fitScore = reqSkills.length > 0 ? Math.round((matched.length / reqSkills.length) * 100) : 88;
+            const isTarget = job.title.toLowerCase().includes(activeCandidate.currentRole.toLowerCase()) || job.id === targetJob.id;
+
+            return (
+              <div 
+                key={job.id} 
+                className={`p-4 rounded-2xl border transition-all space-y-3 ${
+                  isTarget ? 'bg-blue-50/40 border-blue-300 ring-1 ring-blue-400/20' : 'bg-slate-50/50 border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-slate-200 text-slate-700">
+                      {job.department || 'Engineering'}
+                    </span>
+                    {isTarget && (
+                      <span className="ml-1.5 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-blue-600 text-white">
+                        Applied Role
+                      </span>
+                    )}
+                    <h5 className="font-bold text-slate-900 text-sm mt-1.5 leading-snug">{job.title}</h5>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className={`text-base font-black ${fitScore >= 80 ? 'text-emerald-600' : fitScore >= 60 ? 'text-blue-600' : 'text-amber-600'}`}>
+                      {fitScore}%
+                    </span>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase">Fit Match</p>
+                  </div>
+                </div>
+
+                <div className="text-xs text-slate-500 space-y-1">
+                  <p>📍 {job.location || 'Remote / Hybrid'}</p>
+                  {job.minSalary && job.maxSalary && (
+                    <p>💰 ${job.minSalary.toLocaleString()} - ${job.maxSalary.toLocaleString()}</p>
+                  )}
+                  <p className="text-[11px] font-medium pt-1">
+                    Matching Skills: <strong className="text-slate-800">{matched.length}</strong> / {reqSkills.length} required
+                  </p>
+                </div>
+
+                {onNavigateToMatching && (
+                  <button
+                    onClick={onNavigateToMatching}
+                    className="w-full mt-2 py-2 px-3 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-all text-center flex items-center justify-center gap-1 cursor-pointer shadow-xs"
+                  >
+                    <span>Check Skill Gap & Alignment</span>
+                    <span>→</span>
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -468,14 +588,24 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h4 className="font-extrabold text-slate-900 text-sm">Resume & Technical Profile</h4>
-              {onNavigateToResume && (
-                <button
-                  onClick={onNavigateToResume}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-800 cursor-pointer"
-                >
-                  Edit Resume →
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {onNavigateToMatching && (
+                  <button
+                    onClick={onNavigateToMatching}
+                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                  >
+                    Skill Alignment →
+                  </button>
+                )}
+                {onNavigateToResume && (
+                  <button
+                    onClick={onNavigateToResume}
+                    className="text-xs font-bold text-blue-600 hover:text-blue-800 cursor-pointer"
+                  >
+                    Edit Resume →
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="space-y-3 text-xs">
