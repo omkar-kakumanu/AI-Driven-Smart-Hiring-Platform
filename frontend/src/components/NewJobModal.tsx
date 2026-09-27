@@ -10,12 +10,12 @@ interface NewJobModalProps {
 export const NewJobModal: React.FC<NewJobModalProps> = ({ isOpen, onClose, onCreateJob }) => {
   const [jobTitle, setJobTitle] = useState('');
   const [department, setDepartment] = useState('Engineering');
-  const [location, setLocation] = useState('San Francisco, CA (Hybrid)');
+  const [location, setLocation] = useState('Bengaluru, Karnataka (Hybrid)');
   const [employmentType, setEmploymentType] = useState('Full-time');
-  const [minSalary, setMinSalary] = useState<number>(130000);
-  const [maxSalary, setMaxSalary] = useState<number>(185000);
+  const [minSalary, setMinSalary] = useState<number>(1600000);
+  const [maxSalary, setMaxSalary] = useState<number>(2600000);
   const [minExperienceYears, setMinExperienceYears] = useState<number>(3);
-  const [educationRequirement, setEducationRequirement] = useState("Bachelor's in Computer Science or equivalent");
+  const [educationRequirement, setEducationRequirement] = useState("B.Tech / M.Tech in Computer Science or equivalent");
   const [description, setDescription] = useState('');
   const [requiredSkills, setRequiredSkills] = useState<string[]>(['Python', 'React', 'Docker']);
   const [preferredSkills, setPreferredSkills] = useState<string[]>(['AWS', 'Kubernetes', 'CI/CD']);
@@ -85,8 +85,8 @@ export const NewJobModal: React.FC<NewJobModalProps> = ({ isOpen, onClose, onCre
         `• Troubleshoot complex production issues and optimize system latency and throughput.\n` +
         `• Partner cross-functionally with product managers and fellow engineers on roadmap execution.`
       );
-      setMinSalary(minExperienceYears * 25000 + 75000);
-      setMaxSalary(minExperienceYears * 25000 + 125000);
+      setMinSalary(minExperienceYears * 300000 + 800000);
+      setMaxSalary(minExperienceYears * 300000 + 1500000);
       setAiGeneratedNotice('✨ Job description generated using built-in AI synthesizer!');
     } finally {
       setIsGenerating(false);
@@ -232,16 +232,20 @@ export const NewJobModal: React.FC<NewJobModalProps> = ({ isOpen, onClose, onCre
           {/* Job Details Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Location Format</label>
+              <label className="font-bold text-slate-700 block mb-1">Location / Tech Hub</label>
               <select
                 value={location}
                 onChange={e => setLocation(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500"
               >
-                <option value="San Francisco, CA (Hybrid)">San Francisco, CA (Hybrid)</option>
-                <option value="Remote (US / Global)">Remote (US / Global)</option>
-                <option value="New York, NY (On-site)">New York, NY (On-site)</option>
-                <option value="Seattle, WA (Hybrid)">Seattle, WA (Hybrid)</option>
+                <option value="Bengaluru, Karnataka (Hybrid)">Bengaluru, Karnataka (Hybrid)</option>
+                <option value="Hyderabad, Telangana (Hybrid / HITEC City)">Hyderabad, Telangana (Hybrid / HITEC City)</option>
+                <option value="Pune, Maharashtra (Hybrid / Hinjawadi)">Pune, Maharashtra (Hybrid / Hinjawadi)</option>
+                <option value="Gurugram, Delhi NCR (Hybrid / Cyber City)">Gurugram, Delhi NCR (Hybrid / Cyber City)</option>
+                <option value="Chennai, Tamil Nadu (Hybrid / OMR)">Chennai, Tamil Nadu (Hybrid / OMR)</option>
+                <option value="Mumbai, Maharashtra (Hybrid / BKC)">Mumbai, Maharashtra (Hybrid / BKC)</option>
+                <option value="Noida, Delhi NCR (Remote)">Noida, Delhi NCR (Remote)</option>
+                <option value="Remote (India)">Remote (India)</option>
               </select>
             </div>
 
@@ -275,24 +279,28 @@ export const NewJobModal: React.FC<NewJobModalProps> = ({ isOpen, onClose, onCre
           {/* Salary Range */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Minimum Base Salary ($ / yr)</label>
+              <label className="font-bold text-slate-700 block mb-1">Minimum Base Salary (₹ / yr)</label>
               <input
                 type="number"
-                step="5000"
+                step="50000"
                 value={minSalary}
                 onChange={e => setMinSalary(Number(e.target.value))}
+                placeholder="e.g. 1600000 for 16 LPA"
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500"
               />
+              <p className="text-[10px] text-slate-400 mt-0.5">₹{(minSalary / 100000).toFixed(1)} LPA</p>
             </div>
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Maximum Base Salary ($ / yr)</label>
+              <label className="font-bold text-slate-700 block mb-1">Maximum Base Salary (₹ / yr)</label>
               <input
                 type="number"
-                step="5000"
+                step="50000"
                 value={maxSalary}
                 onChange={e => setMaxSalary(Number(e.target.value))}
+                placeholder="e.g. 2600000 for 26 LPA"
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500"
               />
+              <p className="text-[10px] text-slate-400 mt-0.5">₹{(maxSalary / 100000).toFixed(1)} LPA</p>
             </div>
           </div>
 

@@ -456,12 +456,12 @@ export function useRecruitmentStore() {
 
   const addJob = (newJob: Omit<Job, 'id' | 'candidateCount' | 'createdAt'>) => {
     const jobId = `job-${Date.now()}`;
-    const job: Job = {
+    const job: Job = normalizeIndianJob({
       ...newJob,
       id: jobId,
       candidateCount: 0,
       createdAt: new Date().toISOString().split('T')[0]
-    };
+    });
     setJobs(prev => [job, ...prev]);
     setActiveJobId(jobId);
     return job;

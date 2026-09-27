@@ -4,6 +4,7 @@ import { UserAvatar } from '../components/UserAvatar';
 
 interface SettingsViewProps {
   userProfile?: UserProfile;
+  isCandidateUser?: boolean;
   onUpdateUserProfile?: (updates: Partial<UserProfile>) => void;
   userAccounts?: UserAccount[];
   onApproveUser?: (userId: string) => void;
@@ -17,6 +18,7 @@ interface SettingsViewProps {
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ 
   userProfile,
+  isCandidateUser = false,
   onUpdateUserProfile,
   userAccounts = [],
   onApproveUser,
@@ -27,12 +29,73 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onClearAllCandidates,
   onClearAllUserAccounts
 }) => {
+  const isCandidate = isCandidateUser || Boolean(
+    userProfile?.userType !== 'ADMIN' &&
+    userProfile?.email?.toLowerCase() !== 'admin@copilot.com' &&
+    userProfile?.email?.toLowerCase() !== 'recruiter@copilot.com' && (
+      userProfile?.role?.toLowerCase().includes('candidate') ||
+      userProfile?.email?.toLowerCase().includes('candidate') ||
+      userProfile?.email?.toLowerCase() === 'sarah.johnson@example.com'
+    )
+  );
+
   // User Profile Form State
-  const [name, setName] = useState(userProfile?.name || 'Sarah Jenkins');
-  const [role, setRole] = useState(userProfile?.role || 'Lead Recruiter');
-  const [email, setEmail] = useState(userProfile?.email || 'recruiter@copilot.com');
+  const [name, setName] = useState(userProfile?.name || (isCandidate ? 'Sarah Johnson' : 'Sarah Jenkins'));
+  const [role, setRole] = useState(userProfile?.role || (isCandidate ? 'Senior Full Stack Engineer' : 'Lead Recruiter'));
+  const [email, setEmail] = useState(userProfile?.email || (isCandidate ? 'candidate@copilot.com' : 'recruiter@copilot.com'));
   const [avatar, setAvatar] = useState<string | undefined>(userProfile?.avatar);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // Candidate Career & Job Preferences state (Indian Tech Standards)
+  const candidatePrefsKey = `rc_candidate_prefs_${(userProfile?.email || 'candidate@copilot.com').toLowerCase()}`;
+  const [phone, setPhone] = useState(() => {
+    return localStorage.getItem(`${candidatePrefsKey}_phone`) || '+91 98765 43210';
+  });
+  const [currentCity, setCurrentCity] = useState(() => {
+    return localStorage.getItem(`${candidatePrefsKey}_city`) || 'Bengaluru, Karnataka';
+  });
+  const [searchStatus, setSearchStatus] = useState(() => {
+    return localStorage.getItem(`${candidatePrefsKey}_status`) || 'ACTIVELY_LOOKING';
+  });
+  const [noticePeriod, setNoticePeriod] = useState(() => {
+    return localStorage.getItem(`${candidatePrefsKey}_notice`) || '15_DAYS';
+  });
+  const [currentCtc, setCurrentCtc] = useState(() => {
+    return localStorage.getItem(`${candidatePrefsKey}_current_ctc`) || '18.5';
+  });
+  const [expectedCtc, setExpectedCtc] = useState(() => {
+    return localStorage.getItem(`${candidatePrefsKey}_expected_ctc`) || '28.0';
+  });
+  const [workMode, setWorkMode] = useState(() => {
+    return localStorage.getItem(`${candidatePrefsKey}_workmode`) || 'HYBRID';
+  });
+  const [selectedLocations, setSelectedLocations] = useState<string[]>(() => {
+    const saved = localStorage.getItem(`${candidatePrefsKey}_locations`);
+    return saved ? JSON.parse(saved) : ['Bengaluru', 'Hyderabad', 'Pune'];
+  });
+  const [linkedinUrl, setLinkedinUrl] = useState(() => {
+    return localStorage.getItem(`${candidatePrefsKey}_linkedin`) || 'https://linkedin.com/in/sarah-johnson-dev';
+  });
+  const [githubUrl, setGithubUrl] = useState(() => {
+    return localStorage.getItem(`${candidatePrefsKey}_github`) || 'https://github.com/sarah-johnson';
+  });
+  const [portfolioUrl, setPortfolioUrl] = useState(() => {
+    return localStorage.getItem(`${candidatePrefsKey}_portfolio`) || 'https://sarahjohnson.dev';
+  });
+  const [emailAlerts, setEmailAlerts] = useState(true);
+  const [whatsappAlerts, setWhatsappAlerts] = useState(true);
+  const [aiReportAlerts, setAiReportAlerts] = useState(true);
+
+  const INDIAN_TECH_HUBS = [
+    'Bengaluru',
+    'Hyderabad',
+    'Pune',
+    'Gurugram / Delhi NCR',
+    'Chennai',
+    'Mumbai',
+    'Noida',
+    'Remote India'
+  ];
 
   useEffect(() => {
     if (userProfile) {
@@ -46,6 +109,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const handleSaveProfile = () => {
     if (onUpdateUserProfile) {
       onUpdateUserProfile({ name, role, email, avatar });
+    }
+    if (isCandidate) {
+      localStorage.setItem(`${candidatePrefsKey}_phone`, phone);
+      localStorage.setItem(`${candidatePrefsKey}_city`, currentCity);
+      localStorage.setItem(`${candidatePrefsKey}_status`, searchStatus);
+      localStorage.setItem(`${candidatePrefsKey}_notice`, noticePeriod);
+      localStorage.setItem(`${candidatePrefsKey}_current_ctc`, currentCtc);
+      localStorage.setItem(`${candidatePrefsKey}_expected_ctc`, expectedCtc);
+      localStorage.setItem(`${candidatePrefsKey}_workmode`, workMode);
+      localStorage.setItem(`${candidatePrefsKey}_locations`, JSON.stringify(selectedLocations));
+      localStorage.setItem(`${candidatePrefsKey}_linkedin`, linkedinUrl);
+      localStorage.setItem(`${candidatePrefsKey}_github`, githubUrl);
+      localStorage.setItem(`${candidatePrefsKey}_portfolio`, portfolioUrl);
     }
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
@@ -73,23 +149,83 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     }
   };
 
+  const toggleLocation = (loc: string) => {
+    setSelectedLocations(prev => 
+      prev.includes(loc) ? prev.filter(l => l !== loc) : [...prev, loc]
+    );
+  };
+
+  const handleDownloadMyData = () => {
+    const candidateData = {
+      profile: {
+        name,
+        role,
+        email,
+        phone,
+        currentCity,
+        avatar: avatar ? 'Image set' : 'None'
+      },
+      careerPreferences: {
+        searchStatus,
+        noticePeriod: noticePeriod === '15_DAYS' ? 'Immediate / <15 days' : noticePeriod === '30_DAYS' ? '30 Days' : noticePeriod === '60_DAYS' ? '60 Days' : '90 Days',
+        currentCtc: `₹${currentCtc} LPA`,
+        expectedCtc: `₹${expectedCtc} LPA`,
+        workMode,
+        preferredLocations: selectedLocations,
+        socialProfiles: { linkedinUrl, githubUrl, portfolioUrl }
+      },
+      notificationPreferences: {
+        emailAlerts,
+        whatsappAlerts,
+        aiReportAlerts
+      },
+      compliance: {
+        dpdpAct: 'Digital Personal Data Protection Act (India, 2023) Compliant',
+        consentGiven: true
+      },
+      exportedAt: new Date().toISOString()
+    };
+
+    const blob = new Blob([JSON.stringify(candidateData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `candidate_profile_${email.replace(/[@.]/g, '_')}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8 font-sans">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">System Settings & Administration</h2>
-        <p className="text-slate-500 text-sm mt-0.5">Manage user access approvals, profile details, and system administration</p>
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+            isCandidate ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-100 text-slate-700 border-slate-300'
+          }`}>
+            {isCandidate ? 'Candidate Account Settings' : 'System Administration'}
+          </span>
+        </div>
+        <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+          {isCandidate ? 'Candidate Profile & Career Preferences' : 'System Settings & Administration'}
+        </h2>
+        <p className="text-slate-500 text-sm mt-0.5">
+          {isCandidate 
+            ? 'Manage your personal profile, compensation expectations, Indian tech job preferences, and data privacy'
+            : 'Manage user access approvals, profile details, and system administration'}
+        </p>
       </div>
 
       {/* User Profile Settings Section */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div className="font-bold text-slate-900 text-base">
-            User Profile Settings
+            {isCandidate ? 'Personal & Contact Information' : 'User Profile Settings'}
           </div>
           {savedSuccess && (
-            <span className="inline-flex items-center text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-              Profile Updated Successfully!
+            <span className="inline-flex items-center text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 animate-pulse">
+              ✓ Preferences Updated Successfully!
             </span>
           )}
         </div>
@@ -112,7 +248,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <div className="flex items-center gap-2">
               <label
                 htmlFor="user-avatar-upload"
-                className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl cursor-pointer transition-colors border border-indigo-200"
+                className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl cursor-pointer transition-colors border border-indigo-200 shadow-2xs"
               >
                 Upload Photo
               </label>
@@ -120,7 +256,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <button
                   type="button"
                   onClick={handleClearImage}
-                  className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-xl transition-colors border border-rose-200"
+                  className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-xl transition-colors border border-rose-200 cursor-pointer"
                   title="Clear photo to use initials badge"
                 >
                   Clear
@@ -128,7 +264,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               )}
             </div>
             <p className="text-[11px] text-slate-400 text-center max-w-[160px]">
-              {avatar ? 'Custom image uploaded.' : 'No photo uploaded. Using initials badge.'}
+              {avatar ? 'Custom photo active.' : 'No photo uploaded. Showing avatar badge.'}
             </p>
           </div>
 
@@ -141,239 +277,524 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g. Sarah Jenkins"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g. Sarah Johnson"
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Role / Position</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  {isCandidate ? 'Current Professional Title' : 'Role / Position'}
+                </label>
                 <input
                   type="text"
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g. Lead Recruiter"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g. Senior Full Stack Engineer"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">Email Address</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g. sarah.jenkins@company.com"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Email Address</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g. candidate@copilot.com"
+                />
+              </div>
+              {isCandidate ? (
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Mobile / WhatsApp Number</label>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-blue-500"
+                    placeholder="+91 98765 43210"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Image URL (Optional Alternative)</label>
+                  <input
+                    type="text"
+                    value={avatar || ''}
+                    onChange={(e) => setAvatar(e.target.value)}
+                    placeholder="https://example.com/my-profile-photo.png"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              )}
             </div>
 
-            <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">Image URL (Optional Alternative)</label>
-              <input
-                type="text"
-                value={avatar || ''}
-                onChange={(e) => setAvatar(e.target.value)}
-                placeholder="https://example.com/my-profile-photo.png"
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+            {isCandidate && (
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Current Base City (India)</label>
+                <input
+                  type="text"
+                  value={currentCity}
+                  onChange={(e) => setCurrentCity(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g. Bengaluru, Karnataka (Electronic City)"
+                />
+              </div>
+            )}
 
             <div className="pt-2">
               <button
                 onClick={handleSaveProfile}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-sm transition-all"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
               >
-                Save User Profile
+                Save Profile & Preferences
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Administrator User Approvals Console */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div>
-            <h3 className="font-bold text-slate-900 text-base">User Accounts & Administrator Approval Queue</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Manage user access rights. Only logged-in Administrators can grant, promote, or revoke user access.</p>
+      {/* CANDIDATE SPECIFIC SECTIONS: Career Preferences, Portfolio, Alerts, Privacy */}
+      {isCandidate ? (
+        <div className="space-y-6">
+          {/* Career & Compensation Preferences Card */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
+            <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                  <span>🎯 Career & Job Market Preferences</span>
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-800">
+                    Indian Tech Standards
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Configure your availability, notice period, and CTC expectations for matching hiring teams
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Current Job Search Status</label>
+                <select
+                  value={searchStatus}
+                  onChange={e => setSearchStatus(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800 focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="ACTIVELY_LOOKING">🟢 Actively Interviewing & Ready to Join</option>
+                  <option value="OPEN_TO_OFFERS">🟡 Open to Selective Opportunities</option>
+                  <option value="NOT_LOOKING">⚪ Casually Exploring / Not Actively Looking</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Notice Period</label>
+                <select
+                  value={noticePeriod}
+                  onChange={e => setNoticePeriod(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800 focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="15_DAYS">Immediate / Serving Notice (&lt;15 Days)</option>
+                  <option value="30_DAYS">30 Days (Standard Startup / Product Tech)</option>
+                  <option value="60_DAYS">60 Days</option>
+                  <option value="90_DAYS">90 Days (MNC / Enterprise Standard)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Current CTC (in ₹ LPA)</label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-2.5 text-slate-400 font-bold">₹</span>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={currentCtc}
+                    onChange={e => setCurrentCtc(e.target.value)}
+                    className="w-full pl-8 pr-16 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-blue-500"
+                    placeholder="18.5"
+                  />
+                  <span className="absolute right-3.5 top-2.5 text-slate-400 font-bold">LPA</span>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">₹{(Number(currentCtc || 0) * 100000).toLocaleString('en-IN')} Per Annum</p>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Expected CTC (in ₹ LPA)</label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-2.5 text-slate-400 font-bold">₹</span>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={expectedCtc}
+                    onChange={e => setExpectedCtc(e.target.value)}
+                    className="w-full pl-8 pr-16 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-blue-500"
+                    placeholder="28.0"
+                  />
+                  <span className="absolute right-3.5 top-2.5 text-slate-400 font-bold">LPA</span>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">₹{(Number(expectedCtc || 0) * 100000).toLocaleString('en-IN')} Per Annum</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-700 text-xs block mb-1.5">Preferred Work Mode</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                {[
+                  { id: 'HYBRID', title: '🏢 Hybrid (2-3 Days Office)', desc: 'Flexible in-office collaboration' },
+                  { id: 'REMOTE', title: '🏠 100% Remote / WFH', desc: 'Work from anywhere in India' },
+                  { id: 'ON_SITE', title: '📍 In-Office (Full-time)', desc: 'Direct corporate campus presence' }
+                ].map(mode => (
+                  <div
+                    key={mode.id}
+                    onClick={() => setWorkMode(mode.id)}
+                    className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                      workMode === mode.id
+                        ? 'bg-blue-50 border-blue-500 text-blue-900 shadow-xs'
+                        : 'bg-slate-50/60 border-slate-200 hover:border-slate-300 text-slate-700'
+                    }`}
+                  >
+                    <p className="font-bold">{mode.title}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">{mode.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-700 text-xs block mb-1.5">
+                Preferred Tech Hub Locations in India (Click to select multiple)
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {INDIAN_TECH_HUBS.map(loc => {
+                  const isSelected = selectedLocations.includes(loc);
+                  return (
+                    <button
+                      key={loc}
+                      type="button"
+                      onClick={() => toggleLocation(loc)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                        isSelected
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      {isSelected ? `✓ ${loc}` : `+ ${loc}`}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {userProfile?.userType === 'ADMIN' && (
+
+          {/* Professional Portfolio & Social Profiles Card */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="font-bold text-slate-900 text-base">🌐 Professional Profiles & Portfolio Links</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Showcase your public code repositories and professional network</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">LinkedIn Profile</label>
+                <input
+                  type="url"
+                  value={linkedinUrl}
+                  onChange={e => setLinkedinUrl(e.target.value)}
+                  placeholder="https://linkedin.com/in/username"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-800 focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">GitHub Profile</label>
+                <input
+                  type="url"
+                  value={githubUrl}
+                  onChange={e => setGithubUrl(e.target.value)}
+                  placeholder="https://github.com/username"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-800 focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Personal Portfolio / Website</label>
+                <input
+                  type="url"
+                  value={portfolioUrl}
+                  onChange={e => setPortfolioUrl(e.target.value)}
+                  placeholder="https://yourportfolio.dev"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-800 focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Interview Notifications & Alerts */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="font-bold text-slate-900 text-base">🔔 Interview Alerts & Communication Channels</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Control how and when you receive interview coordination updates</p>
+            </div>
+
+            <div className="space-y-3">
+              <label className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
+                <div>
+                  <p className="font-bold text-slate-900 text-xs">Email Notifications for Interview Invites & Stage Updates</p>
+                  <p className="text-[11px] text-slate-500">Receive calendar invitations and recruitment pipeline updates directly to {email}</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={emailAlerts}
+                  onChange={e => setEmailAlerts(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                />
+              </label>
+
+              <label className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
+                <div>
+                  <p className="font-bold text-slate-900 text-xs">WhatsApp & SMS Reminders for Upcoming Scheduled Calls</p>
+                  <p className="text-[11px] text-slate-500">Instant meeting link reminders 30 minutes before video interviews</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={whatsappAlerts}
+                  onChange={e => setWhatsappAlerts(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                />
+              </label>
+
+              <label className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
+                <div>
+                  <p className="font-bold text-slate-900 text-xs">Automated AI Screening Scores & Communication Feedback Delivery</p>
+                  <p className="text-[11px] text-slate-500">Detailed NLP speech clarity and technical relevance summaries after screening sessions</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={aiReportAlerts}
+                  onChange={e => setAiReportAlerts(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                />
+              </label>
+            </div>
+          </div>
+
+          {/* Candidate Data Privacy & Protection (DPDP Compliant) */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">🛡️ Data Privacy & Candidate Rights</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Compliant with India's Digital Personal Data Protection (DPDP) Act 2023
+                </p>
+              </div>
               <button
-                onClick={() => {
-                  if (window.confirm("Are you sure you want to clear the User Accounts approval queue? This will reset user accounts to default Main Super Admin.")) {
-                    onClearAllUserAccounts && onClearAllUserAccounts();
-                    alert("User Accounts approval queue cleared successfully!");
-                  }
-                }}
-                className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-lg border border-rose-200 transition-colors"
-                title="Clear all secondary/pending user accounts"
+                type="button"
+                onClick={handleDownloadMyData}
+                className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition-all flex items-center gap-2 cursor-pointer shadow-2xs self-start sm:self-auto"
               >
-                Clear User Accounts Queue
+                <span>📥 Export My Profile Data (JSON)</span>
               </button>
-            )}
-            <span className="px-3 py-1 bg-slate-900 text-white rounded-md text-xs font-bold">
-              {userAccounts.filter(u => u.status === 'PENDING').length} Pending Requests
-            </span>
+            </div>
+
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 space-y-1.5">
+              <p className="font-bold text-slate-800">Your Privacy Assurances:</p>
+              <ul className="list-disc pl-5 space-y-1 text-[11px] text-slate-500">
+                <li>Your resume, voice screening audio, and interview practice recordings are encrypted at rest.</li>
+                <li>Candidate data is isolated to your profile and only shared with verified hiring recruiters.</li>
+                <li>You can update or export your candidate records at any time.</li>
+              </ul>
+            </div>
           </div>
         </div>
+      ) : (
+        /* RECRUITER & ADMIN SPECIFIC SECTIONS: User Approvals & Candidate DB Reset */
+        <div className="space-y-8">
+          {/* Administrator User Approvals Console */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">User Accounts & Administrator Approval Queue</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Manage user access rights. Only logged-in Administrators can grant, promote, or revoke user access.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {userProfile?.userType === 'ADMIN' && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm("Are you sure you want to clear the User Accounts approval queue? This will reset user accounts to default Main Super Admin.")) {
+                        onClearAllUserAccounts && onClearAllUserAccounts();
+                        alert("User Accounts approval queue cleared successfully!");
+                      }
+                    }}
+                    className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-lg border border-rose-200 transition-colors"
+                    title="Clear all secondary/pending user accounts"
+                  >
+                    Clear User Accounts Queue
+                  </button>
+                )}
+                <span className="px-3 py-1 bg-slate-900 text-white rounded-md text-xs font-bold">
+                  {userAccounts.filter(u => u.status === 'PENDING').length} Pending Requests
+                </span>
+              </div>
+            </div>
 
-        {userProfile?.userType !== 'ADMIN' ? (
-          <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl text-center space-y-2">
-            <span className="font-bold text-slate-900 text-xs block">Administrator Privileges Required</span>
-            <p className="text-xs text-slate-500 max-w-md mx-auto">
-              You are currently logged in as a Standard Recruiter. Access control management and user approvals are restricted exclusively to system Administrators.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200 font-bold text-slate-500 bg-slate-50">
-                  <th className="py-2.5 px-3">User Name</th>
-                  <th className="py-2.5 px-3">Email Address</th>
-                  <th className="py-2.5 px-3">Role</th>
-                  <th className="py-2.5 px-3">Type</th>
-                  <th className="py-2.5 px-3">Status</th>
-                  <th className="py-2.5 px-3 text-right">Access Control Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {userAccounts.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-50">
-                    <td className="py-3 px-3 font-bold text-slate-900">
-                      <div className="flex items-center gap-2">
-                        <UserAvatar 
-                          name={user.name} 
-                          avatar={user.avatar || localStorage.getItem(`rc_avatar_${user.email.toLowerCase()}`) || undefined} 
-                          size="xs" 
-                        />
-                        <span>{user.name}</span>
-                        {user.isSuperAdmin && (
-                          <span className="px-2 py-0.5 bg-blue-100 text-blue-900 text-[10px] font-black rounded border border-blue-200">
-                            Main Super-Admin
+            {userProfile?.userType !== 'ADMIN' ? (
+              <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl text-center space-y-2">
+                <span className="font-bold text-slate-900 text-xs block">Administrator Privileges Required</span>
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  You are currently logged in as a Standard Recruiter. Access control management and user approvals are restricted exclusively to system Administrators.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 font-bold text-slate-500 bg-slate-50">
+                      <th className="py-2.5 px-3">User Name</th>
+                      <th className="py-2.5 px-3">Email Address</th>
+                      <th className="py-2.5 px-3">Role</th>
+                      <th className="py-2.5 px-3">Type</th>
+                      <th className="py-2.5 px-3">Status</th>
+                      <th className="py-2.5 px-3 text-right">Access Control Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    {userAccounts.map((user) => (
+                      <tr key={user.id} className="hover:bg-slate-50">
+                        <td className="py-3 px-3 font-bold text-slate-900">
+                          <div className="flex items-center gap-2">
+                            <UserAvatar 
+                              name={user.name} 
+                              avatar={user.avatar || localStorage.getItem(`rc_avatar_${user.email.toLowerCase()}`) || undefined} 
+                              size="xs" 
+                            />
+                            <span>{user.name}</span>
+                            {user.isSuperAdmin && (
+                              <span className="px-2 py-0.5 bg-blue-100 text-blue-900 text-[10px] font-black rounded border border-blue-200">
+                                Main Super-Admin
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 text-slate-700">{user.email}</td>
+                        <td className="py-3 px-3 text-slate-600">{user.role}</td>
+                        <td className="py-3 px-3 font-semibold text-slate-800">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            user.userType === 'ADMIN' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'
+                          }`}>
+                            {user.userType}
                           </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3 px-3 text-slate-700">{user.email}</td>
-                    <td className="py-3 px-3 text-slate-600">{user.role}</td>
-                    <td className="py-3 px-3 font-semibold text-slate-800">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        user.userType === 'ADMIN' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'
-                      }`}>
-                        {user.userType}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                        user.status === 'APPROVED' 
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : user.status === 'PENDING'
-                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                          : 'bg-rose-100 text-rose-800'
-                      }`}>
-                        {user.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-right space-x-2">
-                      {user.isSuperAdmin ? (
-                        <span className="text-[11px] font-extrabold text-blue-700 bg-blue-50 px-2.5 py-1 rounded border border-blue-200">
-                          Protected Main Admin
-                        </span>
-                      ) : (
-                        <>
-                          {user.status === 'PENDING' && (
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            user.status === 'APPROVED' 
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : user.status === 'PENDING'
+                              ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                              : 'bg-rose-100 text-rose-800'
+                          }`}>
+                            {user.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-right space-x-2">
+                          {user.isSuperAdmin ? (
+                            <span className="text-[11px] font-extrabold text-blue-700 bg-blue-50 px-2.5 py-1 rounded border border-blue-200">
+                              Protected Main Admin
+                            </span>
+                          ) : (
                             <>
-                              <button
-                                onClick={() => onApproveUser && onApproveUser(user.id)}
-                                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-[11px]"
-                              >
-                                Approve Access
-                              </button>
-                              <button
-                                onClick={() => onRejectUser && onRejectUser(user.id)}
-                                className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded text-[11px]"
-                              >
-                                Reject
-                              </button>
-                            </>
-                          )}
+                              {user.status === 'PENDING' && (
+                                <>
+                                  <button
+                                    onClick={() => onApproveUser && onApproveUser(user.id)}
+                                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-[11px] cursor-pointer"
+                                  >
+                                    Approve Access
+                                  </button>
+                                  <button
+                                    onClick={() => onRejectUser && onRejectUser(user.id)}
+                                    className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded text-[11px] cursor-pointer"
+                                  >
+                                    Reject
+                                  </button>
+                                </>
+                              )}
 
-                          {user.status === 'APPROVED' && (
-                            <>
-                              {user.userType !== 'ADMIN' && (
+                              {user.status === 'APPROVED' && (
+                                <>
+                                  {user.userType !== 'ADMIN' && (
+                                    <button
+                                      onClick={() => onMakeUserAdmin && onMakeUserAdmin(user.id)}
+                                      className="px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-800 font-bold rounded text-[10px] hover:bg-blue-100 cursor-pointer"
+                                      title="Promote to Administrator"
+                                    >
+                                      + Make Admin
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => onRevokeUserAccess && onRevokeUserAccess(user.id)}
+                                    className="px-2.5 py-1 bg-rose-50 border border-rose-200 text-rose-700 font-bold rounded text-[10px] hover:bg-rose-100 cursor-pointer"
+                                    title="Revoke user access at any time"
+                                  >
+                                    Revoke Access
+                                  </button>
+                                </>
+                              )}
+
+                              {(user.status === 'REJECTED' || user.status === 'REVOKED') && (
                                 <button
-                                  onClick={() => onMakeUserAdmin && onMakeUserAdmin(user.id)}
-                                  className="px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-800 font-bold rounded text-[10px] hover:bg-blue-100"
-                                  title="Promote to Administrator"
+                                  onClick={() => onApproveUser && onApproveUser(user.id)}
+                                  className="px-2.5 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold rounded text-[10px] cursor-pointer"
                                 >
-                                  + Make Admin
+                                  Re-Approve Access
                                 </button>
                               )}
+
                               <button
-                                onClick={() => onRevokeUserAccess && onRevokeUserAccess(user.id)}
-                                className="px-2.5 py-1 bg-rose-50 border border-rose-200 text-rose-700 font-bold rounded text-[10px] hover:bg-rose-100"
-                                title="Revoke user access at any time"
+                                onClick={() => {
+                                  if (window.confirm(`Permanently delete account for "${user.name}" (${user.email})?`)) {
+                                    onDeleteUserAccount && onDeleteUserAccount(user.id);
+                                  }
+                                }}
+                                className="px-2.5 py-1 bg-slate-100 hover:bg-rose-600 hover:text-white border border-slate-300 text-slate-700 font-bold rounded text-[10px] transition-colors cursor-pointer"
+                                title="Permanently delete user account from system"
                               >
-                                Revoke Access
+                                Delete Account
                               </button>
                             </>
                           )}
-
-                          {(user.status === 'REJECTED' || user.status === 'REVOKED') && (
-                            <button
-                              onClick={() => onApproveUser && onApproveUser(user.id)}
-                              className="px-2.5 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold rounded text-[10px]"
-                            >
-                              Re-Approve Access
-                            </button>
-                          )}
-
-                          <button
-                            onClick={() => {
-                              if (window.confirm(`Permanently delete account for "${user.name}" (${user.email})?`)) {
-                                onDeleteUserAccount && onDeleteUserAccount(user.id);
-                              }
-                            }}
-                            className="px-2.5 py-1 bg-slate-100 hover:bg-rose-600 hover:text-white border border-slate-300 text-slate-700 font-bold rounded text-[10px] transition-colors"
-                            title="Permanently delete user account from system"
-                          >
-                            Delete Account
-                          </button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-
-      {/* Candidate Resume Data Reset Management */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div>
-            <h3 className="font-bold text-slate-900 text-base">Candidate Resume Database Management</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Clear all stored candidate resume data to reset the system for fresh uploads.</p>
+          {/* Candidate Resume Data Reset Management */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">Candidate Resume Database Management</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Clear all stored candidate resume data to reset the system for fresh uploads.</p>
+              </div>
+              <button
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to clear all candidate resume data?")) {
+                    onClearAllCandidates && onClearAllCandidates();
+                    alert("Candidate resume database cleared successfully!");
+                  }
+                }}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer"
+              >
+                Clear All Candidate Resumes
+              </button>
+            </div>
           </div>
-          <button
-            onClick={() => {
-              if (window.confirm("Are you sure you want to clear all candidate resume data?")) {
-                onClearAllCandidates && onClearAllCandidates();
-                alert("Candidate resume database cleared successfully!");
-              }
-            }}
-            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
-          >
-            Clear All Candidate Resumes
-          </button>
         </div>
-      </div>
+      )}
     </div>
   );
 };

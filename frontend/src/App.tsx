@@ -307,6 +307,7 @@ export default function App() {
           {currentTab === 'settings' && (
             <SettingsView 
               userProfile={store.userProfile}
+              isCandidateUser={isCandidateUser}
               onUpdateUserProfile={store.updateUserProfile}
               userAccounts={store.userAccounts}
               onApproveUser={store.approveUser}

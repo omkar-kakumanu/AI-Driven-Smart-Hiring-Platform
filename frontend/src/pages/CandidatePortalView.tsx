@@ -17,6 +17,33 @@ interface CandidatePortalViewProps {
   onCancelInterview?: (id: string) => void;
 }
 
+const formatIndianLocation = (loc?: string) => {
+  if (!loc) return 'Bengaluru, Karnataka (Hybrid)';
+  if (loc.includes('San Francisco') || loc.includes('CA')) return 'Bengaluru, Karnataka (Hybrid)';
+  if (loc.includes('Austin') || loc.includes('TX')) return 'Hyderabad, Telangana (Hybrid / HITEC City)';
+  if (loc.includes('Seattle') || loc.includes('WA')) return 'Pune, Maharashtra (Hybrid / Hinjawadi)';
+  if (loc.includes('New York') || loc.includes('NY')) return 'Gurugram, Delhi NCR (Hybrid / Cyber City)';
+  if (loc.includes('Chicago') || loc.includes('IL')) return 'Chennai, Tamil Nadu (Hybrid / OMR)';
+  if (loc.includes('Denver') || loc.includes('CO')) return 'Noida, Delhi NCR (Remote)';
+  if (loc.includes('Los Angeles')) return 'Mumbai, Maharashtra (Hybrid / BKC)';
+  if (loc.includes('Washington')) return 'Bengaluru, Karnataka (Whitefield)';
+  return loc;
+};
+
+const formatIndianSalary = (min?: number, max?: number) => {
+  if (!min || !max) return '₹16 - ₹26 LPA';
+  const getLpa = (val: number) => {
+    if (val >= 1000000) return Math.round(val / 100000);
+    if (val >= 10000) return Math.round(val / 10000);
+    return val;
+  };
+  const minLpa = getLpa(min);
+  const maxLpa = getLpa(max);
+  const minInr = (minLpa * 100000).toLocaleString('en-IN');
+  const maxInr = (maxLpa * 100000).toLocaleString('en-IN');
+  return `₹${minInr} - ₹${maxInr} (${minLpa} - ${maxLpa} LPA)`;
+};
+
 export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
   candidates = [],
   jobs = [],
@@ -42,8 +69,8 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
     totalExperienceYears: 6,
     headline: 'Senior Full Stack Engineer with 6 years experience in React, Node.js, TypeScript',
     skills: ['React 19', 'TypeScript', 'Node.js', 'PostgreSQL', 'Docker', 'AWS'],
-    degree: 'BS in Computer Science',
-    institution: 'UC Berkeley',
+    degree: 'B.Tech in Computer Science & Engineering',
+    institution: 'IIT / NIT (Institute of Technology)',
     status: 'Interview in progress',
     matchScore: 94
   };
@@ -51,10 +78,10 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
   const targetJob = jobs.find(j => j.title.toLowerCase().includes(activeCandidate.currentRole.toLowerCase())) || jobs[0] || {
     id: 'job-1',
     title: 'Senior Full Stack Engineer (React/Node)',
-    department: 'Engineering',
-    location: 'San Francisco, CA (Hybrid)',
-    minSalary: 140000,
-    maxSalary: 190000
+    department: 'Product Engineering',
+    location: 'Bengaluru, Karnataka (Hybrid)',
+    minSalary: 1600000,
+    maxSalary: 2600000
   };
 
   // Filter scheduled interviews for this candidate
@@ -129,7 +156,7 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
               </div>
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight">{activeCandidate.fullName}</h2>
               <p className="text-indigo-200 text-xs font-semibold">
-                Target Role: <span className="text-white font-bold">{targetJob.title}</span> ({targetJob.department}) • {activeCandidate.location || 'Remote'}
+                Target Role: <span className="text-white font-bold">{targetJob.title}</span> ({targetJob.department}) • {formatIndianLocation(activeCandidate.location || targetJob.location)}
               </p>
             </div>
           </div>
@@ -323,10 +350,8 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
                 </div>
 
                 <div className="text-xs text-slate-500 space-y-1">
-                  <p>📍 {job.location || 'Remote / Hybrid'}</p>
-                  {job.minSalary && job.maxSalary && (
-                    <p>💰 ${job.minSalary.toLocaleString()} - ${job.maxSalary.toLocaleString()}</p>
-                  )}
+                  <p>📍 {formatIndianLocation(job.location)}</p>
+                  <p>💰 {formatIndianSalary(job.minSalary, job.maxSalary)}</p>
                   <p className="text-[11px] font-medium pt-1">
                     Matching Skills: <strong className="text-slate-800">{matched.length}</strong> / {reqSkills.length} required
                   </p>
