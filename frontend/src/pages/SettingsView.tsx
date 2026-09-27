@@ -260,7 +260,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8 font-sans">
+    <div className="p-8 max-w-5xl mx-auto space-y-8 font-sans relative">
+      {/* Floating Save Success Banner */}
+      {savedSuccess && (
+        <div className="fixed top-20 right-8 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-emerald-400">
+          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center font-black text-sm shrink-0">✓</div>
+          <div>
+            <p className="font-extrabold text-xs">Profile & Preferences Saved!</p>
+            <p className="text-[11px] text-emerald-100">All changes and candidate preferences updated successfully.</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1.5">
@@ -364,10 +375,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-blue-500"
+                  disabled
+                  className="w-full px-4 py-2.5 bg-slate-100 border border-slate-300 rounded-xl text-xs font-semibold text-slate-600 cursor-not-allowed select-none"
                   placeholder="e.g. candidate@copilot.com"
                 />
+                <span className="text-[10px] text-slate-400 mt-1 block">Account login email (locked for candidate profile security)</span>
               </div>
               {isCandidate ? (
                 <div>
@@ -407,13 +419,105 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
             )}
 
-            <div className="pt-2">
+            <div className="pt-2 flex items-center gap-3">
               <button
+                type="button"
                 onClick={handleSaveProfile}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+                className={`px-6 py-2.5 rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-2 cursor-pointer ${
+                  savedSuccess
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white scale-[1.02]'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white active:scale-95'
+                }`}
               >
-                Save Profile & Preferences
+                {savedSuccess ? (
+                  <>
+                    <span className="text-sm font-black">✓</span>
+                    <span>Saved Successfully!</span>
+                  </>
+                ) : (
+                  <>
+                    <span>💾 Save Profile & Preferences</span>
+                  </>
+                )}
               </button>
+              {savedSuccess && (
+                <span className="text-xs font-bold text-emerald-600 animate-pulse">
+                  Profile updated!
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Interface Appearance & Theme Toggle Card (Accessible to All Users) */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div>
+            <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+              <span>🎨 Interface Appearance & Theme</span>
+              <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-black ${
+                theme === 'dark' ? 'bg-indigo-900 text-indigo-200 border border-indigo-700' : 'bg-amber-100 text-amber-800'
+              }`}>
+                {theme === 'dark' ? '🌙 Dark Mode Active' : '☀️ Light Mode Active'}
+              </span>
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Customize the look and feel of your AI Recruitment Copilot workspace across all portals
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div
+            onClick={() => { if (theme !== 'light' && onToggleTheme) onToggleTheme(); }}
+            className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-3.5 ${
+              theme === 'light'
+                ? 'border-blue-600 bg-blue-50/50 shadow-sm'
+                : 'border-slate-200 hover:border-slate-300 bg-slate-50/50'
+            }`}
+          >
+            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 text-xl font-bold">
+              ☀️
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-sm text-slate-900">Light Mode</span>
+                {theme === 'light' && (
+                  <span className="text-[10px] font-black text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
+                    Active
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Clean high-contrast theme optimized for bright workspaces and daytime reviewing.
+              </p>
+            </div>
+          </div>
+
+          <div
+            onClick={() => { if (theme !== 'dark' && onToggleTheme) onToggleTheme(); }}
+            className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-3.5 ${
+              theme === 'dark'
+                ? 'border-blue-500 bg-slate-900/80 text-white shadow-sm'
+                : 'border-slate-200 hover:border-slate-300 bg-slate-50/50'
+            }`}
+          >
+            <div className="w-10 h-10 rounded-xl bg-indigo-950 text-indigo-400 flex items-center justify-center shrink-0 text-xl font-bold">
+              🌙
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-sm text-slate-900">Dark Mode</span>
+                {theme === 'dark' && (
+                  <span className="text-[10px] font-black text-blue-400 bg-blue-900/60 px-2 py-0.5 rounded-full border border-blue-700">
+                    Active
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Sleek obsidian theme designed for low-light environments and reduced eye strain.
+              </p>
             </div>
           </div>
         </div>
@@ -549,6 +653,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 })}
               </div>
             </div>
+
+            {/* Career Preferences Action Bar */}
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              <p className="text-[11px] text-slate-500 font-medium">
+                Changes immediately benchmark your profile against Indian tech job market criteria.
+              </p>
+              <button
+                type="button"
+                onClick={handleSaveProfile}
+                className={`px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-2 cursor-pointer ${
+                  savedSuccess
+                    ? 'bg-emerald-600 text-white scale-[1.02]'
+                    : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95'
+                }`}
+              >
+                {savedSuccess ? '✓ Career Preferences Saved!' : '💾 Save Career Preferences'}
+              </button>
+            </div>
           </div>
 
           {/* Professional Portfolio & Social Profiles Card */}
@@ -591,6 +713,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-800 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+            </div>
+
+            {/* Portfolio Action Bar */}
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              <p className="text-[11px] text-slate-500 font-medium">
+                Public profile links visible to verified hiring managers.
+              </p>
+              <button
+                type="button"
+                onClick={handleSaveProfile}
+                className={`px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-2 cursor-pointer ${
+                  savedSuccess
+                    ? 'bg-emerald-600 text-white scale-[1.02]'
+                    : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95'
+                }`}
+              >
+                {savedSuccess ? '✓ Portfolio Links Saved!' : '💾 Save Portfolio Links'}
+              </button>
             </div>
           </div>
 
