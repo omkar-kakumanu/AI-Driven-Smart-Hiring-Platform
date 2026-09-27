@@ -22,6 +22,7 @@ interface MatchingViewProps {
   searchQuery?: string;
   onClearSearch?: () => void;
   isMainAdmin?: boolean;
+  isCandidateUser?: boolean;
   onAddSkillToCandidate?: (candidateId: string, skill: string) => void;
   onRemoveSkillFromCandidate?: (candidateId: string, skill: string) => void;
   onNavigateToUpload?: () => void;
@@ -33,6 +34,7 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
   searchQuery = '',
   onClearSearch,
   isMainAdmin = false,
+  isCandidateUser = false,
   onAddSkillToCandidate,
   onRemoveSkillFromCandidate
 }) => {

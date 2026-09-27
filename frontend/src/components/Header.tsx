@@ -26,14 +26,27 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout
 }) => {
   const isAdmin = userProfile?.userType === 'ADMIN';
+  const isCandidateUser = Boolean(
+    userProfile?.userType !== 'ADMIN' &&
+    userProfile?.email?.toLowerCase() !== 'admin@copilot.com' &&
+    userProfile?.email?.toLowerCase() !== 'recruiter@copilot.com' && (
+      userProfile?.role?.toLowerCase().includes('candidate') ||
+      userProfile?.email?.toLowerCase().includes('candidate') ||
+      userProfile?.email?.toLowerCase() === 'sarah.johnson@example.com'
+    )
+  );
 
   return (
-    <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+    <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 px-8 py-4.5 flex items-center justify-between sticky top-0 z-40 shadow-xs">
       <div>
         <div className="flex items-center gap-2.5">
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">{title}</h1>
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-300">
-            Enterprise System
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+            isCandidateUser 
+              ? 'bg-blue-50 text-blue-700 border-blue-200' 
+              : 'bg-slate-100 text-slate-700 border-slate-300'
+          }`}>
+            {isCandidateUser ? 'Candidate Portal' : 'Enterprise System'}
           </span>
         </div>
         <p className="text-sm text-slate-500 mt-1">{subtitle}</p>
@@ -49,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
-            placeholder="Search candidates by name, skills, role..."
+            placeholder={isCandidateUser ? "Search your skills, profile, or roles..." : "Search candidates by name, skills, role..."}
             className="pl-9 pr-16 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-72 transition-all"
           />
           {searchQuery && (
@@ -62,7 +75,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 type="button"
                 onClick={() => onSearchChange && onSearchChange('')}
-                className="w-4 h-4 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-xs font-bold leading-none"
+                className="w-4 h-4 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-xs font-bold leading-none cursor-pointer"
                 title="Clear search query"
               >
                 ×
@@ -71,14 +84,19 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        {/* Action Button: + New Job (Admin Only) */}
+        {/* Action Button: + New Job (Admin Only) or Active Candidate Badge */}
         {isAdmin ? (
           <button 
             onClick={onNewJobClick}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition-all"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
           >
             + New Job
           </button>
+        ) : isCandidateUser ? (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Profile Active</span>
+          </div>
         ) : (
           <span 
             className="px-3.5 py-2 bg-slate-100 text-slate-400 border border-slate-200 rounded-xl text-xs font-bold cursor-not-allowed"

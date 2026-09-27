@@ -22,9 +22,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, use
   const menuItems = isCandidateUser
     ? [
         { id: 'candidate-portal', label: 'My Candidate Portal' },
+        { id: 'candidates', label: 'My Resume & Profile' },
+        { id: 'matching', label: 'Matching & Skill Gap' },
         { id: 'interview-assistant', label: 'Interview & Questions' },
         { id: 'voice-screening', label: 'Voice Screening Module' },
-        { id: 'candidates', label: 'My Resume & Profile' },
+        { id: 'ats-integration', label: 'Application ATS Tracking' },
         { id: 'settings', label: 'Account Settings' },
       ]
     : [
@@ -39,15 +41,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, use
       ];
 
   return (
-    <aside className="w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col h-screen sticky top-0 select-none">
-      {/* Brand Header: Click takes to dashboard */}
+    <aside className="w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col h-screen sticky top-0 select-none z-30">
+      {/* Brand Header: Click takes to dashboard or candidate portal */}
       <div 
-        onClick={() => setCurrentTab('dashboard')}
+        onClick={() => setCurrentTab(isCandidateUser ? 'candidate-portal' : 'dashboard')}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setCurrentTab('dashboard'); }}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setCurrentTab(isCandidateUser ? 'candidate-portal' : 'dashboard'); }}
         className="p-5 border-b border-slate-800 flex items-center gap-3 cursor-pointer hover:bg-slate-800/40 transition-colors group"
-        title="Go to Dashboard"
+        title={isCandidateUser ? "Go to Candidate Portal" : "Go to Dashboard"}
       >
         <div className="w-9 h-9 rounded-xl bg-blue-600 group-hover:bg-blue-500 flex items-center justify-center text-white font-black text-sm tracking-wider shadow-md shadow-blue-500/20 transition-all">
           RC
