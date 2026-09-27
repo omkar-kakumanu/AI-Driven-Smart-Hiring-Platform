@@ -395,11 +395,11 @@ export function useRecruitmentStore() {
   }, [candidates]);
 
   useEffect(() => {
-    localStorage.setItem('rc_user_accounts', JSON.stringify(userAccounts));
+    safeStorageSet('rc_user_accounts', JSON.stringify(userAccounts));
   }, [userAccounts]);
 
   useEffect(() => {
-    localStorage.setItem('rc_user_profile', JSON.stringify(userProfile));
+    safeStorageSet('rc_user_profile', JSON.stringify(userProfile));
   }, [userProfile]);
 
   const updateUserProfile = (updates: Partial<UserProfile>) => {
@@ -409,30 +409,32 @@ export function useRecruitmentStore() {
       
       if (updates.avatar !== undefined) {
         if (updates.avatar) {
-          localStorage.setItem(`rc_avatar_${targetEmail}`, updates.avatar);
+          safeStorageSet(`rc_avatar_${targetEmail}`, updates.avatar);
           if (targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com') {
-            localStorage.setItem('rc_avatar_candidate@copilot.com', updates.avatar);
-            localStorage.setItem('rc_avatar_sarah.johnson@example.com', updates.avatar);
-            localStorage.setItem('rc_avatar_cand-1', updates.avatar);
+            safeStorageSet('rc_avatar_candidate@copilot.com', updates.avatar);
+            safeStorageSet('rc_avatar_sarah.johnson@example.com', updates.avatar);
+            safeStorageSet('rc_avatar_cand-1', updates.avatar);
           }
         } else {
-          localStorage.removeItem(`rc_avatar_${targetEmail}`);
-          if (targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com') {
-            localStorage.removeItem('rc_avatar_candidate@copilot.com');
-            localStorage.removeItem('rc_avatar_sarah.johnson@example.com');
-            localStorage.removeItem('rc_avatar_cand-1');
-          }
+          try {
+            localStorage.removeItem(`rc_avatar_${targetEmail}`);
+            if (targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com') {
+              localStorage.removeItem('rc_avatar_candidate@copilot.com');
+              localStorage.removeItem('rc_avatar_sarah.johnson@example.com');
+              localStorage.removeItem('rc_avatar_cand-1');
+            }
+          } catch (e) {}
           newAvatar = undefined;
         }
       }
 
       if (updates.name && updates.name.trim()) {
         const cleanName = updates.name.trim();
-        localStorage.setItem(`rc_name_${targetEmail}`, cleanName);
+        safeStorageSet(`rc_name_${targetEmail}`, cleanName);
         if (targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com') {
-          localStorage.setItem('rc_name_candidate@copilot.com', cleanName);
-          localStorage.setItem('rc_name_sarah.johnson@example.com', cleanName);
-          localStorage.setItem('rc_name_cand-1', cleanName);
+          safeStorageSet('rc_name_candidate@copilot.com', cleanName);
+          safeStorageSet('rc_name_sarah.johnson@example.com', cleanName);
+          safeStorageSet('rc_name_cand-1', cleanName);
         }
       }
 
