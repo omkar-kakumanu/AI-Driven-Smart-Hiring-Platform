@@ -16,6 +16,7 @@ interface CandidatePortalViewProps {
   onNavigateToMatching?: () => void;
   onNavigateToAts?: () => void;
   onCancelInterview?: (id: string) => void;
+  onUpdateAvatar?: (avatar: string) => void;
 }
 
 const formatIndianLocation = (loc?: string) => {
@@ -58,18 +59,22 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
   onNavigateToResume,
   onNavigateToMatching,
   onNavigateToAts,
-  onCancelInterview
+  onCancelInterview,
+  onUpdateAvatar
 }) => {
-  const candidatePersistedName = userProfile?.name ||
-    localStorage.getItem(`rc_name_${currentCandidateEmail.toLowerCase()}`) ||
-    localStorage.getItem('rc_name_candidate@copilot.com') ||
-    localStorage.getItem('rc_name_sarah.johnson@example.com');
+  const emailLower = (currentCandidateEmail || userProfile?.email || 'candidate@copilot.com').toLowerCase();
+  const isCandidateEmail = emailLower === 'candidate@copilot.com' || emailLower === 'sarah.johnson@example.com';
 
-  const resolvedAvatar = userProfile?.avatar ||
-    localStorage.getItem(`rc_avatar_${currentCandidateEmail.toLowerCase()}`) ||
-    localStorage.getItem('rc_avatar_candidate@copilot.com') ||
-    localStorage.getItem('rc_avatar_sarah.johnson@example.com') ||
-    undefined;
+  const candidatePersistedName = userProfile?.name ||
+    localStorage.getItem(`rc_name_${emailLower}`) ||
+    (isCandidateEmail ? (localStorage.getItem('rc_name_candidate@copilot.com') || localStorage.getItem('rc_name_sarah.johnson@example.com') || localStorage.getItem('rc_name_cand-1')) : null);
+
+  // Sync profile photo with System Settings: prioritize userProfile.avatar, then aliased localStorage keys
+  const resolvedAvatar = (userProfile && userProfile.avatar !== undefined)
+    ? userProfile.avatar
+    : (localStorage.getItem(`rc_avatar_${emailLower}`) ||
+       (isCandidateEmail ? (localStorage.getItem('rc_avatar_candidate@copilot.com') || localStorage.getItem('rc_avatar_sarah.johnson@example.com') || localStorage.getItem('rc_avatar_cand-1')) : null) ||
+       undefined);
 
   // Find current candidate or fallback to first candidate
   const rawCandidate = candidates.find(
@@ -158,12 +163,41 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
       <div className="relative overflow-hidden bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-indigo-700/50">
         <div className="relative z-[1] flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-5">
-            <UserAvatar
-              name={activeCandidate.fullName}
-              avatar={activeCandidate.avatar}
-              size="xl"
-              className="border-2 border-white/20 shadow-xl"
-            />
+            <div className="relative group shrink-0">
+              <UserAvatar
+                name={activeCandidate.fullName}
+                avatar={activeCandidate.avatar}
+                size="xl"
+                className="border-2 border-white/20 shadow-xl"
+              />
+              {onUpdateAvatar && (
+                <label
+                  className="absolute -bottom-1 -right-1 bg-white hover:bg-slate-100 text-indigo-700 rounded-full p-1.5 border border-indigo-200 shadow-md cursor-pointer opacity-90 group-hover:opacity-100 transition-all"
+                  title="Upload / Change profile photo"
+                >
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          const dataUrl = ev.target?.result as string;
+                          if (dataUrl) onUpdateAvatar(dataUrl);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
+                </label>
+              )}
+            </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="px-3 py-0.5 rounded-full text-xs font-black bg-blue-500/20 text-blue-300 border border-blue-400/30">

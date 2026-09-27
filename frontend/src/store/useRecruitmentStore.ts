@@ -77,33 +77,70 @@ export function useRecruitmentStore() {
       localStorage.getItem('rc_name_sarah.johnson@example.com') ||
       localStorage.getItem('rc_name_cand-1');
     const cand1CustomAvatar = localStorage.getItem('rc_avatar_candidate@copilot.com') ||
-      localStorage.getItem('rc_avatar_sarah.johnson@example.com');
+      localStorage.getItem('rc_avatar_sarah.johnson@example.com') ||
+      localStorage.getItem('rc_avatar_cand-1');
 
-    return cands.map(c => {
-      const cMail = c.email.toLowerCase();
+    const sanitized = cands.map(c => {
+      const cMail = (c.email || '').toLowerCase();
+      const orig = initialMap.get(c.id);
       const isCand1 = c.id === 'cand-1' || cMail === 'candidate@copilot.com' || cMail === 'sarah.johnson@example.com';
       
       if (isCand1) {
         return {
           ...c,
-          fullName: (cand1CustomName && cand1CustomName.trim()) ? cand1CustomName.trim() : (c.fullName || 'Sarah Johnson'),
+          id: 'cand-1',
+          fullName: (cand1CustomName && cand1CustomName.trim()) ? cand1CustomName.trim() : (c.fullName && c.fullName !== 'Candidate' ? c.fullName : 'Sarah Johnson'),
+          email: c.email || 'sarah.johnson@example.com',
           avatar: cand1CustomAvatar || c.avatar
         };
       }
 
-      // For all other candidates (Alex Chen, Emily Rodriguez, Marcus Vance, Elena Rostova, Priya Sharma):
-      // Ensure their names are distinct and preserved from template if corrupted
-      const orig = initialMap.get(c.id);
-      const isCorruptedName = cand1CustomName && c.fullName === cand1CustomName;
-      const cleanName = (isCorruptedName && orig) ? orig.fullName : (c.fullName || orig?.fullName || 'Candidate');
-      const savedSpecificAvatar = localStorage.getItem(`rc_avatar_${cMail}`);
+      if (orig) {
+        // Standard initial candidates (cand-2..cand-6: Alex Chen, Emily Rodriguez, Marcus Vance, Elena Rostova, Priya Sharma):
+        // Only accept a custom name if explicitly saved for this specific email/id and not contaminated with cand-1
+        const specificCustomName = localStorage.getItem(`rc_name_${cMail}`) || localStorage.getItem(`rc_name_${c.id}`);
+        const isContaminated = 
+          c.fullName === 'Sarah Johnson' || 
+          (cand1CustomName && c.fullName.toLowerCase() === cand1CustomName.toLowerCase()) ||
+          !c.fullName || 
+          c.fullName.trim() === '' ||
+          c.fullName === 'Candidate';
 
-      return {
-        ...c,
-        fullName: cleanName,
-        avatar: savedSpecificAvatar || c.avatar
-      };
+        const cleanName = (specificCustomName && specificCustomName.trim() && !isContaminated)
+          ? specificCustomName.trim()
+          : (isContaminated ? orig.fullName : (c.fullName || orig.fullName));
+
+        const savedSpecificAvatar = localStorage.getItem(`rc_avatar_${cMail}`) || localStorage.getItem(`rc_avatar_${c.id}`);
+
+        return {
+          ...orig,
+          ...c,
+          fullName: cleanName,
+          email: orig.email,
+          currentRole: c.currentRole || orig.currentRole,
+          skills: (c.skills && c.skills.length > 0) ? c.skills : orig.skills,
+          avatar: savedSpecificAvatar || c.avatar || orig.avatar
+        };
+      }
+
+      // User-uploaded candidate (e.g. cand-1727...)
+      return c;
     });
+
+    // Guard against any remaining duplicate names among standard candidates
+    const finalCand1Name = sanitized.find(c => c.id === 'cand-1')?.fullName || 'Sarah Johnson';
+    const cleanCandidates = sanitized.map(c => {
+      if (c.id !== 'cand-1') {
+        const orig = initialMap.get(c.id);
+        if (orig && (c.fullName.toLowerCase() === finalCand1Name.toLowerCase() || c.fullName.toLowerCase() === 'sarah johnson')) {
+          return { ...c, fullName: orig.fullName };
+        }
+      }
+      return c;
+    });
+
+    localStorage.setItem('rc_candidates', JSON.stringify(cleanCandidates));
+    return cleanCandidates;
   });
 
   useEffect(() => {
@@ -204,7 +241,9 @@ export function useRecruitmentStore() {
           localStorage.setItem('rc_user_profile', JSON.stringify(parsed));
         }
         const userEmail = (parsed.email || '').toLowerCase();
-        const perEmailAvatar = localStorage.getItem(`rc_avatar_${userEmail}`);
+        const isCandidateEmail = userEmail === 'candidate@copilot.com' || userEmail === 'sarah.johnson@example.com';
+        const perEmailAvatar = localStorage.getItem(`rc_avatar_${userEmail}`) ||
+          (isCandidateEmail ? (localStorage.getItem('rc_avatar_candidate@copilot.com') || localStorage.getItem('rc_avatar_sarah.johnson@example.com') || localStorage.getItem('rc_avatar_cand-1')) : null);
         if (perEmailAvatar) {
           parsed.avatar = perEmailAvatar;
         } else if (perEmailAvatar === '') {
@@ -366,12 +405,14 @@ export function useRecruitmentStore() {
           if (targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com') {
             localStorage.setItem('rc_avatar_candidate@copilot.com', updates.avatar);
             localStorage.setItem('rc_avatar_sarah.johnson@example.com', updates.avatar);
+            localStorage.setItem('rc_avatar_cand-1', updates.avatar);
           }
         } else {
           localStorage.removeItem(`rc_avatar_${targetEmail}`);
           if (targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com') {
             localStorage.removeItem('rc_avatar_candidate@copilot.com');
             localStorage.removeItem('rc_avatar_sarah.johnson@example.com');
+            localStorage.removeItem('rc_avatar_cand-1');
           }
           newAvatar = undefined;
         }
@@ -383,6 +424,7 @@ export function useRecruitmentStore() {
         if (targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com') {
           localStorage.setItem('rc_name_candidate@copilot.com', cleanName);
           localStorage.setItem('rc_name_sarah.johnson@example.com', cleanName);
+          localStorage.setItem('rc_name_cand-1', cleanName);
         }
       }
 
