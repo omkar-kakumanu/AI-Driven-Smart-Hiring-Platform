@@ -111,7 +111,7 @@ export default function App() {
     if (isCandidateUser && currentTab === 'dashboard') {
       setCurrentTab('candidate-portal');
     }
-  }, [isCandidateUser]);
+  }, [isCandidateUser, currentTab]);
 
   const handleLogout = () => {
     setIsAuthenticated(false);
@@ -136,22 +136,46 @@ export default function App() {
   const getHeaderInfo = () => {
     switch (currentTab) {
       case 'dashboard':
-        return { title: 'AI Recruitment Copilot', subtitle: 'Automate candidate screening and improve hiring efficiency with AI' };
+        return { 
+          title: 'AI Recruitment Copilot', 
+          subtitle: 'Automate candidate screening and improve hiring efficiency with AI' 
+        };
       case 'resume-upload':
       case 'candidates':
-        return { title: 'Candidate Directory & Resume Upload', subtitle: 'Upload candidate resumes, extract technical skills, and manage candidate profiles' };
+        return { 
+          title: isCandidateUser ? 'My Resume & Profile' : 'Candidate Directory & Resume Upload', 
+          subtitle: isCandidateUser ? 'Upload your resume, inspect extracted technical skills, and manage your profile' : 'Upload candidate resumes, extract technical skills, and manage candidate profiles' 
+        };
       case 'matching':
-        return { title: 'Matching & Skill Analysis', subtitle: 'Candidate-job matching and skill-gap analysis' };
+        return { 
+          title: isCandidateUser ? 'My Job Fit & Skill Gap Analysis' : 'Matching & Skill Analysis', 
+          subtitle: isCandidateUser ? 'Evaluate your skill fit against open roles and view recommended skill improvements' : 'Candidate-job matching and skill-gap analysis' 
+        };
       case 'interview-assistant':
-        return { title: 'AI Interview Simulation', subtitle: 'Simulate technical & behavioral candidate interviews with interactive AI evaluations' };
+        return { 
+          title: isCandidateUser ? 'AI Interview Practice & Preparation' : 'AI Interview Simulation', 
+          subtitle: isCandidateUser ? 'Practice interview questions with AI and prepare for your technical rounds' : 'Simulate technical & behavioral candidate interviews with interactive AI evaluations' 
+        };
       case 'voice-screening':
-        return { title: 'Voice-Based Screening Module', subtitle: 'Live Speech-to-Text audio screening, AI interviewer voice synthesis, and communication analytics' };
+        return { 
+          title: isCandidateUser ? 'Voice Screening & Assessment' : 'Voice-Based Screening Module', 
+          subtitle: isCandidateUser ? 'Record voice responses to screening questions and review AI clarity and relevance scores' : 'Live Speech-to-Text audio screening, AI interviewer voice synthesis, and communication analytics' 
+        };
       case 'ats-integration':
-        return { title: 'ATS Integration Hub', subtitle: 'Bi-directional candidate synchronization with Greenhouse, Lever, and Workday' };
+        return { 
+          title: isCandidateUser ? 'My Application ATS Tracking' : 'ATS Integration Hub', 
+          subtitle: isCandidateUser ? 'Track your real-time application synchronization across Greenhouse, Lever, and Workday' : 'Bi-directional candidate synchronization with Greenhouse, Lever, and Workday' 
+        };
       case 'candidate-portal':
-        return { title: 'Candidate Career Portal', subtitle: 'Live application ATS pipeline tracker, scheduled interviews, and AI performance reports' };
+        return { 
+          title: 'Candidate Career Portal', 
+          subtitle: 'Live application ATS pipeline tracker, scheduled interviews, and AI performance reports' 
+        };
       case 'settings':
-        return { title: 'System Settings', subtitle: 'Configure user access approvals and database settings' };
+        return { 
+          title: isCandidateUser ? 'My Account Settings' : 'System Settings', 
+          subtitle: isCandidateUser ? 'Manage your account credentials and personal preferences' : 'Configure user access approvals and database settings' 
+        };
       default:
         return { title: 'Recruitment Copilot', subtitle: 'AI Hiring Intelligence Platform' };
     }
@@ -160,7 +184,7 @@ export default function App() {
   const headerInfo = getHeaderInfo();
 
   return (
-    <div className="min-h-screen bg-slate-50 flex text-slate-800 font-sans antialiased">
+    <div className="h-screen bg-slate-50 flex text-slate-800 font-sans antialiased overflow-hidden">
       {/* Sidebar */}
       <Sidebar 
         currentTab={currentTab} 
@@ -169,7 +193,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <Header 
           title={headerInfo.title}
           subtitle={headerInfo.subtitle}
@@ -182,7 +206,7 @@ export default function App() {
           onLogout={handleLogout}
         />
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto focus:outline-none">
           {currentTab === 'dashboard' && (
             <DashboardView 
               onNavigate={setCurrentTab} 
@@ -216,6 +240,7 @@ export default function App() {
               onClearSearch={() => setSearchQuery('')}
               jobs={store.jobs}
               isMainAdmin={isMainAdmin}
+              isCandidateUser={isCandidateUser}
               onAddSkillToCandidate={store.addSkillToCandidate}
               onRemoveSkillFromCandidate={store.removeSkillFromCandidate}
             />
@@ -258,6 +283,7 @@ export default function App() {
               candidates={roleFilteredCandidates}
               isMainAdmin={isMainAdmin}
               isCandidateUser={isCandidateUser}
+              currentCandidateEmail={store.userProfile?.email}
               onUpdateCandidateStatusByEmail={store.updateCandidateStatusByEmail}
               onNavigateToInterview={() => setCurrentTab('interview-assistant')}
             />
@@ -273,6 +299,8 @@ export default function App() {
               onNavigateToVoiceScreening={() => setCurrentTab('voice-screening')}
               onNavigateToInterviewPractice={() => setCurrentTab('interview-assistant')}
               onNavigateToResume={() => setCurrentTab('candidates')}
+              onNavigateToMatching={() => setCurrentTab('matching')}
+              onNavigateToAts={() => setCurrentTab('ats-integration')}
               onCancelInterview={store.cancelInterview}
             />
           )}
