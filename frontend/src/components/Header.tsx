@@ -8,6 +8,8 @@ interface HeaderProps {
   userProfile?: UserProfile;
   searchQuery?: string;
   matchCount?: number;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
   onSearchChange?: (q: string) => void;
   onNewJobClick?: () => void;
   onProfileClick?: () => void;
@@ -20,6 +22,8 @@ export const Header: React.FC<HeaderProps> = ({
   userProfile,
   searchQuery = '',
   matchCount,
+  theme = 'light',
+  onToggleTheme,
   onSearchChange,
   onNewJobClick, 
   onProfileClick,
