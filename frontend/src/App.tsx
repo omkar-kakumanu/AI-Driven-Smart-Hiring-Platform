@@ -71,22 +71,9 @@ export default function App() {
   });
 
   // Candidate Role Access Control:
-  // Recruiter & Admin see ALL candidate resumes in directory.
-  // Candidate logged in can ONLY see their OWN resume record.
-  const roleFilteredCandidates = isCandidateUser
-    ? filteredCandidates.filter(c => {
-        const cMail = c.email.toLowerCase();
-        const myMail = (store.userProfile?.email || '').toLowerCase();
-        const myName = (store.userProfile?.name || '').toLowerCase();
-        return (
-          cMail === myMail ||
-          cMail === 'sarah.johnson@example.com' ||
-          cMail === 'candidate@copilot.com' ||
-          c.id === 'cand-1' ||
-          (myName && c.fullName.toLowerCase() === myName)
-        );
-      }).slice(0, 1)
-    : filteredCandidates;
+  // All candidates are visible in the platform directory and pipelines,
+  // while candidates can only edit/delete their own record.
+  const roleFilteredCandidates = filteredCandidates;
 
   const handleLogin = (profile: UserProfile & { userType: 'ADMIN' | 'USER'; status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'REVOKED'; isSuperAdmin?: boolean }) => {
     const isAdminAccount = profile.userType === 'ADMIN' || profile.email.toLowerCase() === 'admin@copilot.com';
@@ -224,7 +211,7 @@ export default function App() {
             <DashboardView 
               onNavigate={setCurrentTab} 
               candidates={roleFilteredCandidates}
-              allCandidatesCount={isCandidateUser ? 1 : store.candidates.length}
+              allCandidatesCount={store.candidates.length}
               jobs={store.jobs}
               searchQuery={searchQuery}
               onClearSearch={() => setSearchQuery('')}
@@ -237,6 +224,7 @@ export default function App() {
               onClearSearch={() => setSearchQuery('')}
               isMainAdmin={isMainAdmin}
               isCandidateUser={isCandidateUser}
+              currentCandidateEmail={store.userProfile?.email || 'candidate@copilot.com'}
               onAddCandidate={store.addCandidate}
               onDeleteCandidate={store.deleteCandidate}
               onAddSkillToCandidate={store.addSkillToCandidate}

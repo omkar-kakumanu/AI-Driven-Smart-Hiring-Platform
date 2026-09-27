@@ -881,20 +881,34 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                                     Edit
                                   </button>
                                 )}
-                                <button
-                                  onClick={() => {
-                                    if (window.confirm(`Delete candidate resume "${cand.fullName}"?`)) {
-                                      onDeleteCandidate && onDeleteCandidate(cand.id);
-                                    }
-                                  }}
-                                  className="px-2.5 py-1 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-lg transition-colors inline-flex items-center gap-1"
-                                  title="Delete this resume and candidate profile"
-                                >
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                  Delete
-                                </button>
+                                {(() => {
+                                  const isMyCandidate = cand.id === 'cand-1' || 
+                                    cand.email.toLowerCase() === (currentCandidateEmail || '').toLowerCase() ||
+                                    cand.email.toLowerCase() === 'sarah.johnson@example.com' ||
+                                    cand.email.toLowerCase() === 'candidate@copilot.com';
+                                  const canDelete = isMainAdmin || !isCandidateUser || isMyCandidate;
+
+                                  return canDelete ? (
+                                    <button
+                                      onClick={() => {
+                                        if (window.confirm(`Delete candidate resume "${cand.fullName}"?`)) {
+                                          onDeleteCandidate && onDeleteCandidate(cand.id);
+                                        }
+                                      }}
+                                      className="px-2.5 py-1 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
+                                      title="Delete this resume and candidate profile"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                      Delete
+                                    </button>
+                                  ) : (
+                                    <span className="text-[10px] text-slate-400 font-semibold px-2 py-1 bg-slate-100 rounded-lg border border-slate-200">
+                                      Read-Only
+                                    </span>
+                                  );
+                                })()}
                               </div>
                             </td>
                           </tr>
