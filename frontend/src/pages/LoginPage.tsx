@@ -16,6 +16,8 @@ interface LoginPageProps {
   userAccounts: UserAccount[];
   onLogin: (profile: UserProfile & { userType: 'ADMIN' | 'USER'; status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'REVOKED'; isSuperAdmin?: boolean }) => void;
   onRegister: (name: string, email: string, role: string, password?: string) => UserAccount;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
 const getPersistedName = (email: string, fallback: string, userAccounts: UserAccount[]): string => {
@@ -56,7 +58,13 @@ const getPersistedAvatar = (email: string, storedAvatar?: string): string | unde
   return storedAvatar || undefined;
 };
 
-export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onRegister }) => {
+export const LoginPage: React.FC<LoginPageProps> = ({ 
+  userAccounts, 
+  onLogin, 
+  onRegister, 
+  theme = 'light', 
+  onToggleTheme 
+}) => {
   // Modes: 'RECRUITER' | 'CANDIDATE' | 'ADMIN' | 'SIGN_UP'
   const [mode, setMode] = useState<'RECRUITER' | 'CANDIDATE' | 'ADMIN' | 'SIGN_UP'>('RECRUITER');
   
@@ -78,20 +86,74 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
   // Status Alerts
   const [statusNotice, setStatusNotice] = useState<{ type: 'PENDING' | 'REVOKED' | 'ERROR' | 'SUCCESS'; message: string } | null>(null);
 
-  // Google SSO Login Handler
+  // Google SSO Login Handler (Enforces Administrator Approval & Account Registration)
   const handleGoogleSelect = (selectedEmail: string, selectedName: string, userRole: string, isAdmin = false) => {
     const cleanMail = selectedEmail.trim().toLowerCase();
+    const isPreApprovedDemo = 
+      cleanMail === 'admin@copilot.com' || 
+      cleanMail === 'recruiter@copilot.com' || 
+      cleanMail === 'candidate@copilot.com' || 
+      cleanMail === 'sarah.johnson@example.com' ||
+      cleanMail === 'sarah.jenkins@gmail.com' ||
+      cleanMail === 'j.manju.raghvin@gmail.com';
+
     const stored = userAccounts.find(u => u.email.toLowerCase() === cleanMail);
-    const savedAvatar = getPersistedAvatar(cleanMail, stored?.avatar);
-    const finalName = getPersistedName(cleanMail, selectedName, userAccounts);
-    onLogin({
-      name: finalName,
-      role: userRole,
-      email: selectedEmail,
-      userType: isAdmin ? 'ADMIN' : 'USER',
-      status: 'APPROVED',
-      isSuperAdmin: isAdmin,
-      avatar: savedAvatar
+
+    if (stored) {
+      if (stored.status === 'PENDING') {
+        setStatusNotice({
+          type: 'PENDING',
+          message: `Access Pending Approval: Your account for "${cleanMail}" has been submitted and is awaiting Administrator review. Please wait for an Admin to approve your access.`
+        });
+        setShowGoogleModal(false);
+        return;
+      }
+      if (stored.status === 'REVOKED' || stored.status === 'REJECTED') {
+        setStatusNotice({
+          type: 'REVOKED',
+          message: `Access Denied: Account access for "${cleanMail}" has been rejected or revoked by a System Administrator.`
+        });
+        setShowGoogleModal(false);
+        return;
+      }
+      // Approved account login:
+      const savedAvatar = getPersistedAvatar(cleanMail, stored.avatar);
+      const finalName = getPersistedName(cleanMail, stored.name || selectedName, userAccounts);
+      onLogin({
+        name: finalName,
+        role: stored.role || userRole,
+        email: stored.email,
+        userType: stored.userType || (isAdmin ? 'ADMIN' : 'USER'),
+        status: 'APPROVED',
+        isSuperAdmin: stored.isSuperAdmin || isAdmin,
+        avatar: savedAvatar
+      });
+      setShowGoogleModal(false);
+      return;
+    }
+
+    if (isPreApprovedDemo) {
+      const savedAvatar = getPersistedAvatar(cleanMail, undefined);
+      const finalName = getPersistedName(cleanMail, selectedName, userAccounts);
+      onLogin({
+        name: finalName,
+        role: userRole,
+        email: selectedEmail,
+        userType: isAdmin ? 'ADMIN' : 'USER',
+        status: 'APPROVED',
+        isSuperAdmin: isAdmin,
+        avatar: savedAvatar
+      });
+      setShowGoogleModal(false);
+      return;
+    }
+
+    // New unknown user attempting Google / Gmail sign in:
+    // DO NOT allow direct access! Create an access request with status PENDING!
+    const newAcc = onRegister(selectedName, cleanMail, userRole, 'google_sso_verified');
+    setStatusNotice({
+      type: 'PENDING',
+      message: `Access Request Submitted Successfully! Account for "${newAcc.email}" is in PENDING status. An Administrator must approve your access request in Settings before you can log in.`
     });
     setShowGoogleModal(false);
   };
@@ -102,9 +164,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
       alert("Please enter a valid Gmail address.");
       return;
     }
-    const nameFromEmail = customGmail.split('@')[0].replace('.', ' ');
-    const formattedName = nameFromEmail.charAt(0).toUpperCase() + nameFromEmail.slice(1);
-    handleGoogleSelect(customGmail.trim(), formattedName, 'Candidate Applicant', false);
+    const clean = customGmail.trim().toLowerCase();
+    const nameFromEmail = clean.split('@')[0].replace(/[._-]/g, ' ');
+    const formattedName = nameFromEmail
+      .split(' ')
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ') || 'Applicant';
+    handleGoogleSelect(clean, formattedName, 'Candidate Applicant', false);
   };
 
   // Standard Form Submit Handler
@@ -178,13 +244,29 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
       });
       setActiveStep(3);
     } else if (mode === 'CANDIDATE') {
+      const isDemo = emailClean === 'candidate@copilot.com' || emailClean === 'sarah.johnson@example.com';
       const found = userAccounts.find(u => u.email.toLowerCase() === emailClean);
-      const savedAvatar = getPersistedAvatar(emailClean, found?.avatar);
-      const resolvedName = getPersistedName(emailClean, found?.name || emailClean.split('@')[0].replace('.', ' '), userAccounts);
+
       if (found) {
+        if (found.status === 'PENDING') {
+          setStatusNotice({ 
+            type: 'PENDING', 
+            message: `Access Pending Approval: Candidate account for "${found.email}" is pending Administrator review.` 
+          });
+          return;
+        }
+        if (found.status === 'REVOKED' || found.status === 'REJECTED') {
+          setStatusNotice({ 
+            type: 'REVOKED', 
+            message: `Access Revoked: Candidate access for "${found.email}" has been rejected or revoked by an Administrator.` 
+          });
+          return;
+        }
+        const savedAvatar = getPersistedAvatar(emailClean, found.avatar);
+        const resolvedName = getPersistedName(emailClean, found.name, userAccounts);
         onLogin({
           name: resolvedName,
-          role: 'Candidate Applicant',
+          role: found.role || 'Candidate Applicant',
           email: found.email,
           userType: 'USER',
           status: 'APPROVED',
@@ -193,15 +275,32 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
         });
         return;
       }
-      onLogin({
-        name: resolvedName,
-        role: 'Candidate Applicant',
-        email: emailClean,
-        userType: 'USER',
-        status: 'APPROVED',
-        isSuperAdmin: false,
-        avatar: savedAvatar
+
+      if (isDemo) {
+        const targetMail = 'sarah.johnson@example.com';
+        const savedAvatar = getPersistedAvatar(targetMail, undefined);
+        const candidateName = getPersistedName(targetMail, 'Sarah Johnson', userAccounts);
+        onLogin({
+          name: candidateName,
+          role: 'Candidate Applicant',
+          email: targetMail,
+          userType: 'USER',
+          status: 'APPROVED',
+          isSuperAdmin: false,
+          avatar: savedAvatar
+        });
+        return;
+      }
+
+      // If not registered in userAccounts, submit an access request
+      const candidateName = emailClean.split('@')[0].replace(/[._-]/g, ' ');
+      const formattedName = candidateName.charAt(0).toUpperCase() + candidateName.slice(1);
+      const newAcc = onRegister(formattedName, emailClean, 'Candidate Applicant', password || 'candidate123');
+      setStatusNotice({
+        type: 'PENDING',
+        message: `Access Request Submitted Successfully! Candidate account "${newAcc.email}" is in PENDING status. An Administrator must approve your access before logging in.`
       });
+      return;
     } else if (mode === 'RECRUITER') {
       const found = userAccounts.find(u => u.email.toLowerCase() === emailClean);
       if (!found) {
@@ -294,7 +393,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
             </div>
             <div>
               <span className="text-sm font-extrabold tracking-tight text-white block leading-none">AI Recruitment Copilot</span>
-              <span className="text-[10px] text-blue-300 font-bold uppercase tracking-wider">Enterprise Hiring Engine</span>
+              <span className="text-[10px] text-blue-300 font-bold uppercase tracking-wider">Enterprise Hiring & Talent Intelligence</span>
             </div>
           </div>
 
@@ -309,7 +408,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
           initial="hidden"
           animate="visible"
           variants={containerVariants}
-          className="z-10 w-full max-w-md space-y-5 flex flex-col items-center text-center bg-slate-900/60 backdrop-blur-xl p-6 sm:p-7 rounded-3xl border border-white/15 shadow-2xl"
+          className="z-10 w-full max-w-md space-y-4 flex flex-col items-center text-center bg-slate-900/65 backdrop-blur-xl p-6 sm:p-7 rounded-3xl border border-white/15 shadow-2xl"
         >
           {/* Feature Badge */}
           <motion.div variants={itemVariants} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-xs font-bold">
@@ -348,18 +447,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
             <StepItem
               number={1}
               text="Identity Verification & Portal Login"
+              subtext="Role-based access security & DPDP compliance"
               active={activeStep === 1}
               onClick={() => setActiveStep(1)}
             />
             <StepItem
               number={2}
               text="Skill-Gap Matching & ATS Pipelines"
+              subtext="Weighted semantic match & Indian tech benchmarks"
               active={activeStep === 2}
               onClick={() => setActiveStep(2)}
             />
             <StepItem
               number={3}
               text="Role-Specific AI Interview Evaluation"
+              subtext="Real-time speech clarity & technical relevance scoring"
               active={activeStep === 3}
               onClick={() => setActiveStep(3)}
             />
@@ -375,9 +477,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="w-full max-w-lg bg-white border border-slate-200/90 rounded-3xl p-8 sm:p-10 shadow-sm space-y-6"
         >
-          {/* Top Bar: Portal Selector Pills */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <div className="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-xl w-full">
+          {/* Top Bar: Portal Selector Pills & Theme Toggle */}
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 gap-2">
+            <div className="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-xl flex-1">
               <button
                 type="button"
                 onClick={() => { setMode('RECRUITER'); setEmail('recruiter@copilot.com'); setPassword('recruiter123'); setStatusNotice(null); }}
@@ -423,6 +525,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
                 4. Request
               </button>
             </div>
+            {onToggleTheme && (
+              <button
+                type="button"
+                onClick={onToggleTheme}
+                className="px-2.5 py-1.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all cursor-pointer shrink-0 font-bold text-xs"
+                title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              >
+                {theme === 'dark' ? '☀️' : '🌙'}
+              </button>
+            )}
           </div>
 
           {/* Form Header */}
@@ -745,28 +857,36 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
 interface StepItemProps {
   number: number;
   text: string;
+  subtext?: string;
   active?: boolean;
   onClick?: () => void;
 }
 
-export const StepItem: React.FC<StepItemProps> = ({ number, text, active, onClick }) => {
+export const StepItem: React.FC<StepItemProps> = ({ number, text, subtext, active, onClick }) => {
   return (
     <div
       onClick={onClick}
-      className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-300 cursor-pointer ${
+      className={`flex items-start gap-3 p-3 rounded-2xl transition-all duration-300 cursor-pointer ${
         active
           ? 'bg-white text-slate-900 border border-slate-200 shadow-md scale-[1.02]'
           : 'bg-slate-900/60 text-white/90 border border-white/10 hover:bg-slate-900/80'
       }`}
     >
       <div
-        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 transition-all ${
           active ? 'bg-blue-600 text-white shadow-sm' : 'bg-white/20 text-white/70'
         }`}
       >
         {number}
       </div>
-      <span className="text-xs font-bold tracking-tight">{text}</span>
+      <div className="space-y-0.5 text-left">
+        <span className="text-xs font-bold tracking-tight block">{text}</span>
+        {subtext && (
+          <p className={`text-[10px] leading-tight ${active ? 'text-slate-500 font-medium' : 'text-white/60'}`}>
+            {subtext}
+          </p>
+        )}
+      </div>
     </div>
   );
 };
