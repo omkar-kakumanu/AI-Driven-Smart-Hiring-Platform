@@ -74,11 +74,18 @@ export default function App() {
   // Recruiter & Admin see ALL candidate resumes in directory.
   // Candidate logged in can ONLY see their OWN resume record.
   const roleFilteredCandidates = isCandidateUser
-    ? filteredCandidates.filter(c => 
-        c.email.toLowerCase() === (store.userProfile?.email || '').toLowerCase() ||
-        c.email.toLowerCase() === 'sarah.johnson@example.com' ||
-        c.fullName.toLowerCase().includes('sarah')
-      ).slice(0, 1)
+    ? filteredCandidates.filter(c => {
+        const cMail = c.email.toLowerCase();
+        const myMail = (store.userProfile?.email || '').toLowerCase();
+        const myName = (store.userProfile?.name || '').toLowerCase();
+        return (
+          cMail === myMail ||
+          cMail === 'sarah.johnson@example.com' ||
+          cMail === 'candidate@copilot.com' ||
+          c.id === 'cand-1' ||
+          (myName && c.fullName.toLowerCase() === myName)
+        );
+      }).slice(0, 1)
     : filteredCandidates;
 
   const handleLogin = (profile: UserProfile & { userType: 'ADMIN' | 'USER'; status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'REVOKED'; isSuperAdmin?: boolean }) => {
@@ -89,8 +96,14 @@ export default function App() {
       ? profile.avatar 
       : (localStorage.getItem(`rc_avatar_${targetEmail}`) || existingAccount?.avatar || undefined);
 
+    const persistedName = localStorage.getItem(`rc_name_${targetEmail}`) ||
+      ((targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com')
+        ? (localStorage.getItem('rc_name_candidate@copilot.com') || localStorage.getItem('rc_name_sarah.johnson@example.com'))
+        : null);
+    const finalName = (persistedName && persistedName.trim()) ? persistedName.trim() : (existingAccount?.name || profile.name);
+
     store.setUserProfileExplicit({
-      name: profile.name,
+      name: finalName,
       role: profile.role,
       email: profile.email,
       userType: isAdminAccount ? 'ADMIN' : profile.userType,

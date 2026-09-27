@@ -79,7 +79,7 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
   const [selectedCandidateId, setSelectedCandidateId] = useState<string>(candidates[0]?.id || '');
   const activeCandidate = candidates.find(c => c.id === selectedCandidateId) || candidates[0] || {
     id: 'cand-1',
-    fullName: 'Sarah Johnson',
+    fullName: localStorage.getItem('rc_name_candidate@copilot.com') || localStorage.getItem('rc_name_sarah.johnson@example.com') || 'Sarah Johnson',
     email: 'sarah.johnson@example.com',
     currentRole: 'Senior Machine Learning Engineer',
     totalExperienceYears: 5,

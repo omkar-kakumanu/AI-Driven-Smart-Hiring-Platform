@@ -18,6 +18,29 @@ interface LoginPageProps {
   onRegister: (name: string, email: string, role: string, password?: string) => UserAccount;
 }
 
+const getPersistedName = (email: string, fallback: string, userAccounts: UserAccount[]): string => {
+  const clean = email.trim().toLowerCase();
+  const direct = localStorage.getItem(`rc_name_${clean}`);
+  if (direct && direct.trim()) return direct.trim();
+  
+  if (clean === 'candidate@copilot.com' || clean === 'sarah.johnson@example.com') {
+    const candName1 = localStorage.getItem('rc_name_candidate@copilot.com');
+    if (candName1 && candName1.trim()) return candName1.trim();
+    const candName2 = localStorage.getItem('rc_name_sarah.johnson@example.com');
+    if (candName2 && candName2.trim()) return candName2.trim();
+  }
+  
+  const found = userAccounts.find(u => u.email.toLowerCase() === clean || 
+    ((clean === 'candidate@copilot.com' || clean === 'sarah.johnson@example.com') && 
+     (u.email.toLowerCase() === 'candidate@copilot.com' || u.email.toLowerCase() === 'sarah.johnson@example.com')));
+  if (found && found.name && found.name.trim()) {
+    const cleanFoundName = found.name.replace(/\s*\(Candidate\)\s*/i, '').trim();
+    if (cleanFoundName) return cleanFoundName;
+  }
+  
+  return fallback;
+};
+
 export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onRegister }) => {
   // Modes: 'RECRUITER' | 'CANDIDATE' | 'ADMIN' | 'SIGN_UP'
   const [mode, setMode] = useState<'RECRUITER' | 'CANDIDATE' | 'ADMIN' | 'SIGN_UP'>('RECRUITER');
@@ -45,8 +68,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
     const cleanMail = selectedEmail.trim().toLowerCase();
     const stored = userAccounts.find(u => u.email.toLowerCase() === cleanMail);
     const savedAvatar = localStorage.getItem(`rc_avatar_${cleanMail}`) || stored?.avatar || undefined;
+    const finalName = getPersistedName(cleanMail, selectedName, userAccounts);
     onLogin({
-      name: selectedName,
+      name: finalName,
       role: userRole,
       email: selectedEmail,
       userType: isAdmin ? 'ADMIN' : 'USER',
@@ -79,8 +103,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
     if (emailClean === 'admin@copilot.com' && (password === 'admin123' || mode === 'ADMIN')) {
       const storedAdmin = userAccounts.find(u => u.email.toLowerCase() === 'admin@copilot.com');
       const savedAvatar = localStorage.getItem('rc_avatar_admin@copilot.com') || storedAdmin?.avatar || undefined;
+      const adminFallback = (storedAdmin?.name && !storedAdmin.name.includes('Alex Vance')) ? storedAdmin.name : 'J Manju Raghvin (Main Super-Admin)';
       onLogin({
-        name: (storedAdmin?.name && !storedAdmin.name.includes('Alex Vance')) ? storedAdmin.name : 'J Manju Raghvin (Main Super-Admin)',
+        name: getPersistedName('admin@copilot.com', adminFallback, userAccounts),
         role: storedAdmin?.role || 'System Administrator & Hiring Director',
         email: 'admin@copilot.com',
         userType: 'ADMIN',
@@ -96,7 +121,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
       const stored = userAccounts.find(u => u.email.toLowerCase() === 'recruiter@copilot.com');
       const savedAvatar = localStorage.getItem('rc_avatar_recruiter@copilot.com') || stored?.avatar || undefined;
       onLogin({
-        name: stored?.name || 'Sarah Jenkins',
+        name: getPersistedName('recruiter@copilot.com', stored?.name || 'Sarah Jenkins', userAccounts),
         role: stored?.role || 'Talent Acquisition Specialist',
         email: 'recruiter@copilot.com',
         userType: 'USER',
@@ -112,8 +137,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
       const targetMail = 'sarah.johnson@example.com';
       const stored = userAccounts.find(u => u.email.toLowerCase() === targetMail || u.email.toLowerCase() === 'candidate@copilot.com');
       const savedAvatar = localStorage.getItem(`rc_avatar_${targetMail}`) || stored?.avatar || undefined;
+      const candidateName = getPersistedName(targetMail, stored?.name || 'Sarah Johnson', userAccounts);
       onLogin({
-        name: 'Sarah Johnson',
+        name: candidateName,
         role: 'Candidate Applicant',
         email: targetMail,
         userType: 'USER',
@@ -139,9 +165,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
     } else if (mode === 'CANDIDATE') {
       const found = userAccounts.find(u => u.email.toLowerCase() === emailClean);
       const savedAvatar = localStorage.getItem(`rc_avatar_${emailClean}`) || found?.avatar || undefined;
+      const resolvedName = getPersistedName(emailClean, found?.name || emailClean.split('@')[0].replace('.', ' '), userAccounts);
       if (found) {
         onLogin({
-          name: found.name,
+          name: resolvedName,
           role: 'Candidate Applicant',
           email: found.email,
           userType: 'USER',
@@ -152,7 +179,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
         return;
       }
       onLogin({
-        name: emailClean.split('@')[0].replace('.', ' '),
+        name: resolvedName,
         role: 'Candidate Applicant',
         email: emailClean,
         userType: 'USER',
@@ -175,8 +202,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
         return;
       }
       const savedAvatar = localStorage.getItem(`rc_avatar_${emailClean}`) || found.avatar || undefined;
+      const resolvedName = getPersistedName(emailClean, found.name, userAccounts);
       onLogin({
-        name: found.name,
+        name: resolvedName,
         role: found.role,
         email: found.email,
         userType: found.userType === 'ADMIN' ? 'ADMIN' : 'USER',
@@ -191,8 +219,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
         return;
       }
       const savedAvatar = localStorage.getItem(`rc_avatar_${emailClean}`) || foundAdmin.avatar || undefined;
+      const resolvedName = getPersistedName(emailClean, foundAdmin.name, userAccounts);
       onLogin({
-        name: foundAdmin.name,
+        name: resolvedName,
         role: foundAdmin.role,
         email: foundAdmin.email,
         userType: 'ADMIN',
@@ -616,22 +645,28 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
                 <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
               </button>
 
-              <button
-                type="button"
-                onClick={() => handleGoogleSelect('sarah.johnson@example.com', 'Sarah Johnson', 'Candidate Applicant', false)}
-                className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-2xl hover:border-purple-500 hover:bg-purple-50/50 transition-all text-left cursor-pointer group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-purple-600 text-white font-extrabold text-xs flex items-center justify-center">
-                    S3
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 block group-hover:text-purple-600">Sarah Johnson (Candidate)</span>
-                    <span className="text-[10px] text-slate-500 font-medium">sarah.johnson@example.com</span>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
-              </button>
+              {(() => {
+                const candName = getPersistedName('sarah.johnson@example.com', 'Sarah Johnson', userAccounts);
+                const candInitials = candName.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'SJ';
+                return (
+                  <button
+                    type="button"
+                    onClick={() => handleGoogleSelect('sarah.johnson@example.com', candName, 'Candidate Applicant', false)}
+                    className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-2xl hover:border-purple-500 hover:bg-purple-50/50 transition-all text-left cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-purple-600 text-white font-extrabold text-xs flex items-center justify-center">
+                        {candInitials}
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 block group-hover:text-purple-600">{candName} (Candidate)</span>
+                        <span className="text-[10px] text-slate-500 font-medium">sarah.johnson@example.com</span>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
+                  </button>
+                );
+              })()}
 
               <button
                 type="button"

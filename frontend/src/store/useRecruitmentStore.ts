@@ -57,13 +57,25 @@ export function useRecruitmentStore() {
 
   const [candidates, setCandidates] = useState<Candidate[]>(() => {
     const saved = localStorage.getItem('rc_candidates');
+    let cands: Candidate[] = INITIAL_CANDIDATES;
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) cands = parsed;
       } catch (e) {}
     }
-    return INITIAL_CANDIDATES;
+    // Sync any custom name persisted in localStorage
+    return cands.map(c => {
+      const cMail = c.email.toLowerCase();
+      const savedName = localStorage.getItem(`rc_name_${cMail}`) ||
+        ((cMail === 'candidate@copilot.com' || cMail === 'sarah.johnson@example.com' || c.id === 'cand-1')
+          ? (localStorage.getItem('rc_name_candidate@copilot.com') || localStorage.getItem('rc_name_sarah.johnson@example.com'))
+          : null);
+      if (savedName && savedName.trim()) {
+        return { ...c, fullName: savedName.trim() };
+      }
+      return c;
+    });
   });
 
   useEffect(() => {
@@ -137,11 +149,19 @@ export function useRecruitmentStore() {
       accounts.unshift(INITIAL_USERS[0]);
     }
 
-    // Ensure each account has its own isolated avatar
-    accounts = accounts.map(u => ({
-      ...u,
-      avatar: u.avatar || localStorage.getItem(`rc_avatar_${u.email.toLowerCase()}`) || undefined
-    }));
+    // Ensure each account has its own isolated avatar and persisted custom name
+    accounts = accounts.map(u => {
+      const uMail = u.email.toLowerCase();
+      const savedName = localStorage.getItem(`rc_name_${uMail}`) ||
+        ((uMail === 'candidate@copilot.com' || uMail === 'sarah.johnson@example.com' || u.id === 'usr-cand-1')
+          ? (localStorage.getItem('rc_name_candidate@copilot.com') || localStorage.getItem('rc_name_sarah.johnson@example.com'))
+          : null);
+      return {
+        ...u,
+        name: (savedName && savedName.trim()) ? savedName.trim() : u.name,
+        avatar: u.avatar || localStorage.getItem(`rc_avatar_${uMail}`) || undefined
+      };
+    });
 
     return accounts;
   });
@@ -161,6 +181,13 @@ export function useRecruitmentStore() {
           parsed.avatar = perEmailAvatar;
         } else if (perEmailAvatar === '') {
           parsed.avatar = undefined;
+        }
+        const perEmailName = localStorage.getItem(`rc_name_${userEmail}`) ||
+          ((userEmail === 'candidate@copilot.com' || userEmail === 'sarah.johnson@example.com')
+            ? (localStorage.getItem('rc_name_candidate@copilot.com') || localStorage.getItem('rc_name_sarah.johnson@example.com'))
+            : null);
+        if (perEmailName && perEmailName.trim()) {
+          parsed.name = perEmailName.trim();
         }
         return parsed;
       } catch (e) {}
@@ -314,17 +341,33 @@ export function useRecruitmentStore() {
         }
       }
 
+      if (updates.name && updates.name.trim()) {
+        const cleanName = updates.name.trim();
+        localStorage.setItem(`rc_name_${targetEmail}`, cleanName);
+        if (targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com') {
+          localStorage.setItem('rc_name_candidate@copilot.com', cleanName);
+          localStorage.setItem('rc_name_sarah.johnson@example.com', cleanName);
+        }
+      }
+
       const updated: UserProfile = {
         ...prev,
         ...updates,
+        name: (updates.name && updates.name.trim()) ? updates.name.trim() : prev.name,
         avatar: newAvatar
       };
 
       setUserAccounts(prevAccounts => prevAccounts.map(u => {
-        if (u.email.toLowerCase() === prev.email.toLowerCase() || (updates.email && u.email.toLowerCase() === targetEmail)) {
+        const uMail = u.email.toLowerCase();
+        const matchesTarget = uMail === prev.email.toLowerCase() || 
+          (updates.email && uMail === targetEmail) ||
+          ((targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com') && 
+           (uMail === 'candidate@copilot.com' || uMail === 'sarah.johnson@example.com'));
+
+        if (matchesTarget) {
           return {
             ...u,
-            name: updates.name || u.name,
+            name: updates.name ? updates.name.trim() : u.name,
             role: updates.role || u.role,
             email: updates.email || u.email,
             avatar: newAvatar
@@ -334,13 +377,35 @@ export function useRecruitmentStore() {
       }));
 
       setCandidates(prevCands => prevCands.map(c => {
-        if (c.email.toLowerCase() === targetEmail) {
+        const cMail = c.email.toLowerCase();
+        const matchesCandidate = cMail === targetEmail || 
+          ((targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com') && 
+           (cMail === 'candidate@copilot.com' || cMail === 'sarah.johnson@example.com')) ||
+          (c.id === 'cand-1' && (targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com'));
+
+        if (matchesCandidate) {
           return {
             ...c,
+            fullName: updates.name ? updates.name.trim() : c.fullName,
             avatar: newAvatar
           };
         }
         return c;
+      }));
+
+      setScheduledInterviews(prev => prev.map(item => {
+        const iMail = item.candidateEmail.toLowerCase();
+        const matchesCandidate = iMail === targetEmail || 
+          ((targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com') && 
+           (iMail === 'candidate@copilot.com' || iMail === 'sarah.johnson@example.com'));
+
+        if (matchesCandidate && updates.name && updates.name.trim()) {
+          return {
+            ...item,
+            candidateName: updates.name.trim()
+          };
+        }
+        return item;
       }));
 
       return updated;
@@ -352,8 +417,15 @@ export function useRecruitmentStore() {
     const perEmailAvatar = localStorage.getItem(`rc_avatar_${emailLower}`);
     const finalAvatar = profile.avatar !== undefined ? profile.avatar : (perEmailAvatar || undefined);
     
+    const perEmailName = localStorage.getItem(`rc_name_${emailLower}`) ||
+      ((emailLower === 'candidate@copilot.com' || emailLower === 'sarah.johnson@example.com')
+        ? (localStorage.getItem('rc_name_candidate@copilot.com') || localStorage.getItem('rc_name_sarah.johnson@example.com'))
+        : null);
+    const finalName = (perEmailName && perEmailName.trim()) ? perEmailName.trim() : profile.name;
+
     const finalProfile: UserProfile = {
       ...profile,
+      name: finalName,
       avatar: finalAvatar
     };
     setUserProfile(finalProfile);

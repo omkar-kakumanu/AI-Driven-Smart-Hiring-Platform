@@ -40,7 +40,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   );
 
   // User Profile Form State
-  const [name, setName] = useState(userProfile?.name || (isCandidate ? 'Sarah Johnson' : 'Sarah Jenkins'));
+  const [name, setName] = useState(() => {
+    const emailLower = (userProfile?.email || 'candidate@copilot.com').toLowerCase();
+    const savedName = localStorage.getItem(`rc_name_${emailLower}`) ||
+      ((emailLower === 'candidate@copilot.com' || emailLower === 'sarah.johnson@example.com' || isCandidate)
+        ? (localStorage.getItem('rc_name_candidate@copilot.com') || localStorage.getItem('rc_name_sarah.johnson@example.com'))
+        : null);
+    return savedName || userProfile?.name || (isCandidate ? 'Sarah Johnson' : 'Sarah Jenkins');
+  });
   const [role, setRole] = useState(userProfile?.role || (isCandidate ? 'Senior Full Stack Engineer' : 'Lead Recruiter'));
   const [email, setEmail] = useState(userProfile?.email || (isCandidate ? 'candidate@copilot.com' : 'recruiter@copilot.com'));
   const [avatar, setAvatar] = useState<string | undefined>(userProfile?.avatar);
@@ -99,16 +106,30 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   useEffect(() => {
     if (userProfile) {
-      setName(userProfile.name);
+      const emailLower = (userProfile.email || '').toLowerCase();
+      const savedName = localStorage.getItem(`rc_name_${emailLower}`) ||
+        ((emailLower === 'candidate@copilot.com' || emailLower === 'sarah.johnson@example.com' || isCandidate)
+          ? (localStorage.getItem('rc_name_candidate@copilot.com') || localStorage.getItem('rc_name_sarah.johnson@example.com'))
+          : null);
+      setName(savedName || userProfile.name);
       setRole(userProfile.role);
       setEmail(userProfile.email);
       setAvatar(userProfile.avatar);
     }
-  }, [userProfile]);
+  }, [userProfile, isCandidate]);
 
   const handleSaveProfile = () => {
+    const cleanMail = (email || userProfile?.email || 'candidate@copilot.com').toLowerCase();
+    const cleanName = (name || '').trim();
+    if (cleanName) {
+      localStorage.setItem(`rc_name_${cleanMail}`, cleanName);
+      if (cleanMail === 'candidate@copilot.com' || cleanMail === 'sarah.johnson@example.com' || isCandidate) {
+        localStorage.setItem('rc_name_candidate@copilot.com', cleanName);
+        localStorage.setItem('rc_name_sarah.johnson@example.com', cleanName);
+      }
+    }
     if (onUpdateUserProfile) {
-      onUpdateUserProfile({ name, role, email, avatar });
+      onUpdateUserProfile({ name: cleanName || name, role, email, avatar });
     }
     if (isCandidate) {
       localStorage.setItem(`${candidatePrefsKey}_phone`, phone);

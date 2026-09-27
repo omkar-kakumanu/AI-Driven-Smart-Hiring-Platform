@@ -58,12 +58,16 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
   onNavigateToAts,
   onCancelInterview
 }) => {
+  const candidatePersistedName = localStorage.getItem(`rc_name_${currentCandidateEmail.toLowerCase()}`) ||
+    localStorage.getItem('rc_name_candidate@copilot.com') ||
+    localStorage.getItem('rc_name_sarah.johnson@example.com');
+
   // Find current candidate or fallback to first candidate
-  const activeCandidate = candidates.find(
+  const rawCandidate = candidates.find(
     c => c.email.toLowerCase() === currentCandidateEmail.toLowerCase()
-  ) || candidates.find(c => c.email.toLowerCase().includes('candidate')) || candidates[0] || {
+  ) || candidates.find(c => c.email.toLowerCase().includes('candidate') || c.email.toLowerCase() === 'sarah.johnson@example.com') || candidates[0] || {
     id: 'cand-1',
-    fullName: 'Sarah Johnson',
+    fullName: candidatePersistedName || 'Sarah Johnson',
     email: 'candidate@copilot.com',
     currentRole: 'Senior Full Stack Engineer',
     totalExperienceYears: 6,
@@ -73,6 +77,11 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
     institution: 'IIT / NIT (Institute of Technology)',
     status: 'Interview in progress',
     matchScore: 94
+  };
+
+  const activeCandidate = {
+    ...rawCandidate,
+    fullName: (candidatePersistedName && candidatePersistedName.trim()) ? candidatePersistedName.trim() : rawCandidate.fullName
   };
 
   const targetJob = jobs.find(j => j.title.toLowerCase().includes(activeCandidate.currentRole.toLowerCase())) || jobs[0] || {

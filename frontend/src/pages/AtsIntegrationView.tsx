@@ -42,17 +42,21 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
   onUpdateCandidateStatusByEmail,
   onNavigateToInterview
 }) => {
-  const [atsCandidates, setAtsCandidates] = useState<AtsCandidateRecord[]>([
-    {
-      id: 'ats-1',
-      name: 'Sarah Johnson',
-      email: 'sarah.johnson@example.com',
-      job_applied: 'Senior Machine Learning Engineer',
-      status: 'Interview in progress',
-      provider: 'Greenhouse',
-      lastSynced: '2 mins ago',
-      externalId: 'GH-98421'
-    },
+  const [atsCandidates, setAtsCandidates] = useState<AtsCandidateRecord[]>(() => {
+    const candidatePersistedName = localStorage.getItem('rc_name_candidate@copilot.com') ||
+      localStorage.getItem('rc_name_sarah.johnson@example.com') ||
+      (currentCandidateEmail ? localStorage.getItem(`rc_name_${currentCandidateEmail.toLowerCase()}`) : null);
+    return [
+      {
+        id: 'ats-1',
+        name: (candidatePersistedName && candidatePersistedName.trim()) ? candidatePersistedName.trim() : 'Sarah Johnson',
+        email: 'sarah.johnson@example.com',
+        job_applied: 'Senior Machine Learning Engineer',
+        status: 'Interview in progress',
+        provider: 'Greenhouse',
+        lastSynced: '2 mins ago',
+        externalId: 'GH-98421'
+      },
     {
       id: 'ats-2',
       name: 'Michael Chen',
@@ -93,7 +97,7 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
       lastSynced: '5 hours ago',
       externalId: 'LEV-77219'
     }
-  ]);
+  ]; });
 
   const [isSyncingAts, setIsSyncingAts] = useState<boolean>(false);
   const [lastAtsSyncNotice, setLastAtsSyncNotice] = useState<string | null>(null);
@@ -194,7 +198,7 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
         c.email.toLowerCase() === targetEmail ||
         c.email.toLowerCase().includes('candidate') ||
         c.email.toLowerCase() === 'sarah.johnson@example.com' ||
-        c.name.toLowerCase().includes('sarah')
+        c.id === 'ats-1'
       );
     }
     const matchesSearch = 
