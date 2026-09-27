@@ -18,6 +18,52 @@ interface SettingsViewProps {
   onClearAllUserAccounts?: () => void;
 }
 
+const safeSetItem = (key: string, value: string) => {
+  try {
+    localStorage.setItem(key, value);
+  } catch (err) {
+    console.warn(`LocalStorage quota exceeded writing ${key}:`, err);
+  }
+};
+
+const compressImage = (file: File, callback: (dataUrl: string) => void) => {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const raw = e.target?.result as string;
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const maxDim = 200;
+      let w = img.width;
+      let h = img.height;
+      if (w > h) {
+        if (w > maxDim) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        }
+      } else {
+        if (h > maxDim) {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, w, h);
+        const compressed = canvas.toDataURL('image/jpeg', 0.82);
+        callback(compressed);
+      } else {
+        callback(raw);
+      }
+    };
+    img.onerror = () => callback(raw);
+    img.src = raw;
+  };
+  reader.readAsDataURL(file);
+};
+
 export const SettingsView: React.FC<SettingsViewProps> = ({ 
   userProfile,
   isCandidateUser = false,
@@ -139,36 +185,36 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     const isDemoCand = cleanMail === 'candidate@copilot.com' || cleanMail === 'sarah.johnson@example.com';
 
     if (cleanName) {
-      localStorage.setItem(`rc_name_${cleanMail}`, cleanName);
+      safeSetItem(`rc_name_${cleanMail}`, cleanName);
       if (isDemoCand) {
-        localStorage.setItem('rc_name_candidate@copilot.com', cleanName);
-        localStorage.setItem('rc_name_sarah.johnson@example.com', cleanName);
-        localStorage.setItem('rc_name_cand-1', cleanName);
+        safeSetItem('rc_name_candidate@copilot.com', cleanName);
+        safeSetItem('rc_name_sarah.johnson@example.com', cleanName);
+        safeSetItem('rc_name_cand-1', cleanName);
       }
     }
     if (avatar) {
-      localStorage.setItem(`rc_avatar_${cleanMail}`, avatar);
+      safeSetItem(`rc_avatar_${cleanMail}`, avatar);
       if (isDemoCand) {
-        localStorage.setItem('rc_avatar_candidate@copilot.com', avatar);
-        localStorage.setItem('rc_avatar_sarah.johnson@example.com', avatar);
-        localStorage.setItem('rc_avatar_cand-1', avatar);
+        safeSetItem('rc_avatar_candidate@copilot.com', avatar);
+        safeSetItem('rc_avatar_sarah.johnson@example.com', avatar);
+        safeSetItem('rc_avatar_cand-1', avatar);
       }
     }
     if (onUpdateUserProfile) {
       onUpdateUserProfile({ name: cleanName || name, role, email, avatar });
     }
     if (isCandidate) {
-      localStorage.setItem(`${candidatePrefsKey}_phone`, phone);
-      localStorage.setItem(`${candidatePrefsKey}_city`, currentCity);
-      localStorage.setItem(`${candidatePrefsKey}_status`, searchStatus);
-      localStorage.setItem(`${candidatePrefsKey}_notice`, noticePeriod);
-      localStorage.setItem(`${candidatePrefsKey}_current_ctc`, currentCtc);
-      localStorage.setItem(`${candidatePrefsKey}_expected_ctc`, expectedCtc);
-      localStorage.setItem(`${candidatePrefsKey}_workmode`, workMode);
-      localStorage.setItem(`${candidatePrefsKey}_locations`, JSON.stringify(selectedLocations));
-      localStorage.setItem(`${candidatePrefsKey}_linkedin`, linkedinUrl);
-      localStorage.setItem(`${candidatePrefsKey}_github`, githubUrl);
-      localStorage.setItem(`${candidatePrefsKey}_portfolio`, portfolioUrl);
+      safeSetItem(`${candidatePrefsKey}_phone`, phone);
+      safeSetItem(`${candidatePrefsKey}_city`, currentCity);
+      safeSetItem(`${candidatePrefsKey}_status`, searchStatus);
+      safeSetItem(`${candidatePrefsKey}_notice`, noticePeriod);
+      safeSetItem(`${candidatePrefsKey}_current_ctc`, currentCtc);
+      safeSetItem(`${candidatePrefsKey}_expected_ctc`, expectedCtc);
+      safeSetItem(`${candidatePrefsKey}_workmode`, workMode);
+      safeSetItem(`${candidatePrefsKey}_locations`, JSON.stringify(selectedLocations));
+      safeSetItem(`${candidatePrefsKey}_linkedin`, linkedinUrl);
+      safeSetItem(`${candidatePrefsKey}_github`, githubUrl);
+      safeSetItem(`${candidatePrefsKey}_portfolio`, portfolioUrl);
     }
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3500);
@@ -177,23 +223,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const dataUrl = reader.result as string;
+      compressImage(file, (dataUrl) => {
         setAvatar(dataUrl);
         const cleanMail = (email || userProfile?.email || 'candidate@copilot.com').toLowerCase();
         const isDemoCand = cleanMail === 'candidate@copilot.com' || cleanMail === 'sarah.johnson@example.com';
-        localStorage.setItem(`rc_avatar_${cleanMail}`, dataUrl);
+        safeSetItem(`rc_avatar_${cleanMail}`, dataUrl);
         if (isDemoCand) {
-          localStorage.setItem('rc_avatar_candidate@copilot.com', dataUrl);
-          localStorage.setItem('rc_avatar_sarah.johnson@example.com', dataUrl);
-          localStorage.setItem('rc_avatar_cand-1', dataUrl);
+          safeSetItem('rc_avatar_candidate@copilot.com', dataUrl);
+          safeSetItem('rc_avatar_sarah.johnson@example.com', dataUrl);
+          safeSetItem('rc_avatar_cand-1', dataUrl);
         }
         if (onUpdateUserProfile) {
           onUpdateUserProfile({ name, role, email, avatar: dataUrl });
         }
-      };
-      reader.readAsDataURL(file);
+      });
     }
   };
 

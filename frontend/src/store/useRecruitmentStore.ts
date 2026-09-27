@@ -32,6 +32,14 @@ const normalizeIndianJob = (job: Job): Job => {
   };
 };
 
+const safeStorageSet = (key: string, value: string) => {
+  try {
+    localStorage.setItem(key, value);
+  } catch (err) {
+    console.warn(`LocalStorage write skipped for ${key}:`, err);
+  }
+};
+
 export function useRecruitmentStore() {
   const [jobs, setJobs] = useState<Job[]>(() => {
     const saved = localStorage.getItem('rc_jobs');

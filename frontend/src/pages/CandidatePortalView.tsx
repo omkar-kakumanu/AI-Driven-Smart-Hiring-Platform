@@ -46,6 +46,44 @@ const formatIndianSalary = (min?: number, max?: number) => {
   return `₹${minInr} - ₹${maxInr} (${minLpa} - ${maxLpa} LPA)`;
 };
 
+const compressImage = (file: File, callback: (dataUrl: string) => void) => {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const raw = e.target?.result as string;
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const maxDim = 200;
+      let w = img.width;
+      let h = img.height;
+      if (w > h) {
+        if (w > maxDim) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        }
+      } else {
+        if (h > maxDim) {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, w, h);
+        const compressed = canvas.toDataURL('image/jpeg', 0.82);
+        callback(compressed);
+      } else {
+        callback(raw);
+      }
+    };
+    img.onerror = () => callback(raw);
+    img.src = raw;
+  };
+  reader.readAsDataURL(file);
+};
+
 export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
   candidates = [],
   userProfile,
@@ -198,12 +236,9 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (ev) => {
-                          const dataUrl = ev.target?.result as string;
+                        compressImage(file, (dataUrl) => {
                           if (dataUrl) onUpdateAvatar(dataUrl);
-                        };
-                        reader.readAsDataURL(file);
+                        });
                       }
                     }}
                   />
