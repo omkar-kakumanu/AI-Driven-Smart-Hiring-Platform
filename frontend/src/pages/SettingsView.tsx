@@ -120,18 +120,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   useEffect(() => {
     if (userProfile) {
       const emailLower = (userProfile.email || '').toLowerCase();
+      const isDemoCand = emailLower === 'candidate@copilot.com' || emailLower === 'sarah.johnson@example.com';
       const savedName = localStorage.getItem(`rc_name_${emailLower}`) ||
-        ((emailLower === 'candidate@copilot.com' || emailLower === 'sarah.johnson@example.com' || isCandidate)
-          ? (localStorage.getItem('rc_name_candidate@copilot.com') || localStorage.getItem('rc_name_sarah.johnson@example.com'))
-          : null);
+        (isDemoCand ? (localStorage.getItem('rc_name_candidate@copilot.com') || localStorage.getItem('rc_name_sarah.johnson@example.com')) : null);
       setName(savedName || userProfile.name);
       setRole(userProfile.role);
       setEmail(userProfile.email);
       const savedAvatar = userProfile.avatar ||
         localStorage.getItem(`rc_avatar_${emailLower}`) ||
-        ((emailLower === 'candidate@copilot.com' || emailLower === 'sarah.johnson@example.com' || isCandidate)
-          ? (localStorage.getItem('rc_avatar_candidate@copilot.com') || localStorage.getItem('rc_avatar_sarah.johnson@example.com') || localStorage.getItem('rc_avatar_cand-1'))
-          : undefined);
+        (isDemoCand ? (localStorage.getItem('rc_avatar_candidate@copilot.com') || localStorage.getItem('rc_avatar_sarah.johnson@example.com') || localStorage.getItem('rc_avatar_cand-1')) : undefined);
       setAvatar(savedAvatar || undefined);
     }
   }, [userProfile, isCandidate]);
@@ -139,9 +136,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const handleSaveProfile = () => {
     const cleanMail = (email || userProfile?.email || 'candidate@copilot.com').toLowerCase();
     const cleanName = (name || '').trim();
+    const isDemoCand = cleanMail === 'candidate@copilot.com' || cleanMail === 'sarah.johnson@example.com';
+
     if (cleanName) {
       localStorage.setItem(`rc_name_${cleanMail}`, cleanName);
-      if (cleanMail === 'candidate@copilot.com' || cleanMail === 'sarah.johnson@example.com' || isCandidate) {
+      if (isDemoCand) {
         localStorage.setItem('rc_name_candidate@copilot.com', cleanName);
         localStorage.setItem('rc_name_sarah.johnson@example.com', cleanName);
         localStorage.setItem('rc_name_cand-1', cleanName);
@@ -149,7 +148,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     }
     if (avatar) {
       localStorage.setItem(`rc_avatar_${cleanMail}`, avatar);
-      if (cleanMail === 'candidate@copilot.com' || cleanMail === 'sarah.johnson@example.com' || isCandidate) {
+      if (isDemoCand) {
         localStorage.setItem('rc_avatar_candidate@copilot.com', avatar);
         localStorage.setItem('rc_avatar_sarah.johnson@example.com', avatar);
         localStorage.setItem('rc_avatar_cand-1', avatar);
@@ -172,7 +171,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       localStorage.setItem(`${candidatePrefsKey}_portfolio`, portfolioUrl);
     }
     setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
+    setTimeout(() => setSavedSuccess(false), 3500);
   };
 
   const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -183,8 +182,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         const dataUrl = reader.result as string;
         setAvatar(dataUrl);
         const cleanMail = (email || userProfile?.email || 'candidate@copilot.com').toLowerCase();
+        const isDemoCand = cleanMail === 'candidate@copilot.com' || cleanMail === 'sarah.johnson@example.com';
         localStorage.setItem(`rc_avatar_${cleanMail}`, dataUrl);
-        if (cleanMail === 'candidate@copilot.com' || cleanMail === 'sarah.johnson@example.com' || isCandidate) {
+        if (isDemoCand) {
           localStorage.setItem('rc_avatar_candidate@copilot.com', dataUrl);
           localStorage.setItem('rc_avatar_sarah.johnson@example.com', dataUrl);
           localStorage.setItem('rc_avatar_cand-1', dataUrl);
@@ -200,8 +200,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const handleClearImage = () => {
     setAvatar(undefined);
     const cleanMail = (email || userProfile?.email || 'candidate@copilot.com').toLowerCase();
+    const isDemoCand = cleanMail === 'candidate@copilot.com' || cleanMail === 'sarah.johnson@example.com';
     localStorage.removeItem(`rc_avatar_${cleanMail}`);
-    if (cleanMail === 'candidate@copilot.com' || cleanMail === 'sarah.johnson@example.com' || isCandidate) {
+    if (isDemoCand) {
       localStorage.removeItem('rc_avatar_candidate@copilot.com');
       localStorage.removeItem('rc_avatar_sarah.johnson@example.com');
       localStorage.removeItem('rc_avatar_cand-1');
