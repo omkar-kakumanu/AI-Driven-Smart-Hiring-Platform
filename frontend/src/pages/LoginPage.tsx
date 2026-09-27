@@ -41,6 +41,21 @@ const getPersistedName = (email: string, fallback: string, userAccounts: UserAcc
   return fallback;
 };
 
+const getPersistedAvatar = (email: string, storedAvatar?: string): string | undefined => {
+  const clean = email.trim().toLowerCase();
+  const direct = localStorage.getItem(`rc_avatar_${clean}`);
+  if (direct) return direct;
+  if (clean === 'candidate@copilot.com' || clean === 'sarah.johnson@example.com') {
+    const cand1 = localStorage.getItem('rc_avatar_candidate@copilot.com');
+    if (cand1) return cand1;
+    const cand2 = localStorage.getItem('rc_avatar_sarah.johnson@example.com');
+    if (cand2) return cand2;
+    const cand3 = localStorage.getItem('rc_avatar_cand-1');
+    if (cand3) return cand3;
+  }
+  return storedAvatar || undefined;
+};
+
 export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onRegister }) => {
   // Modes: 'RECRUITER' | 'CANDIDATE' | 'ADMIN' | 'SIGN_UP'
   const [mode, setMode] = useState<'RECRUITER' | 'CANDIDATE' | 'ADMIN' | 'SIGN_UP'>('RECRUITER');
@@ -67,7 +82,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
   const handleGoogleSelect = (selectedEmail: string, selectedName: string, userRole: string, isAdmin = false) => {
     const cleanMail = selectedEmail.trim().toLowerCase();
     const stored = userAccounts.find(u => u.email.toLowerCase() === cleanMail);
-    const savedAvatar = localStorage.getItem(`rc_avatar_${cleanMail}`) || stored?.avatar || undefined;
+    const savedAvatar = getPersistedAvatar(cleanMail, stored?.avatar);
     const finalName = getPersistedName(cleanMail, selectedName, userAccounts);
     onLogin({
       name: finalName,
@@ -102,7 +117,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
     // 1. GLOBAL PRIORITY CHECK: Default Super-Admin ALWAYS logs in as Administrator
     if (emailClean === 'admin@copilot.com' && (password === 'admin123' || mode === 'ADMIN')) {
       const storedAdmin = userAccounts.find(u => u.email.toLowerCase() === 'admin@copilot.com');
-      const savedAvatar = localStorage.getItem('rc_avatar_admin@copilot.com') || storedAdmin?.avatar || undefined;
+      const savedAvatar = getPersistedAvatar('admin@copilot.com', storedAdmin?.avatar);
       const adminFallback = (storedAdmin?.name && !storedAdmin.name.includes('Alex Vance')) ? storedAdmin.name : 'J Manju Raghvin (Main Super-Admin)';
       onLogin({
         name: getPersistedName('admin@copilot.com', adminFallback, userAccounts),
@@ -119,7 +134,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
     // 2. GLOBAL PRIORITY CHECK: Default Recruiter
     if (emailClean === 'recruiter@copilot.com' && (password === 'recruiter123' || mode === 'RECRUITER')) {
       const stored = userAccounts.find(u => u.email.toLowerCase() === 'recruiter@copilot.com');
-      const savedAvatar = localStorage.getItem('rc_avatar_recruiter@copilot.com') || stored?.avatar || undefined;
+      const savedAvatar = getPersistedAvatar('recruiter@copilot.com', stored?.avatar);
       onLogin({
         name: getPersistedName('recruiter@copilot.com', stored?.name || 'Sarah Jenkins', userAccounts),
         role: stored?.role || 'Talent Acquisition Specialist',
@@ -136,7 +151,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
     if ((emailClean === 'candidate@copilot.com' || emailClean === 'sarah.johnson@example.com') && (password === 'candidate123' || mode === 'CANDIDATE')) {
       const targetMail = 'sarah.johnson@example.com';
       const stored = userAccounts.find(u => u.email.toLowerCase() === targetMail || u.email.toLowerCase() === 'candidate@copilot.com');
-      const savedAvatar = localStorage.getItem(`rc_avatar_${targetMail}`) || stored?.avatar || undefined;
+      const savedAvatar = getPersistedAvatar(targetMail, stored?.avatar);
       const candidateName = getPersistedName(targetMail, stored?.name || 'Sarah Johnson', userAccounts);
       onLogin({
         name: candidateName,
@@ -164,7 +179,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
       setActiveStep(3);
     } else if (mode === 'CANDIDATE') {
       const found = userAccounts.find(u => u.email.toLowerCase() === emailClean);
-      const savedAvatar = localStorage.getItem(`rc_avatar_${emailClean}`) || found?.avatar || undefined;
+      const savedAvatar = getPersistedAvatar(emailClean, found?.avatar);
       const resolvedName = getPersistedName(emailClean, found?.name || emailClean.split('@')[0].replace('.', ' '), userAccounts);
       if (found) {
         onLogin({
@@ -183,6 +198,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
         role: 'Candidate Applicant',
         email: emailClean,
         userType: 'USER',
+        status: 'APPROVED',
+        isSuperAdmin: false,
+        avatar: savedAvatar
+      });
         status: 'APPROVED',
         isSuperAdmin: false,
         avatar: savedAvatar

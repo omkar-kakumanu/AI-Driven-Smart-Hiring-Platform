@@ -50,7 +50,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   });
   const [role, setRole] = useState(userProfile?.role || (isCandidate ? 'Senior Full Stack Engineer' : 'Lead Recruiter'));
   const [email, setEmail] = useState(userProfile?.email || (isCandidate ? 'candidate@copilot.com' : 'recruiter@copilot.com'));
-  const [avatar, setAvatar] = useState<string | undefined>(userProfile?.avatar);
+  const [avatar, setAvatar] = useState<string | undefined>(() => {
+    if (userProfile?.avatar) return userProfile.avatar;
+    const emailLower = (userProfile?.email || 'candidate@copilot.com').toLowerCase();
+    const saved = localStorage.getItem(`rc_avatar_${emailLower}`);
+    if (saved) return saved;
+    if (emailLower === 'candidate@copilot.com' || emailLower === 'sarah.johnson@example.com' || isCandidate) {
+      return localStorage.getItem('rc_avatar_candidate@copilot.com') || localStorage.getItem('rc_avatar_sarah.johnson@example.com') || localStorage.getItem('rc_avatar_cand-1') || undefined;
+    }
+    return undefined;
+  });
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   // Candidate Career & Job Preferences state (Indian Tech Standards)
@@ -114,7 +123,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       setName(savedName || userProfile.name);
       setRole(userProfile.role);
       setEmail(userProfile.email);
-      setAvatar(userProfile.avatar);
+      const savedAvatar = userProfile.avatar ||
+        localStorage.getItem(`rc_avatar_${emailLower}`) ||
+        ((emailLower === 'candidate@copilot.com' || emailLower === 'sarah.johnson@example.com' || isCandidate)
+          ? (localStorage.getItem('rc_avatar_candidate@copilot.com') || localStorage.getItem('rc_avatar_sarah.johnson@example.com') || localStorage.getItem('rc_avatar_cand-1'))
+          : undefined);
+      setAvatar(savedAvatar);
     }
   }, [userProfile, isCandidate]);
 
@@ -126,6 +140,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       if (cleanMail === 'candidate@copilot.com' || cleanMail === 'sarah.johnson@example.com' || isCandidate) {
         localStorage.setItem('rc_name_candidate@copilot.com', cleanName);
         localStorage.setItem('rc_name_sarah.johnson@example.com', cleanName);
+        localStorage.setItem('rc_name_cand-1', cleanName);
       }
     }
     if (avatar) {
@@ -133,6 +148,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       if (cleanMail === 'candidate@copilot.com' || cleanMail === 'sarah.johnson@example.com' || isCandidate) {
         localStorage.setItem('rc_avatar_candidate@copilot.com', avatar);
         localStorage.setItem('rc_avatar_sarah.johnson@example.com', avatar);
+        localStorage.setItem('rc_avatar_cand-1', avatar);
       }
     }
     if (onUpdateUserProfile) {
@@ -167,6 +183,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         if (cleanMail === 'candidate@copilot.com' || cleanMail === 'sarah.johnson@example.com' || isCandidate) {
           localStorage.setItem('rc_avatar_candidate@copilot.com', dataUrl);
           localStorage.setItem('rc_avatar_sarah.johnson@example.com', dataUrl);
+          localStorage.setItem('rc_avatar_cand-1', dataUrl);
         }
         if (onUpdateUserProfile) {
           onUpdateUserProfile({ name, role, email, avatar: dataUrl });
@@ -183,6 +200,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     if (cleanMail === 'candidate@copilot.com' || cleanMail === 'sarah.johnson@example.com' || isCandidate) {
       localStorage.removeItem('rc_avatar_candidate@copilot.com');
       localStorage.removeItem('rc_avatar_sarah.johnson@example.com');
+      localStorage.removeItem('rc_avatar_cand-1');
     }
     if (onUpdateUserProfile) {
       onUpdateUserProfile({ name, role, email, avatar: undefined });

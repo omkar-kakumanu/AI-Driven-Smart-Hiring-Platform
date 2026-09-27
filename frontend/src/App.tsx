@@ -78,10 +78,13 @@ export default function App() {
   const handleLogin = (profile: UserProfile & { userType: 'ADMIN' | 'USER'; status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'REVOKED'; isSuperAdmin?: boolean }) => {
     const isAdminAccount = profile.userType === 'ADMIN' || profile.email.toLowerCase() === 'admin@copilot.com';
     const targetEmail = profile.email.toLowerCase();
+    const isCandidateEmail = targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com';
     const existingAccount = store.userAccounts.find(u => u.email.toLowerCase() === targetEmail);
     const isolatedAvatar = profile.avatar !== undefined 
       ? profile.avatar 
-      : (localStorage.getItem(`rc_avatar_${targetEmail}`) || existingAccount?.avatar || undefined);
+      : (localStorage.getItem(`rc_avatar_${targetEmail}`) || 
+         (isCandidateEmail ? (localStorage.getItem('rc_avatar_candidate@copilot.com') || localStorage.getItem('rc_avatar_sarah.johnson@example.com') || localStorage.getItem('rc_avatar_cand-1')) : null) ||
+         existingAccount?.avatar || undefined);
 
     const persistedName = localStorage.getItem(`rc_name_${targetEmail}`) ||
       ((targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com')
@@ -292,6 +295,7 @@ export default function App() {
           {currentTab === 'candidate-portal' && (
             <CandidatePortalView 
               candidates={roleFilteredCandidates}
+              userProfile={store.userProfile}
               jobs={store.jobs}
               currentCandidateEmail={store.userProfile?.email || 'candidate@copilot.com'}
               scheduledInterviews={store.scheduledInterviews}
@@ -303,6 +307,9 @@ export default function App() {
               onNavigateToMatching={() => setCurrentTab('matching')}
               onNavigateToAts={() => setCurrentTab('ats-integration')}
               onCancelInterview={store.cancelInterview}
+              onUpdateAvatar={(newAvatar) => {
+                store.updateUserProfile({ avatar: newAvatar });
+              }}
             />
           )}
           {currentTab === 'settings' && (
