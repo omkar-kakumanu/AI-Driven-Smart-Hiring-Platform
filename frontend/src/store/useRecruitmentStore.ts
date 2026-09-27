@@ -454,22 +454,46 @@ export function useRecruitmentStore() {
         return u;
       }));
 
-      setCandidates(prevCands => prevCands.map(c => {
-        const cMail = c.email.toLowerCase();
-        const matchesCandidate = cMail === targetEmail || 
-          ((targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com') && 
-           (cMail === 'candidate@copilot.com' || cMail === 'sarah.johnson@example.com')) ||
-          (c.id === 'cand-1' && (targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com'));
-
-        if (matchesCandidate) {
-          return {
-            ...c,
-            fullName: updates.name ? updates.name.trim() : c.fullName,
-            avatar: newAvatar
+      setCandidates(prevCands => {
+        const cExists = prevCands.some(c => c.email.toLowerCase() === targetEmail);
+        if (!cExists && targetEmail && !targetEmail.includes('admin') && !targetEmail.includes('recruiter')) {
+          const newCandidate: Candidate = {
+            id: `cand-${targetEmail.replace(/[^a-z0-9]/g, '-')}`,
+            fullName: updates.name ? updates.name.trim() : (prev.name || targetEmail.split('@')[0]),
+            email: targetEmail,
+            phone: localStorage.getItem(`rc_candidate_prefs_${targetEmail}_phone`) || '+91 98765 43210',
+            location: localStorage.getItem(`rc_candidate_prefs_${targetEmail}_city`) || 'Bengaluru, Karnataka',
+            currentRole: updates.role || prev.role || 'Full Stack Engineer',
+            totalExperienceYears: 3,
+            headline: 'Candidate Profile & Engineering Portfolio',
+            skills: ['JavaScript', 'React', 'Problem Solving'],
+            degree: 'B.Tech / Bachelor Degree',
+            institution: 'University',
+            status: 'Applied',
+            matchScore: 88,
+            avatar: newAvatar,
+            interviewResponses: []
           };
+          return [...prevCands, newCandidate];
         }
-        return c;
-      }));
+
+        return prevCands.map(c => {
+          const cMail = c.email.toLowerCase();
+          const matchesCandidate = cMail === targetEmail || 
+            ((targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com') && 
+             (cMail === 'candidate@copilot.com' || cMail === 'sarah.johnson@example.com')) ||
+            (c.id === 'cand-1' && (targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com'));
+
+          if (matchesCandidate) {
+            return {
+              ...c,
+              fullName: updates.name ? updates.name.trim() : c.fullName,
+              avatar: newAvatar
+            };
+          }
+          return c;
+        });
+      });
 
       setScheduledInterviews(prev => prev.map(item => {
         const iMail = item.candidateEmail.toLowerCase();

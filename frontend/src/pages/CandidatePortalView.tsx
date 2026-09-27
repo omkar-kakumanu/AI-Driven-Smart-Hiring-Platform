@@ -76,27 +76,43 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
        (isCandidateEmail ? (localStorage.getItem('rc_avatar_candidate@copilot.com') || localStorage.getItem('rc_avatar_sarah.johnson@example.com') || localStorage.getItem('rc_avatar_cand-1')) : null) ||
        undefined);
 
-  // Find current candidate or fallback to first candidate
-  const rawCandidate = candidates.find(
-    c => c.email.toLowerCase() === currentCandidateEmail.toLowerCase()
-  ) || candidates.find(c => c.email.toLowerCase().includes('candidate') || c.email.toLowerCase() === 'sarah.johnson@example.com') || candidates[0] || {
-    id: 'cand-1',
-    fullName: candidatePersistedName || 'Sarah Johnson',
-    email: 'candidate@copilot.com',
-    currentRole: 'Senior Full Stack Engineer',
-    totalExperienceYears: 6,
-    headline: 'Senior Full Stack Engineer with 6 years experience in React, Node.js, TypeScript',
-    skills: ['React 19', 'TypeScript', 'Node.js', 'PostgreSQL', 'Docker', 'AWS'],
-    degree: 'B.Tech in Computer Science & Engineering',
-    institution: 'IIT / NIT (Institute of Technology)',
-    status: 'Interview in progress',
-    matchScore: 94
+  // Find current candidate or construct an isolated candidate profile for non-demo users
+  const existingCandidate = candidates.find(
+    c => c.email.toLowerCase() === emailLower
+  );
+
+  const demoCandidate = isCandidateEmail 
+    ? (candidates.find(c => c.email.toLowerCase() === 'sarah.johnson@example.com' || c.email.toLowerCase() === 'candidate@copilot.com') || candidates.find(c => c.id === 'cand-1'))
+    : null;
+
+  const defaultIsolatedCandidate: Candidate = {
+    id: `cand-${emailLower.replace(/[^a-z0-9]/g, '-')}`,
+    fullName: (candidatePersistedName && candidatePersistedName.trim()) ? candidatePersistedName.trim() : (userProfile?.name || emailLower.split('@')[0]),
+    email: currentCandidateEmail || emailLower,
+    phone: localStorage.getItem(`rc_candidate_prefs_${emailLower}_phone`) || '+91 98765 43210',
+    location: localStorage.getItem(`rc_candidate_prefs_${emailLower}_city`) || 'Bengaluru, Karnataka (Hybrid)',
+    currentRole: userProfile?.role || 'Full Stack Engineer',
+    totalExperienceYears: 3,
+    headline: 'Candidate Profile & Engineering Portfolio',
+    skills: ['JavaScript', 'React', 'Problem Solving', 'Git'],
+    degree: 'B.Tech / Bachelor of Engineering',
+    institution: 'University / Institute of Technology',
+    status: 'Applied',
+    matchScore: 88,
+    avatar: resolvedAvatar,
+    interviewResponses: []
   };
+
+  const rawCandidate = existingCandidate || demoCandidate || defaultIsolatedCandidate;
 
   const activeCandidate = {
     ...rawCandidate,
-    fullName: (candidatePersistedName && candidatePersistedName.trim()) ? candidatePersistedName.trim() : rawCandidate.fullName,
-    avatar: resolvedAvatar !== undefined ? resolvedAvatar : rawCandidate.avatar
+    fullName: (candidatePersistedName && candidatePersistedName.trim()) 
+      ? candidatePersistedName.trim() 
+      : (isCandidateEmail ? (rawCandidate.fullName || 'Sarah Johnson') : (userProfile?.name || rawCandidate.fullName)),
+    avatar: resolvedAvatar !== undefined 
+      ? resolvedAvatar 
+      : (isCandidateEmail ? rawCandidate.avatar : undefined)
   };
 
   const targetJob = jobs.find(j => j.title.toLowerCase().includes(activeCandidate.currentRole.toLowerCase())) || jobs[0] || {
