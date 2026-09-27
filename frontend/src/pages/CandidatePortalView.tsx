@@ -260,6 +260,8 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
             })}
           </div>
         </div>
+      </div>
+
       {/* Active Job Openings & Instant Fit Score */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
