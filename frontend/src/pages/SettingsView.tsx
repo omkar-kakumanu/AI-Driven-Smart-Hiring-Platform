@@ -128,7 +128,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         ((emailLower === 'candidate@copilot.com' || emailLower === 'sarah.johnson@example.com' || isCandidate)
           ? (localStorage.getItem('rc_avatar_candidate@copilot.com') || localStorage.getItem('rc_avatar_sarah.johnson@example.com') || localStorage.getItem('rc_avatar_cand-1'))
           : undefined);
-      setAvatar(savedAvatar);
+      setAvatar(savedAvatar || undefined);
     }
   }, [userProfile, isCandidate]);
 

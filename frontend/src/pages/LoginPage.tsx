@@ -202,10 +202,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
         isSuperAdmin: false,
         avatar: savedAvatar
       });
-        status: 'APPROVED',
-        isSuperAdmin: false,
-        avatar: savedAvatar
-      });
     } else if (mode === 'RECRUITER') {
       const found = userAccounts.find(u => u.email.toLowerCase() === emailClean);
       if (!found) {
@@ -220,7 +216,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ userAccounts, onLogin, onR
         setStatusNotice({ type: 'REVOKED', message: `Access Revoked: Account access for "${found.email}" has been revoked by an Administrator.` });
         return;
       }
-      const savedAvatar = localStorage.getItem(`rc_avatar_${emailClean}`) || found.avatar || undefined;
+      const savedAvatar = getPersistedAvatar(emailClean, found.avatar);
       const resolvedName = getPersistedName(emailClean, found.name, userAccounts);
       onLogin({
         name: resolvedName,
