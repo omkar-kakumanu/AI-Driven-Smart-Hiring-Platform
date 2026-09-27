@@ -13,6 +13,7 @@ interface ResumeUploadViewProps {
   onClearSearch?: () => void;
   isMainAdmin?: boolean;
   isCandidateUser?: boolean;
+  currentCandidateEmail?: string;
   onAddCandidate: (cand: Omit<Candidate, 'id' | 'status' | 'matchScore'>) => Candidate;
   onDeleteCandidate?: (candidateId: string) => void;
   onAddSkillToCandidate?: (candidateId: string, skill: string) => void;
@@ -28,6 +29,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   onClearSearch,
   isMainAdmin = false,
   isCandidateUser = false,
+  currentCandidateEmail,
   onAddCandidate,
   onDeleteCandidate,
   onAddSkillToCandidate,

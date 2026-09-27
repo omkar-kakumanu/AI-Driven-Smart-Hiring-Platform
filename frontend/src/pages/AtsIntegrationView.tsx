@@ -192,15 +192,6 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
 
   // Filter candidates
   const filteredCandidates = atsCandidates.filter(c => {
-    if (isCandidateUser) {
-      const targetEmail = (currentCandidateEmail || 'sarah.johnson@example.com').toLowerCase();
-      return (
-        c.email.toLowerCase() === targetEmail ||
-        c.email.toLowerCase().includes('candidate') ||
-        c.email.toLowerCase() === 'sarah.johnson@example.com' ||
-        c.id === 'ats-1'
-      );
-    }
     const matchesSearch = 
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||

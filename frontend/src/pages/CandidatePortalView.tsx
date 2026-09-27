@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import type { Candidate, Job, ScheduledInterview, CandidateNotification } from '../types';
+import type { Candidate, Job, ScheduledInterview, CandidateNotification, UserProfile } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
 
 interface CandidatePortalViewProps {
   candidates: Candidate[];
+  userProfile?: UserProfile;
   jobs: Job[];
   currentCandidateEmail: string;
   scheduledInterviews: ScheduledInterview[];
@@ -46,6 +47,7 @@ const formatIndianSalary = (min?: number, max?: number) => {
 
 export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
   candidates = [],
+  userProfile,
   jobs = [],
   currentCandidateEmail,
   scheduledInterviews = [],
@@ -58,9 +60,16 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
   onNavigateToAts,
   onCancelInterview
 }) => {
-  const candidatePersistedName = localStorage.getItem(`rc_name_${currentCandidateEmail.toLowerCase()}`) ||
+  const candidatePersistedName = userProfile?.name ||
+    localStorage.getItem(`rc_name_${currentCandidateEmail.toLowerCase()}`) ||
     localStorage.getItem('rc_name_candidate@copilot.com') ||
     localStorage.getItem('rc_name_sarah.johnson@example.com');
+
+  const resolvedAvatar = userProfile?.avatar ||
+    localStorage.getItem(`rc_avatar_${currentCandidateEmail.toLowerCase()}`) ||
+    localStorage.getItem('rc_avatar_candidate@copilot.com') ||
+    localStorage.getItem('rc_avatar_sarah.johnson@example.com') ||
+    undefined;
 
   // Find current candidate or fallback to first candidate
   const rawCandidate = candidates.find(
@@ -81,7 +90,8 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
 
   const activeCandidate = {
     ...rawCandidate,
-    fullName: (candidatePersistedName && candidatePersistedName.trim()) ? candidatePersistedName.trim() : rawCandidate.fullName
+    fullName: (candidatePersistedName && candidatePersistedName.trim()) ? candidatePersistedName.trim() : rawCandidate.fullName,
+    avatar: resolvedAvatar !== undefined ? resolvedAvatar : rawCandidate.avatar
   };
 
   const targetJob = jobs.find(j => j.title.toLowerCase().includes(activeCandidate.currentRole.toLowerCase())) || jobs[0] || {

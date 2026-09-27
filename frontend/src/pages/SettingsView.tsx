@@ -128,6 +128,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         localStorage.setItem('rc_name_sarah.johnson@example.com', cleanName);
       }
     }
+    if (avatar) {
+      localStorage.setItem(`rc_avatar_${cleanMail}`, avatar);
+      if (cleanMail === 'candidate@copilot.com' || cleanMail === 'sarah.johnson@example.com' || isCandidate) {
+        localStorage.setItem('rc_avatar_candidate@copilot.com', avatar);
+        localStorage.setItem('rc_avatar_sarah.johnson@example.com', avatar);
+      }
+    }
     if (onUpdateUserProfile) {
       onUpdateUserProfile({ name: cleanName || name, role, email, avatar });
     }
@@ -155,6 +162,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       reader.onloadend = () => {
         const dataUrl = reader.result as string;
         setAvatar(dataUrl);
+        const cleanMail = (email || userProfile?.email || 'candidate@copilot.com').toLowerCase();
+        localStorage.setItem(`rc_avatar_${cleanMail}`, dataUrl);
+        if (cleanMail === 'candidate@copilot.com' || cleanMail === 'sarah.johnson@example.com' || isCandidate) {
+          localStorage.setItem('rc_avatar_candidate@copilot.com', dataUrl);
+          localStorage.setItem('rc_avatar_sarah.johnson@example.com', dataUrl);
+        }
         if (onUpdateUserProfile) {
           onUpdateUserProfile({ name, role, email, avatar: dataUrl });
         }
@@ -165,6 +178,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const handleClearImage = () => {
     setAvatar(undefined);
+    const cleanMail = (email || userProfile?.email || 'candidate@copilot.com').toLowerCase();
+    localStorage.removeItem(`rc_avatar_${cleanMail}`);
+    if (cleanMail === 'candidate@copilot.com' || cleanMail === 'sarah.johnson@example.com' || isCandidate) {
+      localStorage.removeItem('rc_avatar_candidate@copilot.com');
+      localStorage.removeItem('rc_avatar_sarah.johnson@example.com');
+    }
     if (onUpdateUserProfile) {
       onUpdateUserProfile({ name, role, email, avatar: undefined });
     }
