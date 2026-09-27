@@ -144,6 +144,8 @@ export default function App() {
         userAccounts={store.userAccounts} 
         onLogin={handleLogin} 
         onRegister={store.registerUser} 
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
     );
   }
@@ -219,6 +221,8 @@ export default function App() {
           userProfile={store.userProfile}
           searchQuery={searchQuery}
           matchCount={filteredCandidates.length}
+          theme={theme}
+          onToggleTheme={toggleTheme}
           onSearchChange={setSearchQuery}
           onNewJobClick={() => setShowNewJobModal(true)}
           onProfileClick={() => setCurrentTab('settings')}
@@ -332,6 +336,8 @@ export default function App() {
             <SettingsView 
               userProfile={store.userProfile}
               isCandidateUser={isCandidateUser}
+              theme={theme}
+              onToggleTheme={toggleTheme}
               onUpdateUserProfile={store.updateUserProfile}
               userAccounts={store.userAccounts}
               onApproveUser={store.approveUser}

@@ -5,6 +5,8 @@ import { UserAvatar } from '../components/UserAvatar';
 interface SettingsViewProps {
   userProfile?: UserProfile;
   isCandidateUser?: boolean;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
   onUpdateUserProfile?: (updates: Partial<UserProfile>) => void;
   userAccounts?: UserAccount[];
   onApproveUser?: (userId: string) => void;
@@ -19,6 +21,8 @@ interface SettingsViewProps {
 export const SettingsView: React.FC<SettingsViewProps> = ({ 
   userProfile,
   isCandidateUser = false,
+  theme = 'light',
+  onToggleTheme,
   onUpdateUserProfile,
   userAccounts = [],
   onApproveUser,
@@ -39,23 +43,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     )
   );
 
-  // User Profile Form State
+  // User Profile Form State with strict tenant privacy
   const [name, setName] = useState(() => {
     const emailLower = (userProfile?.email || 'candidate@copilot.com').toLowerCase();
+    const isDemoCand = emailLower === 'candidate@copilot.com' || emailLower === 'sarah.johnson@example.com';
     const savedName = localStorage.getItem(`rc_name_${emailLower}`) ||
-      ((emailLower === 'candidate@copilot.com' || emailLower === 'sarah.johnson@example.com' || isCandidate)
-        ? (localStorage.getItem('rc_name_candidate@copilot.com') || localStorage.getItem('rc_name_sarah.johnson@example.com'))
-        : null);
-    return savedName || userProfile?.name || (isCandidate ? 'Sarah Johnson' : 'Sarah Jenkins');
+      (isDemoCand ? (localStorage.getItem('rc_name_candidate@copilot.com') || localStorage.getItem('rc_name_sarah.johnson@example.com')) : null);
+    return savedName || userProfile?.name || (isDemoCand ? 'Sarah Johnson' : (isCandidate ? 'Candidate' : 'Sarah Jenkins'));
   });
   const [role, setRole] = useState(userProfile?.role || (isCandidate ? 'Senior Full Stack Engineer' : 'Lead Recruiter'));
   const [email, setEmail] = useState(userProfile?.email || (isCandidate ? 'candidate@copilot.com' : 'recruiter@copilot.com'));
   const [avatar, setAvatar] = useState<string | undefined>(() => {
     if (userProfile?.avatar) return userProfile.avatar;
     const emailLower = (userProfile?.email || 'candidate@copilot.com').toLowerCase();
+    const isDemoCand = emailLower === 'candidate@copilot.com' || emailLower === 'sarah.johnson@example.com';
     const saved = localStorage.getItem(`rc_avatar_${emailLower}`);
     if (saved) return saved;
-    if (emailLower === 'candidate@copilot.com' || emailLower === 'sarah.johnson@example.com' || isCandidate) {
+    if (isDemoCand) {
       return localStorage.getItem('rc_avatar_candidate@copilot.com') || localStorage.getItem('rc_avatar_sarah.johnson@example.com') || localStorage.getItem('rc_avatar_cand-1') || undefined;
     }
     return undefined;
