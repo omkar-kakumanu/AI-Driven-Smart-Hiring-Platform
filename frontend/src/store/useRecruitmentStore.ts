@@ -64,17 +64,45 @@ export function useRecruitmentStore() {
         if (Array.isArray(parsed) && parsed.length > 0) cands = parsed;
       } catch (e) {}
     }
-    // Sync any custom name persisted in localStorage
+    
+    // Ensure all standard initial candidates are preserved and never collapsed
+    const existingIds = new Set(cands.map(c => c.id));
+    const missing = INITIAL_CANDIDATES.filter(ic => !existingIds.has(ic.id));
+    if (missing.length > 0) {
+      cands = [...cands, ...missing];
+    }
+
+    const initialMap = new Map(INITIAL_CANDIDATES.map(ic => [ic.id, ic]));
+    const cand1CustomName = localStorage.getItem('rc_name_candidate@copilot.com') ||
+      localStorage.getItem('rc_name_sarah.johnson@example.com') ||
+      localStorage.getItem('rc_name_cand-1');
+    const cand1CustomAvatar = localStorage.getItem('rc_avatar_candidate@copilot.com') ||
+      localStorage.getItem('rc_avatar_sarah.johnson@example.com');
+
     return cands.map(c => {
       const cMail = c.email.toLowerCase();
-      const savedName = localStorage.getItem(`rc_name_${cMail}`) ||
-        ((cMail === 'candidate@copilot.com' || cMail === 'sarah.johnson@example.com' || c.id === 'cand-1')
-          ? (localStorage.getItem('rc_name_candidate@copilot.com') || localStorage.getItem('rc_name_sarah.johnson@example.com'))
-          : null);
-      if (savedName && savedName.trim()) {
-        return { ...c, fullName: savedName.trim() };
+      const isCand1 = c.id === 'cand-1' || cMail === 'candidate@copilot.com' || cMail === 'sarah.johnson@example.com';
+      
+      if (isCand1) {
+        return {
+          ...c,
+          fullName: (cand1CustomName && cand1CustomName.trim()) ? cand1CustomName.trim() : (c.fullName || 'Sarah Johnson'),
+          avatar: cand1CustomAvatar || c.avatar
+        };
       }
-      return c;
+
+      // For all other candidates (Alex Chen, Emily Rodriguez, Marcus Vance, Elena Rostova, Priya Sharma):
+      // Ensure their names are distinct and preserved from template if corrupted
+      const orig = initialMap.get(c.id);
+      const isCorruptedName = cand1CustomName && c.fullName === cand1CustomName;
+      const cleanName = (isCorruptedName && orig) ? orig.fullName : (c.fullName || orig?.fullName || 'Candidate');
+      const savedSpecificAvatar = localStorage.getItem(`rc_avatar_${cMail}`);
+
+      return {
+        ...c,
+        fullName: cleanName,
+        avatar: savedSpecificAvatar || c.avatar
+      };
     });
   });
 
@@ -335,8 +363,16 @@ export function useRecruitmentStore() {
       if (updates.avatar !== undefined) {
         if (updates.avatar) {
           localStorage.setItem(`rc_avatar_${targetEmail}`, updates.avatar);
+          if (targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com') {
+            localStorage.setItem('rc_avatar_candidate@copilot.com', updates.avatar);
+            localStorage.setItem('rc_avatar_sarah.johnson@example.com', updates.avatar);
+          }
         } else {
           localStorage.removeItem(`rc_avatar_${targetEmail}`);
+          if (targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com') {
+            localStorage.removeItem('rc_avatar_candidate@copilot.com');
+            localStorage.removeItem('rc_avatar_sarah.johnson@example.com');
+          }
           newAvatar = undefined;
         }
       }
