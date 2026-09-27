@@ -18,6 +18,7 @@ interface AtsIntegrationViewProps {
   candidates: Candidate[];
   isMainAdmin?: boolean;
   isCandidateUser?: boolean;
+  currentCandidateEmail?: string;
   onUpdateCandidateStatusByEmail?: (email: string, status: Candidate['status']) => void;
   onNavigateToInterview?: () => void;
 }
@@ -37,6 +38,7 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
   candidates = [],
   isMainAdmin = false,
   isCandidateUser = false,
+  currentCandidateEmail,
   onUpdateCandidateStatusByEmail,
   onNavigateToInterview
 }) => {
@@ -187,7 +189,10 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
   // Filter candidates
   const filteredCandidates = atsCandidates.filter(c => {
     if (isCandidateUser) {
+      const targetEmail = (currentCandidateEmail || 'sarah.johnson@example.com').toLowerCase();
       return (
+        c.email.toLowerCase() === targetEmail ||
+        c.email.toLowerCase().includes('candidate') ||
         c.email.toLowerCase() === 'sarah.johnson@example.com' ||
         c.name.toLowerCase().includes('sarah')
       );
@@ -212,7 +217,7 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-100 text-amber-900 rounded-full font-bold text-xs border border-amber-300">
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-              Integration Center • ATS Integration Hub
+              {isCandidateUser ? 'Application Tracking • ATS Sync Center' : 'Integration Center • ATS Integration Hub'}
             </div>
             {isMainAdmin && (
               <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-100 text-purple-900 rounded-full font-bold text-xs border border-purple-300">
@@ -220,9 +225,13 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
               </div>
             )}
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Enterprise ATS Integration Hub</h2>
+          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+            {isCandidateUser ? 'My Application ATS Sync Record' : 'Enterprise ATS Integration Hub'}
+          </h2>
           <p className="text-slate-500 text-xs mt-1 font-medium">
-            Bi-directional candidate synchronization with Greenhouse, Lever, and Workday Applicant Tracking Systems
+            {isCandidateUser 
+              ? 'Real-time synchronization status with Greenhouse, Lever, and Workday Applicant Tracking Systems.' 
+              : 'Bi-directional candidate synchronization with Greenhouse, Lever, and Workday Applicant Tracking Systems'}
           </p>
         </div>
 

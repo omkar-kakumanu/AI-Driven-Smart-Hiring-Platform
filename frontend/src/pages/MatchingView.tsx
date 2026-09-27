@@ -207,10 +207,16 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-xs mb-2">
-            Neural Matching • Candidate-Job Matching Engine
+            {isCandidateUser ? 'Career Alignment • Neural Job Match & Gap Engine' : 'Neural Matching • Candidate-Job Matching Engine'}
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Candidate Skill Alignment & Gap Analysis</h2>
-          <p className="text-slate-500 text-xs mt-1 font-medium">Select a target job position to evaluate candidate skill fit, experience compatibility, and training gaps.</p>
+          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+            {isCandidateUser ? 'My Skill Alignment & Job Fit Analysis' : 'Candidate Skill Alignment & Gap Analysis'}
+          </h2>
+          <p className="text-slate-500 text-xs mt-1 font-medium">
+            {isCandidateUser 
+              ? 'Select any open job position to evaluate your skill alignment, match percentage, and targeted learning recommendations.'
+              : 'Select a target job position to evaluate candidate skill fit, experience compatibility, and training gaps.'}
+          </p>
         </div>
 
         <span className="px-4 py-2 bg-slate-900 text-white font-bold text-xs rounded-xl shadow-sm self-start md:self-auto">
@@ -219,7 +225,7 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
       </div>
 
       {/* Main Admin Dedicated Skill Addition Box */}
-      {isMainAdmin && selectedCandidate && (
+      {isMainAdmin && !isCandidateUser && selectedCandidate && (
         <div className="p-4 bg-gradient-to-r from-purple-900 to-indigo-900 text-white rounded-2xl shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-purple-500/30 border border-purple-400/40 flex items-center justify-center font-black text-xs text-purple-200 shrink-0">
@@ -284,18 +290,35 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
 
         {/* Candidate Selector */}
         <div>
-          <label className="text-xs font-bold text-slate-700 block mb-1">Select Candidate Profile</label>
-          <select 
-            value={safeCandIdx} 
-            onChange={e => setSelectedCandIdx(Number(e.target.value))}
-            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-500"
-          >
-            {availableCandidates.map((c, i) => (
-              <option key={i} value={i}>
-                {c.name} ({(c.skills || []).slice(0, 3).join(', ')})
-              </option>
-            ))}
-          </select>
+          <label className="text-xs font-bold text-slate-700 block mb-1">
+            {isCandidateUser ? 'Your Candidate Profile' : 'Select Candidate Profile'}
+          </label>
+          {isCandidateUser && selectedCandidate ? (
+            <div className="px-4 py-2 bg-slate-50 border border-slate-300 rounded-xl flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <UserAvatar name={selectedCandidate.name} avatar={selectedCandidate.avatar} size="sm" />
+                <div>
+                  <p className="text-xs font-bold text-slate-900">{selectedCandidate.name}</p>
+                  <p className="text-[10px] text-slate-500 font-medium">{selectedCandidate.experience} yrs experience • {selectedCandidate.education}</p>
+                </div>
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 text-blue-800 border border-blue-200">
+                Active Profile
+              </span>
+            </div>
+          ) : (
+            <select 
+              value={safeCandIdx} 
+              onChange={e => setSelectedCandIdx(Number(e.target.value))}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-500"
+            >
+              {availableCandidates.map((c, i) => (
+                <option key={i} value={i}>
+                  {c.name} ({(c.skills || []).slice(0, 3).join(', ')})
+                </option>
+              ))}
+            </select>
+          )}
           <p className="text-[11px] text-slate-500 mt-1.5 font-medium">
             Candidate Skills: <span className="font-bold text-slate-800">{(selectedCandidate?.skills || []).join(', ')}</span>
           </p>
@@ -307,9 +330,9 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div>
             <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-              <span>Candidate Ranking Leaderboard</span>
+              <span>{isCandidateUser ? 'My Fit Ranking & Benchmark' : 'Candidate Ranking Leaderboard'}</span>
               <span className="px-2.5 py-0.5 bg-blue-100 text-blue-800 text-xs font-black rounded-full">
-                {rankedCandidates.length} Candidates Ranked
+                {rankedCandidates.length} {isCandidateUser ? 'Candidate in Pool' : 'Candidates Ranked'}
               </span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
