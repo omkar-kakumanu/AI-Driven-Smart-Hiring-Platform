@@ -865,18 +865,24 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
           {/* Candidate Picker for Recording */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-slate-500">Candidate:</span>
-            <select
-              value={selectedCandidateId}
-              disabled={isCandidateUser}
-              onChange={e => setSelectedCandidateId(e.target.value)}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-75 disabled:cursor-not-allowed"
-            >
-              {candidatePool.map(cand => (
-                <option key={cand.id} value={cand.id}>
-                  {cand.fullName} ({cand.currentRole || 'Candidate'})
-                </option>
-              ))}
-            </select>
+            {isCandidateUser ? (
+              <span className="px-3 py-1.5 bg-blue-50 text-blue-900 border border-blue-200 rounded-lg text-xs font-bold">
+                {activeCandidate.fullName}
+              </span>
+            ) : (
+              <select
+                value={selectedCandidateId}
+                disabled={isCandidateUser}
+                onChange={e => setSelectedCandidateId(e.target.value)}
+                className="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-75 disabled:cursor-not-allowed"
+              >
+                {candidatePool.map(cand => (
+                  <option key={cand.id} value={cand.id}>
+                    {cand.fullName} ({cand.currentRole || 'Candidate'})
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
 
@@ -1095,130 +1101,140 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
         {/* Top Controls: Mode Switcher & Filter Tabs without emojis */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
           <div>
-            <h2 className="text-base font-bold text-slate-900">Voice Screening Review Hub</h2>
-            <p className="text-xs text-slate-500 font-medium">Inspect candidate submissions separately or review all logs in consolidated view</p>
+            <h2 className="text-base font-bold text-slate-900">
+              {isCandidateUser ? 'My Voice Screening Submissions & Analytics' : 'Voice Screening Review Hub'}
+            </h2>
+            <p className="text-xs text-slate-500 font-medium">
+              {isCandidateUser
+                ? 'Review your recorded verbal responses, speech metrics, and review status'
+                : 'Inspect candidate submissions separately or review all logs in consolidated view'}
+            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            {/* View Mode Toggle */}
-            <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200">
-              <button
-                type="button"
-                onClick={() => setInspectionMode('individual')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  inspectionMode === 'individual'
-                    ? 'bg-white text-blue-700 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Individual Candidate View
-              </button>
-              <button
-                type="button"
-                onClick={() => setInspectionMode('overview')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  inspectionMode === 'overview'
-                    ? 'bg-white text-blue-700 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                All Screenings Overview
-              </button>
-            </div>
-
-            {/* Filter Tabs */}
-            <div className="flex items-center gap-1 border border-slate-200 rounded-xl p-1 bg-slate-50">
-              {(['ALL', 'PENDING', 'REVIEWED'] as const).map(tab => (
+          {!isCandidateUser && (
+            <div className="flex flex-wrap items-center gap-3">
+              {/* View Mode Toggle */}
+              <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200">
                 <button
-                  key={tab}
                   type="button"
-                  onClick={() => setStatusFilter(tab)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                    statusFilter === tab
-                      ? 'bg-blue-600 text-white'
+                  onClick={() => setInspectionMode('individual')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    (isCandidateUser ? 'individual' : inspectionMode) === 'individual'
+                      ? 'bg-white text-blue-700 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  {tab === 'ALL' ? 'All' : tab === 'PENDING' ? 'Pending Review' : 'Reviewed'}
+                  Individual Candidate View
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => setInspectionMode('overview')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    (isCandidateUser ? 'individual' : inspectionMode) === 'overview'
+                      ? 'bg-white text-blue-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  All Screenings Overview
+                </button>
+              </div>
+
+              {/* Filter Tabs */}
+              <div className="flex items-center gap-1 border border-slate-200 rounded-xl p-1 bg-slate-50">
+                {(['ALL', 'PENDING', 'REVIEWED'] as const).map(tab => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setStatusFilter(tab)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                      statusFilter === tab
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {tab === 'ALL' ? 'All' : tab === 'PENDING' ? 'Pending Review' : 'Reviewed'}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* View Mode 1: Individual Candidate Dossier View */}
-        {inspectionMode === 'individual' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {(isCandidateUser ? 'individual' : inspectionMode) === 'individual' && (
+          <div className={isCandidateUser ? "space-y-5" : "grid grid-cols-1 lg:grid-cols-12 gap-6"}>
             
-            {/* Candidate Selector List */}
-            <div className="lg:col-span-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-700">Candidates Directory</span>
-                <span className="text-[11px] text-slate-400 font-semibold">{filteredCandidatePool.length} Shown</span>
-              </div>
+            {/* Candidate Selector List - ONLY FOR ADMIN & RECRUITER */}
+            {!isCandidateUser && (
+              <div className="lg:col-span-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-700">Candidates Directory</span>
+                  <span className="text-[11px] text-slate-400 font-semibold">{filteredCandidatePool.length} Shown</span>
+                </div>
 
-              <input
-                type="text"
-                value={candidateFilterQuery}
-                onChange={e => setCandidateFilterQuery(e.target.value)}
-                placeholder="Search candidate name or role..."
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+                <input
+                  type="text"
+                  value={candidateFilterQuery}
+                  onChange={e => setCandidateFilterQuery(e.target.value)}
+                  placeholder="Search candidate name or role..."
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
 
-              <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
-                {filteredCandidatePool.map(cand => {
-                  const isSelected = cand.id === inspectedCandidateId;
-                  const candRecs = screeningHistory.filter(s => s.candidateId === cand.id || s.candidateEmail.toLowerCase() === cand.email.toLowerCase());
-                  const isReviewed = candRecs.length > 0 && candRecs.every(s => s.isReviewed);
-                  const latestScore = candRecs[0]?.scores?.overall || 0;
+                <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                  {filteredCandidatePool.map(cand => {
+                    const isSelected = cand.id === inspectedCandidateId;
+                    const candRecs = screeningHistory.filter(s => s.candidateId === cand.id || s.candidateEmail.toLowerCase() === cand.email.toLowerCase());
+                    const isReviewed = candRecs.length > 0 && candRecs.every(s => s.isReviewed);
+                    const latestScore = candRecs[0]?.scores?.overall || 0;
 
-                  return (
-                    <button
-                      key={cand.id}
-                      type="button"
-                      onClick={() => setInspectedCandidateId(cand.id)}
-                      className={`w-full text-left p-3 rounded-xl border transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-blue-50 border-blue-300 shadow-xs'
-                          : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <div className="flex items-center gap-2">
-                          <UserAvatar name={cand.fullName} avatar={cand.avatar} size="sm" />
-                          <div>
-                            <p className="text-xs font-bold text-slate-900">{cand.fullName}</p>
-                            <p className="text-[10px] text-slate-500 truncate max-w-[150px]">{cand.currentRole}</p>
+                    return (
+                      <button
+                        key={cand.id}
+                        type="button"
+                        onClick={() => setInspectedCandidateId(cand.id)}
+                        className={`w-full text-left p-3 rounded-xl border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-blue-50 border-blue-300 shadow-xs'
+                            : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <div className="flex items-center gap-2">
+                            <UserAvatar name={cand.fullName} avatar={cand.avatar} size="sm" />
+                            <div>
+                              <p className="text-xs font-bold text-slate-900">{cand.fullName}</p>
+                              <p className="text-[10px] text-slate-500 truncate max-w-[150px]">{cand.currentRole}</p>
+                            </div>
                           </div>
+
+                          {candRecs.length > 0 && (
+                            <span className="text-xs font-bold text-emerald-700">
+                              {latestScore}%
+                            </span>
+                          )}
                         </div>
 
-                        {candRecs.length > 0 && (
-                          <span className="text-xs font-bold text-emerald-700">
-                            {latestScore}%
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[10px]">
+                          <span className="text-slate-500 font-medium">
+                            {candRecs.length} Voice Submission{candRecs.length === 1 ? '' : 's'}
                           </span>
-                        )}
-                      </div>
 
-                      <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[10px]">
-                        <span className="text-slate-500 font-medium">
-                          {candRecs.length} Voice Submission{candRecs.length === 1 ? '' : 's'}
-                        </span>
-
-                        <span className={`px-2 py-0.5 rounded font-bold ${
-                          candRecs.length === 0 ? 'bg-slate-200 text-slate-600' :
-                          isReviewed ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                        }`}>
-                          {candRecs.length === 0 ? 'Not Screened' : isReviewed ? 'Reviewed' : 'Pending Review'}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
+                          <span className={`px-2 py-0.5 rounded font-bold ${
+                            candRecs.length === 0 ? 'bg-slate-200 text-slate-600' :
+                            isReviewed ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {candRecs.length === 0 ? 'Not Screened' : isReviewed ? 'Reviewed' : 'Pending Review'}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Candidate Voice Screening Dossier on the Right */}
-            <div className="lg:col-span-8 space-y-5">
+            <div className={isCandidateUser ? "w-full space-y-5" : "lg:col-span-8 space-y-5"}>
               
               {/* Candidate Header & Review Status Card */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
@@ -1243,7 +1259,9 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
                         ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                         : 'bg-amber-100 text-amber-800 border border-amber-300'
                     }`}>
-                      {isInspectedAllReviewed ? 'Reviewed by Recruiter' : 'Pending Review'}
+                      {isCandidateUser
+                        ? (isInspectedAllReviewed ? 'Evaluation Verified' : 'Under Review')
+                        : (isInspectedAllReviewed ? 'Reviewed by Recruiter' : 'Pending Review')}
                     </span>
 
                     {!isCandidateUser && (
@@ -1344,17 +1362,27 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
                             </span>
                           )}
 
-                          <button
-                            type="button"
-                            onClick={() => toggleMarkReviewed(screening.id)}
-                            className={`px-3 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
+                          {!isCandidateUser ? (
+                            <button
+                              type="button"
+                              onClick={() => toggleMarkReviewed(screening.id)}
+                              className={`px-3 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
+                                screening.isReviewed
+                                  ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                  : 'bg-slate-200 text-slate-800 hover:bg-emerald-600 hover:text-white'
+                              }`}
+                            >
+                              {screening.isReviewed ? 'Reviewed' : 'Mark Reviewed'}
+                            </button>
+                          ) : (
+                            <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
                               screening.isReviewed
-                                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                                : 'bg-slate-200 text-slate-800 hover:bg-emerald-600 hover:text-white'
-                            }`}
-                          >
-                            {screening.isReviewed ? 'Reviewed' : 'Mark Reviewed'}
-                          </button>
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                : 'bg-amber-100 text-amber-800 border border-amber-300'
+                            }`}>
+                              {screening.isReviewed ? 'Evaluation Verified' : 'Under Review'}
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -1452,8 +1480,8 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
           </div>
         )}
 
-        {/* View Mode 2: All Candidates Overview Table */}
-        {inspectionMode === 'overview' && (
+        {/* View Mode 2: All Candidates Overview Table (Restricted to Admin & Recruiter) */}
+        {!isCandidateUser && (isCandidateUser ? 'individual' : inspectionMode) === 'overview' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between text-xs">
               <span className="font-bold text-slate-700">All Candidate Voice Screenings ({screeningHistory.length} Total)</span>
