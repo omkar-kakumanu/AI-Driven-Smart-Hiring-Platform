@@ -28,7 +28,13 @@ export interface CandidateInterviewResponse {
     overall: number;
     feedback: string;
   };
+  attemptNumber?: number;
+  questionIndex?: number;
+  questionType?: 'descriptive' | 'objective';
+  selectedOption?: string;
+  isCorrect?: boolean;
 }
+
 
 export interface Candidate {
   id: string;
