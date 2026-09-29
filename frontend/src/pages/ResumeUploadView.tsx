@@ -674,25 +674,35 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-3">
                 <div>
                   <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                    <span>Candidate Directory & Rankings</span>
+                    <span>{isCandidateUser ? 'My Uploaded Resume & Profile' : 'Candidate Directory & Rankings'}</span>
                     <span className="px-2.5 py-0.5 bg-blue-100 text-blue-800 text-xs font-black rounded-full">
-                      {candidates.length} Profiles
+                      {candidates.length} {isCandidateUser ? (candidates.length === 1 ? 'Record' : 'Records') : 'Profiles'}
                     </span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Candidates ranked by compatibility score. 85% skill match threshold required for top-tier qualification.
+                    {isCandidateUser 
+                      ? 'Your active parsed resume record and verified technical competencies. Visible only to you and authorized recruiters.' 
+                      : 'Candidates ranked by compatibility score. 85% skill match threshold required for top-tier qualification.'}
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs font-bold rounded-lg flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    {above85Count} Qualified (≥85%)
-                  </span>
-                  <span className="px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-300 text-xs font-bold rounded-lg flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                    {below85Count} Alerts (&lt;85%)
-                  </span>
+                  {isCandidateUser ? (
+                    <span className="px-2.5 py-1 bg-purple-50 text-purple-800 border border-purple-300 text-xs font-bold rounded-lg flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-purple-600"></span> Personal Record Verified
+                    </span>
+                  ) : (
+                    <>
+                      <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs font-bold rounded-lg flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        {above85Count} Qualified (≥85%)
+                      </span>
+                      <span className="px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-300 text-xs font-bold rounded-lg flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                        {below85Count} Alerts (&lt;85%)
+                      </span>
+                    </>
+                  )}
                   {candidates.length > 0 && (
                     <button onClick={onNavigateToMatching} className="text-xs font-bold text-blue-600 hover:underline ml-2">
                       Matching Engine →
@@ -718,8 +728,14 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                     </>
                   ) : (
                     <>
-                      <p className="text-sm font-bold text-slate-700">No candidates in system yet</p>
-                      <p className="text-xs text-slate-400">Upload a resume above to create your first candidate record.</p>
+                      <p className="text-sm font-bold text-slate-700">
+                        {isCandidateUser ? 'No resume document uploaded yet' : 'No candidates in system yet'}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {isCandidateUser 
+                          ? 'Upload your resume PDF/DOCX above to extract your skills and experience into your candidate record.' 
+                          : 'Upload a resume above to create your first candidate record.'}
+                      </p>
                     </>
                   )}
                 </div>

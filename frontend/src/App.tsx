@@ -287,6 +287,7 @@ export default function App() {
               isMainAdmin={isMainAdmin}
               isCandidateUser={isCandidateUser}
               currentCandidateEmail={store.userProfile?.email || 'candidate@copilot.com'}
+              userProfileName={store.userProfile?.name}
               onAddCandidate={store.addCandidate}
               onDeleteCandidate={store.deleteCandidate}
               onAddSkillToCandidate={store.addSkillToCandidate}
