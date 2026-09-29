@@ -948,7 +948,16 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
           <p className="text-slate-500 text-xs mt-1 font-medium">Interactive neural interview simulation, real-time response evaluation, and question generator</p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {onNavigateToVoiceScreening && (
+            <button
+              onClick={onNavigateToVoiceScreening}
+              className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200 transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+            >
+              <span>Voice Screening Studio</span>
+              <span className="text-xs font-mono font-bold">→</span>
+            </button>
+          )}
           {onNavigateToAts && (
             <button
               onClick={onNavigateToAts}

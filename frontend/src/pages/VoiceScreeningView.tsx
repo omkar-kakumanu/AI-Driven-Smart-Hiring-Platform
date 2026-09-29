@@ -816,18 +816,22 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={onNavigateToInterview}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl border border-slate-700 transition-all cursor-pointer"
-          >
-            AI Interview Simulator
-          </button>
-          <button
-            onClick={onNavigateToAts}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
-          >
-            ATS Integration Hub
-          </button>
+          {onNavigateToInterview && (
+            <button
+              onClick={onNavigateToInterview}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl border border-slate-700 transition-all cursor-pointer"
+            >
+              AI Interview Simulator
+            </button>
+          )}
+          {onNavigateToAts && (
+            <button
+              onClick={onNavigateToAts}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
+            >
+              ATS Integration Hub
+            </button>
+          )}
         </div>
       </div>
 
