@@ -103,9 +103,18 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
   const emailLower = (currentCandidateEmail || userProfile?.email || 'candidate@copilot.com').toLowerCase();
   const isCandidateEmail = emailLower === 'candidate@copilot.com' || emailLower === 'sarah.johnson@example.com';
 
-  const candidatePersistedName = userProfile?.name ||
+  const rawPersistedName = userProfile?.name ||
     localStorage.getItem(`rc_name_${emailLower}`) ||
     (isCandidateEmail ? (localStorage.getItem('rc_name_candidate@copilot.com') || localStorage.getItem('rc_name_sarah.johnson@example.com') || localStorage.getItem('rc_name_cand-1')) : null);
+
+  const isRogueName = rawPersistedName && (
+    rawPersistedName.toLowerCase().includes('abhishek ai ml resume') ||
+    rawPersistedName.toLowerCase().includes('resume 1')
+  );
+
+  const candidatePersistedName = isRogueName 
+    ? (isCandidateEmail ? 'Sarah Johnson' : (userProfile?.name || 'Candidate')) 
+    : rawPersistedName;
 
   // Sync profile photo with System Settings: prioritize userProfile.avatar, then aliased localStorage keys
   const resolvedAvatar = (userProfile && userProfile.avatar !== undefined)
@@ -143,11 +152,22 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
 
   const rawCandidate = existingCandidate || demoCandidate || defaultIsolatedCandidate;
 
+  const candidateCleanFullName = (() => {
+    if (candidatePersistedName && candidatePersistedName.trim() && !candidatePersistedName.toLowerCase().includes('abhishek ai ml resume')) {
+      return candidatePersistedName.trim();
+    }
+    if (userProfile?.name && userProfile.name.trim() && !userProfile.name.toLowerCase().includes('abhishek ai ml resume')) {
+      return userProfile.name.trim();
+    }
+    if (isCandidateEmail) return 'Sarah Johnson';
+    return rawCandidate.fullName && !rawCandidate.fullName.toLowerCase().includes('abhishek ai ml resume') 
+      ? rawCandidate.fullName 
+      : (userProfile?.name || 'Candidate');
+  })();
+
   const activeCandidate = {
     ...rawCandidate,
-    fullName: (candidatePersistedName && candidatePersistedName.trim()) 
-      ? candidatePersistedName.trim() 
-      : (isCandidateEmail ? (rawCandidate.fullName || 'Sarah Johnson') : (userProfile?.name || rawCandidate.fullName)),
+    fullName: candidateCleanFullName,
     avatar: resolvedAvatar !== undefined 
       ? resolvedAvatar 
       : (isCandidateEmail ? rawCandidate.avatar : undefined)

@@ -162,8 +162,8 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
       {
         id: 'voice-2',
         candidateId: 'cand-2',
-        candidateName: 'Abhishek Kumar',
-        candidateEmail: 'abhishek.kumar@example.com',
+        candidateName: 'Alex Chen',
+        candidateEmail: 'alex.chen@example.com',
         role: 'Frontend React & UI Engineer',
         question: PRESET_SCREENING_QUESTIONS[1].question,
         transcript: "I designed a modular design system and state synchronization layer using TypeScript and React query, reducing bundle size by 30% and eliminating client-side rendering bottlenecks across high-traffic dashboard views.",
@@ -735,19 +735,42 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
   };
 
   // Filter candidates for individual inspection view
-  const candidatePool: Array<Partial<Candidate> & { id: string; fullName: string; email: string; currentRole: string; totalExperienceYears: number; status: Candidate['status']; avatar?: string }> = candidates.length > 0 ? candidates : [
-    { id: 'cand-1', fullName: 'Sarah Johnson', email: 'sarah.johnson@example.com', currentRole: 'Senior Machine Learning Engineer', totalExperienceYears: 5, status: 'Applied' as const, avatar: undefined },
-    { id: 'cand-2', fullName: 'Abhishek Kumar', email: 'abhishek.kumar@example.com', currentRole: 'Frontend React & UI Engineer', totalExperienceYears: 3, status: 'Interview Completed' as const, avatar: undefined },
-    { id: 'cand-3', fullName: 'Marcus Rodriguez', email: 'marcus.rodriguez@example.com', currentRole: 'Cloud DevOps & Security Specialist', totalExperienceYears: 4, status: 'Shortlisted' as const, avatar: undefined },
-    { id: 'cand-4', fullName: 'Priya Sharma', email: 'priya.sharma@example.com', currentRole: 'Full Stack MERN Developer', totalExperienceYears: 4, status: 'Applied' as const, avatar: undefined }
-  ];
+  const candidatePool: Array<Partial<Candidate> & { id: string; fullName: string; email: string; currentRole: string; totalExperienceYears: number; status: Candidate['status']; avatar?: string }> = isCandidateUser
+    ? (candidates.length > 0 ? candidates : [
+        { 
+          id: `cand-${(currentCandidateEmail || 'user').replace(/[^a-z0-9]/g, '-')}`, 
+          fullName: 'My Candidate Profile', 
+          email: currentCandidateEmail || 'candidate@copilot.com', 
+          currentRole: 'Software Developer', 
+          totalExperienceYears: 2, 
+          status: 'Applied' as const, 
+          avatar: undefined 
+        }
+      ])
+    : (candidates.length > 0 ? candidates : [
+        { id: 'cand-1', fullName: 'Sarah Johnson', email: 'sarah.johnson@example.com', currentRole: 'Senior Machine Learning Engineer', totalExperienceYears: 5, status: 'Applied' as const, avatar: undefined },
+        { id: 'cand-2', fullName: 'Alex Chen', email: 'alex.chen@example.com', currentRole: 'Frontend React & UI Engineer', totalExperienceYears: 3, status: 'Interview Completed' as const, avatar: undefined },
+        { id: 'cand-3', fullName: 'Marcus Rodriguez', email: 'marcus.rodriguez@example.com', currentRole: 'Cloud DevOps & Security Specialist', totalExperienceYears: 4, status: 'Shortlisted' as const, avatar: undefined },
+        { id: 'cand-4', fullName: 'Priya Sharma', email: 'priya.sharma@example.com', currentRole: 'Full Stack MERN Developer', totalExperienceYears: 4, status: 'Applied' as const, avatar: undefined }
+      ]);
+
+  const effectiveScreeningHistory = isCandidateUser
+    ? screeningHistory.filter(s => {
+        const myEmail = (currentCandidateEmail || candidates[0]?.email || '').toLowerCase().trim();
+        const myId = (candidates[0]?.id || '').trim();
+        return (
+          (s.candidateEmail && s.candidateEmail.toLowerCase().trim() === myEmail) ||
+          (s.candidateId && s.candidateId.trim() === myId)
+        );
+      })
+    : screeningHistory;
 
   const filteredCandidatePool = candidatePool.filter(c => {
     const q = candidateFilterQuery.toLowerCase();
     const matchesName = c.fullName.toLowerCase().includes(q) || (c.currentRole || '').toLowerCase().includes(q);
     if (!matchesName) return false;
 
-    const candScreenings = screeningHistory.filter(s => s.candidateId === c.id || s.candidateEmail.toLowerCase() === c.email.toLowerCase());
+    const candScreenings = effectiveScreeningHistory.filter(s => s.candidateId === c.id || s.candidateEmail.toLowerCase() === c.email.toLowerCase());
     const hasReviewed = candScreenings.length > 0 && candScreenings.every(s => s.isReviewed);
     const hasPending = candScreenings.some(s => !s.isReviewed);
 
@@ -756,9 +779,9 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
     return true;
   });
 
-  const inspectedCandidate = candidatePool.find(c => c.id === inspectedCandidateId) || candidatePool[0];
-  const inspectedCandidateScreenings = screeningHistory.filter(
-    s => s.candidateId === inspectedCandidate.id || s.candidateEmail.toLowerCase() === inspectedCandidate.email.toLowerCase()
+  const inspectedCandidate = (isCandidateUser ? candidatePool[0] : (candidatePool.find(c => c.id === inspectedCandidateId) || candidatePool[0])) || activeCandidate;
+  const inspectedCandidateScreenings = effectiveScreeningHistory.filter(
+    s => s.candidateId === inspectedCandidate?.id || s.candidateEmail.toLowerCase() === (inspectedCandidate?.email || '').toLowerCase()
   );
 
   const isInspectedAllReviewed = inspectedCandidateScreenings.length > 0 && inspectedCandidateScreenings.every(s => s.isReviewed);

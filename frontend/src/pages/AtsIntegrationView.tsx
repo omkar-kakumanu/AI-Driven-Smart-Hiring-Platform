@@ -190,8 +190,17 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
     document.body.removeChild(link);
   };
 
-  // Filter candidates
+  // Filter candidates with strict Candidate Privacy Sandboxing
   const filteredCandidates = atsCandidates.filter(c => {
+    if (isCandidateUser) {
+      const myEmail = (currentCandidateEmail || '').toLowerCase().trim();
+      const isDemo = myEmail === 'candidate@copilot.com' || myEmail === 'sarah.johnson@example.com';
+      const cEmail = c.email.toLowerCase().trim();
+      if (cEmail !== myEmail && !(isDemo && (cEmail === 'sarah.johnson@example.com' || cEmail === 'candidate@copilot.com'))) {
+        return false;
+      }
+    }
+
     const matchesSearch = 
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
