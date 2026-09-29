@@ -21,6 +21,7 @@ interface AtsIntegrationViewProps {
   currentCandidateEmail?: string;
   onUpdateCandidateStatusByEmail?: (email: string, status: Candidate['status']) => void;
   onNavigateToInterview?: () => void;
+  onNavigateToVoiceScreening?: () => void;
 }
 
 interface AtsCandidateRecord {
@@ -40,7 +41,8 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
   isCandidateUser = false,
   currentCandidateEmail,
   onUpdateCandidateStatusByEmail,
-  onNavigateToInterview
+  onNavigateToInterview,
+  onNavigateToVoiceScreening
 }) => {
   const [atsCandidates, setAtsCandidates] = useState<AtsCandidateRecord[]>(() => {
     const candidatePersistedName = localStorage.getItem('rc_name_candidate@copilot.com') ||
@@ -240,6 +242,16 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {onNavigateToVoiceScreening && (
+            <button
+              onClick={onNavigateToVoiceScreening}
+              className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200 transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+            >
+              <span>Voice Screening Studio</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </button>
+          )}
+
           {onNavigateToInterview && (
             <button
               onClick={onNavigateToInterview}

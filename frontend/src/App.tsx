@@ -350,6 +350,7 @@ export default function App() {
               currentCandidateEmail={store.userProfile?.email}
               onUpdateCandidateStatusByEmail={store.updateCandidateStatusByEmail}
               onNavigateToInterview={() => setCurrentTab('interview-assistant')}
+              onNavigateToVoiceScreening={() => setCurrentTab('voice-screening')}
             />
           )}
           {currentTab === 'candidate-portal' && (
