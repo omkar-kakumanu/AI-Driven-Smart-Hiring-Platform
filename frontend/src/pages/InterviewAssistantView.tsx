@@ -24,8 +24,12 @@ interface InterviewAssistantViewProps {
 interface InterviewQuestionItem {
   id: number;
   category: string;
+  type: 'descriptive' | 'objective';
   difficulty?: string;
   question: string;
+  options?: string[];
+  correctOptionIndex?: number;
+  correctExplanation?: string;
   tags?: string;
   expected_points?: string[];
 }
@@ -185,7 +189,7 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
     window.speechSynthesis.speak(utterance);
   };
 
-  // Fetch Role-Specific Interview Questions from Python Microservice
+  // Fetch Role-Specific Interview Questions (Ensures 10 questions: 5 Descriptive + 5 Objective)
   const fetchInterviewQuestions = async (role: string, cat: string) => {
     setLoadingQuestions(true);
     try {
@@ -202,7 +206,7 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
 
       if (res.ok) {
         const data = await res.json();
-        if (data.questions && data.questions.length > 0) {
+        if (data.questions && data.questions.length >= 10) {
           setQuestions(data.questions);
           setLoadingQuestions(false);
           return;
@@ -212,7 +216,7 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
       console.warn("Backend questions API offline, loading role fallback questions", err);
     }
 
-    // Role-Specific Fallback Question Bank
+    // Role-Specific 10-Question Bank (5 Descriptive + 5 Objective MCQs)
     setQuestions(getFallbackQuestionsForRole(role, cat));
     setLoadingQuestions(false);
   };
@@ -222,106 +226,431 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
 
     if (role.includes("Machine Learning") || role.includes("ML") || role.includes("AI")) {
       raw = [
+        // 5 Descriptive Questions
         {
           id: 1,
+          type: 'descriptive',
           category: "Technical",
-          question: "Describe a machine learning project where you had to optimize model performance. What techniques did you use and what was the outcome?",
-          tags: "Technical • Experience-based • 3-5 min response",
-          expected_points: ["System metrics & profiling", "Hyperparameter tuning / Quantization", "Quantifiable accuracy or latency outcome"]
+          difficulty: "Hard",
+          question: "Describe an end-to-end machine learning project where you had to optimize model performance, latency, or compute requirements. What techniques (e.g., hyperparameter tuning, quantization, pruning) did you use and what was the quantifiable impact?",
+          tags: "Descriptive • Experience-based • 3-5 min response",
+          expected_points: ["Profiling & latency metrics", "Quantization (INT8/FP16) or Pruning", "Quantifiable accuracy vs speed outcome"]
         },
         {
           id: 2,
+          type: 'descriptive',
           category: "Technical",
-          question: "How would you approach deploying a machine learning model in a production environment? What considerations would you take into account?",
-          tags: "Technical • Scenario-based • 4-6 min response",
-          expected_points: ["Containerization (Docker)", "Model serving framework (FastAPI/Triton)", "Latency SLA & autoscaling", "CI/CD & Kubernetes"]
+          difficulty: "Hard",
+          question: "How would you design and deploy an end-to-end machine learning inference pipeline on Kubernetes or Triton server under strict sub-50ms latency SLAs?",
+          tags: "Descriptive • System Design • 4-6 min response",
+          expected_points: ["Containerization & Triton/FastAPI serving", "GPU batching & dynamic concurrency", "Autoscaling & health probes"]
         },
         {
           id: 3,
+          type: 'descriptive',
+          category: "Technical",
+          difficulty: "Medium",
+          question: "How do you detect, monitor, and mitigate dataset shift, concept drift, and data quality degradation in live production ML pipelines?",
+          tags: "Descriptive • MLOps • 3-4 min response",
+          expected_points: ["KS-test / PSI drift detection", "Evidently / Prometheus monitoring", "Automated shadow re-training pipelines"]
+        },
+        {
+          id: 4,
+          type: 'descriptive',
           category: "Behavioral",
-          question: "Tell me about a time when you had to explain complex technical concepts to non-technical stakeholders. How did you ensure they understood?",
-          tags: "Behavioral • Communication • 2-4 min response",
-          expected_points: ["Domain translation", "Intuitive visual analogies", "Focus on business value & metrics"]
+          difficulty: "Medium",
+          question: "Tell me about a time when you had to explain complex AI trade-offs, model limitations, or false-positive risks to non-technical business stakeholders.",
+          tags: "Descriptive • Communication • 2-4 min response",
+          expected_points: ["Translation to business ROI", "Confusion matrix trade-offs", "Managing stakeholder expectations"]
+        },
+        {
+          id: 5,
+          type: 'descriptive',
+          category: "Problem-Solving",
+          difficulty: "Hard",
+          question: "If your deep learning model is experiencing high variance (overfitting) on validation data despite using dropout, what systematic steps do you take to diagnose and resolve it?",
+          tags: "Descriptive • Debugging • 3-5 min response",
+          expected_points: ["Data augmentation & dataset scale", "Weight decay / L2 regularization", "Early stopping & learning rate schedules"]
+        },
+        // 5 Objective Multiple Choice Questions (MCQs)
+        {
+          id: 6,
+          type: 'objective',
+          category: "Technical Core",
+          difficulty: "Medium",
+          question: "Which activation function is most susceptible to the vanishing gradient problem during backpropagation in deep neural networks?",
+          options: ["A) ReLU", "B) Leaky ReLU", "C) Sigmoid", "D) GELU"],
+          correctOptionIndex: 2,
+          correctExplanation: "The Sigmoid activation function saturates at both tails with near-zero derivatives, causing gradients to diminish exponentially as backpropagation traverses multiple layers.",
+          tags: "Objective MCQ • Deep Learning Foundations"
+        },
+        {
+          id: 7,
+          type: 'objective',
+          category: "Architecture",
+          difficulty: "Hard",
+          question: "In Transformer architectures, what is the computational and memory complexity of the standard scaled dot-product self-attention mechanism with respect to sequence length N?",
+          options: ["A) O(N)", "B) O(N log N)", "C) O(N²)", "D) O(N³)"],
+          correctOptionIndex: 2,
+          correctExplanation: "Standard self-attention computes an N×N attention score matrix comparing every token against every other token, resulting in quadratic O(N²) time and memory complexity.",
+          tags: "Objective MCQ • Transformers & LLMs"
+        },
+        {
+          id: 8,
+          type: 'objective',
+          category: "Optimization",
+          difficulty: "Medium",
+          question: "Which regularization technique specifically addresses internal covariate shift during deep neural network training by normalizing layer activations across the mini-batch?",
+          options: ["A) Batch Normalization", "B) L1 Lasso Regularization", "C) Dropout (p=0.5)", "D) Early Stopping"],
+          correctOptionIndex: 0,
+          correctExplanation: "Batch Normalization standardizes activations across the mini-batch by subtracting batch mean and dividing by variance, stabilizing gradient propagation and accelerating convergence.",
+          tags: "Objective MCQ • Model Training"
+        },
+        {
+          id: 9,
+          type: 'objective',
+          category: "Evaluation Metrics",
+          difficulty: "Medium",
+          question: "When evaluating an imbalanced fraud detection classifier where missing a fraudulent transaction (false negative) is catastrophic, which metric should be prioritized?",
+          options: ["A) Accuracy", "B) Precision", "C) Recall (Sensitivity)", "D) Specificity"],
+          correctOptionIndex: 2,
+          correctExplanation: "Recall measures the proportion of actual positives successfully identified. Maximizing recall directly minimizes false negatives, critical for fraud prevention.",
+          tags: "Objective MCQ • Metrics & Evaluation"
+        },
+        {
+          id: 10,
+          type: 'objective',
+          category: "Loss Functions",
+          difficulty: "Easy",
+          question: "Which loss function is mathematically appropriate for training a neural network on multi-class classification where classes are mutually exclusive?",
+          options: ["A) Binary Cross-Entropy", "B) Categorical Cross-Entropy with Softmax", "C) Mean Squared Error (MSE)", "D) Hinge Loss"],
+          correctOptionIndex: 1,
+          correctExplanation: "Categorical Cross-Entropy combined with a Softmax output layer provides mathematically sound negative log-likelihood minimization across mutually exclusive classes.",
+          tags: "Objective MCQ • Loss Functions"
         }
       ];
-    } else if (role.includes("Data Scientist")) {
+    } else if (role.includes("Data Scientist") || role.includes("Data Science") || role.includes("Analytics")) {
       raw = [
+        // 5 Descriptive Questions
         {
           id: 1,
+          type: 'descriptive',
           category: "Technical",
-          question: "Walk me through your approach to feature engineering and selection for high-dimensional tabular datasets.",
-          tags: "Technical • Data Science • 3-5 min response",
-          expected_points: ["Domain feature creation", "Variance thresholding & SHAP", "Handling multicollinearity"]
+          difficulty: "Hard",
+          question: "Walk me through your comprehensive methodology for feature engineering, dimensionality reduction, and handling multicollinearity on high-dimensional tabular datasets.",
+          tags: "Descriptive • Feature Engineering • 3-5 min response",
+          expected_points: ["Domain feature creation & interactions", "Variance Inflation Factor (VIF)", "PCA / SHAP value selection"]
         },
         {
           id: 2,
+          type: 'descriptive',
           category: "Technical",
-          question: "How do you select appropriate evaluation metrics for imbalanced classification problems (e.g., fraud detection)?",
-          tags: "Technical • Metrics • 3-5 min response",
-          expected_points: ["PR-AUC vs ROC-AUC", "F1-Score / F-beta", "Cost-sensitive thresholding"]
+          difficulty: "Medium",
+          question: "How do you select appropriate evaluation metrics for imbalanced classification problems (e.g., churn prediction, fraud detection)?",
+          tags: "Descriptive • Metrics • 3-5 min response",
+          expected_points: ["PR-AUC vs ROC-AUC", "Cost-matrix threshold optimization", "F-beta weighting"]
         },
         {
           id: 3,
+          type: 'descriptive',
+          category: "Technical",
+          difficulty: "Hard",
+          question: "How do you design, power-size, and evaluate a randomized controlled A/B experiment while guarding against sample ratio mismatch and false discovery rates?",
+          tags: "Descriptive • Causal Inference • 4-5 min response",
+          expected_points: ["Minimum Detectable Effect (MDE)", "Power calculations & alpha spending", "Benjamini-Hochberg FDR correction"]
+        },
+        {
+          id: 4,
+          type: 'descriptive',
           category: "Behavioral",
-          question: "Describe a time when you had to defend your data-driven insights against business intuition or conflicting opinions.",
-          tags: "Behavioral • Stakeholder Mgt • 3-4 min response",
-          expected_points: ["Rigorous validation", "Sensitivity analysis", "Collaborative storytelling"]
+          difficulty: "Medium",
+          question: "Describe a situation where executive management's business intuition conflicted directly with your statistical findings. How did you advocate for the data?",
+          tags: "Descriptive • Stakeholder Mgt • 3-4 min response",
+          expected_points: ["Confidence intervals & risk bounds", "Visual storytelling & scenarios", "Collaborative experiment design"]
+        },
+        {
+          id: 5,
+          type: 'descriptive',
+          category: "Problem-Solving",
+          difficulty: "Hard",
+          question: "How do you handle severe missing data patterns (MCAR vs MAR vs MNAR) and impute features without introducing systematic leakage?",
+          tags: "Descriptive • Data Cleaning • 3-4 min response",
+          expected_points: ["Missingness mechanism tests", "Iterative MICE / KNN imputation", "Out-of-fold pipeline isolation"]
+        },
+        // 5 Objective Multiple Choice Questions (MCQs)
+        {
+          id: 6,
+          type: 'objective',
+          category: "Statistical Inference",
+          difficulty: "Medium",
+          question: "In linear regression analysis, what statistic measures the proportion of variance in the dependent variable that is predictable from the independent variables?",
+          options: ["A) P-Value", "B) R-squared (Coefficient of Determination)", "C) Pearson correlation r", "D) Variance Inflation Factor (VIF)"],
+          correctOptionIndex: 1,
+          correctExplanation: "R-squared measures the proportion of total variation in the target explained by the regression model.",
+          tags: "Objective MCQ • Regression"
+        },
+        {
+          id: 7,
+          type: 'objective',
+          category: "Econometrics",
+          difficulty: "Hard",
+          question: "Which assumption is NOT required by the Gauss-Markov theorem for Ordinary Least Squares (OLS) estimators to be the Best Linear Unbiased Estimator (BLUE)?",
+          options: ["A) Homoscedasticity of errors", "B) Zero conditional mean of errors", "C) Normally distributed errors", "D) No perfect multicollinearity"],
+          correctOptionIndex: 2,
+          correctExplanation: "The Gauss-Markov theorem guarantees OLS is BLUE without requiring normality of errors; normality is only needed for exact hypothesis tests (t and F tests).",
+          tags: "Objective MCQ • Gauss-Markov"
+        },
+        {
+          id: 8,
+          type: 'objective',
+          category: "Ensemble Modeling",
+          difficulty: "Medium",
+          question: "What is the expected behavior of bias and variance in a Random Forest ensemble as the number of decision trees grows large?",
+          options: ["A) Variance increases, Bias decreases", "B) Variance decreases or stabilizes, Bias remains largely unchanged", "C) Both Bias and Variance increase", "D) Bias increases, Variance decreases"],
+          correctOptionIndex: 1,
+          correctExplanation: "Ensemble averaging reduces prediction variance without increasing the intrinsic bias of the individual trees, and it does not overfit as tree count increases.",
+          tags: "Objective MCQ • Random Forest"
+        },
+        {
+          id: 9,
+          type: 'objective',
+          category: "Unsupervised Learning",
+          difficulty: "Medium",
+          question: "Which clustering algorithm does NOT require specifying the number of clusters (k) prior to execution?",
+          options: ["A) K-Means", "B) Mini-Batch K-Means", "C) DBSCAN (Density-Based Spatial Clustering)", "D) Gaussian Mixture Models (GMM)"],
+          correctOptionIndex: 2,
+          correctExplanation: "DBSCAN clusters data based on spatial density thresholds (eps and min_samples) without requiring a pre-specified cluster count k.",
+          tags: "Objective MCQ • Clustering"
+        },
+        {
+          id: 10,
+          type: 'objective',
+          category: "Multicollinearity",
+          difficulty: "Easy",
+          question: "What is the primary diagnostic use of the Variance Inflation Factor (VIF) in multivariate regression modeling?",
+          options: ["A) Detect multicollinearity among predictor variables", "B) Measure model prediction latency", "C) Calculate heteroscedasticity p-values", "D) Validate cross-validation folds"],
+          correctOptionIndex: 0,
+          correctExplanation: "A VIF greater than 5 or 10 indicates severe multicollinearity where predictors are heavily correlated, inflating coefficient variances.",
+          tags: "Objective MCQ • VIF Diagnostics"
         }
       ];
-    } else if (role.includes("Frontend") || role.includes("React") || role.includes("UI")) {
+    } else if (role.includes("Frontend") || role.includes("React") || role.includes("UI") || role.includes("Web")) {
       raw = [
+        // 5 Descriptive Questions
         {
           id: 1,
+          type: 'descriptive',
           category: "Technical",
-          question: "How do you optimize React component render performance and handle state management in large scale applications?",
-          tags: "Technical • Frontend • 3-5 min response",
-          expected_points: ["useMemo & useCallback optimization", "Virtualization (React Window)", "State flow & code splitting"]
+          difficulty: "Hard",
+          question: "How do you profile, isolate, and resolve component re-rendering bottlenecks and memory leaks in large-scale React single-page applications?",
+          tags: "Descriptive • Performance • 3-5 min response",
+          expected_points: ["React DevTools Profiler & Chrome Performance", "useMemo & useCallback memoization", "Virtualization (React Virtualized)"]
         },
         {
           id: 2,
+          type: 'descriptive',
           category: "Technical",
-          question: "Explain your methodology for building accessible (WCAG compliant) and responsive UI component libraries.",
-          tags: "Technical • Accessibility • 3-4 min response",
-          expected_points: ["Semantic HTML5", "ARIA labels & role attributes", "Keyboard navigation & contrast"]
+          difficulty: "Medium",
+          question: "Compare modern state management paradigms (Zustand, Redux Toolkit, React Context, and server-cache libraries like TanStack Query) and explain your selection criteria.",
+          tags: "Descriptive • Architecture • 3-4 min response",
+          expected_points: ["Server state vs client UI state", "Context re-render performance pitfalls", "Zustand atomic selector subscriptions"]
         },
         {
           id: 3,
+          type: 'descriptive',
+          category: "Technical",
+          difficulty: "Medium",
+          question: "How do you build accessible, responsive UI design systems conforming to WCAG 2.1 AA standards, including keyboard navigation, focus trapping, and ARIA attributes?",
+          tags: "Descriptive • Accessibility • 3-4 min response",
+          expected_points: ["Semantic HTML5 & WAI-ARIA roles", "Focus traps for modals", "Color contrast & screen reader testing"]
+        },
+        {
+          id: 4,
+          type: 'descriptive',
           category: "Behavioral",
-          question: "Tell me about a time when you received constructive feedback on your UI code review. How did you handle it?",
-          tags: "Behavioral • Growth Mindset • 2-3 min response",
-          expected_points: ["Openness to feedback", "Refactoring code cleanups", "Promoting team standards"]
+          difficulty: "Medium",
+          question: "Tell me about a time when you received rigorous constructive feedback during a pull request review. How did you incorporate the feedback and enhance team standards?",
+          tags: "Descriptive • Growth Mindset • 2-3 min response",
+          expected_points: ["Openness to constructive critique", "Adopting linting rules / automated checks", "Promoting shared code review standards"]
+        },
+        {
+          id: 5,
+          type: 'descriptive',
+          category: "Problem-Solving",
+          difficulty: "Hard",
+          question: "How do you optimize production Web Vitals (LCP, INP, CLS) and protect client-side web apps from Cross-Site Scripting (XSS) and bundle bloat?",
+          tags: "Descriptive • Web Vitals & Security • 4-5 min response",
+          expected_points: ["Dynamic code-splitting & route lazy loading", "Sanitization & Content Security Policy", "Resource hints & image CDNs"]
+        },
+        // 5 Objective Multiple Choice Questions (MCQs)
+        {
+          id: 6,
+          type: 'objective',
+          category: "React Core",
+          difficulty: "Medium",
+          question: "In React 18, which hook is specifically designed to mark non-urgent UI state updates as concurrent and interruptible?",
+          options: ["A) useEffect", "B) useTransition", "C) useId", "D) useImperativeHandle"],
+          correctOptionIndex: 1,
+          correctExplanation: "useTransition allows state updates to be deferred and interrupted by urgent user interactions, keeping typing and clicks responsive.",
+          tags: "Objective MCQ • React 18 Concurrent"
+        },
+        {
+          id: 7,
+          type: 'objective',
+          category: "Reconciliation",
+          difficulty: "Easy",
+          question: "What is the primary role of the 'key' prop when rendering dynamic lists in React?",
+          options: ["A) Sets the HTML DOM ID attribute", "B) Helps React's reconciliation algorithm identify which items changed, added, or removed", "C) Triggers CSS transitions", "D) Enables automatic memoization of list items"],
+          correctOptionIndex: 1,
+          correctExplanation: "React uses keys to maintain identity between renders, avoiding re-mounting unaffected DOM nodes.",
+          tags: "Objective MCQ • Virtual DOM"
+        },
+        {
+          id: 8,
+          type: 'objective',
+          category: "CSS & GPU",
+          difficulty: "Medium",
+          question: "Which CSS property informs modern browser rendering engines to promote an element to its own GPU compositing layer?",
+          options: ["A) display: flex", "B) will-change: transform", "C) position: relative", "D) box-sizing: border-box"],
+          correctOptionIndex: 1,
+          correctExplanation: "will-change: transform tells the browser to create a separate graphics layer, avoiding costly repaint and reflow cycles during animations.",
+          tags: "Objective MCQ • Browser Rendering"
+        },
+        {
+          id: 9,
+          type: 'objective',
+          category: "Web Security",
+          difficulty: "Medium",
+          question: "Which HTTP response security header is essential for mitigating Cross-Site Scripting (XSS) attacks by controlling permitted sources of script execution?",
+          options: ["A) Access-Control-Allow-Origin", "B) Content-Security-Policy (CSP)", "C) Strict-Transport-Security (HSTS)", "D) X-Frame-Options"],
+          correctOptionIndex: 1,
+          correctExplanation: "Content-Security-Policy prevents malicious script execution by specifying trusted origins for scripts, styles, and images.",
+          tags: "Objective MCQ • Security"
+        },
+        {
+          id: 10,
+          type: 'objective',
+          category: "DOM Events",
+          difficulty: "Medium",
+          question: "In JavaScript DOM event dispatch, what is the exact chronological order of the three event propagation phases?",
+          options: ["A) Bubbling -> Target -> Capturing", "B) Capturing -> Target -> Bubbling", "C) Target -> Capturing -> Bubbling", "D) Capturing -> Bubbling -> Target"],
+          correctOptionIndex: 1,
+          correctExplanation: "Events propagate downward from the Document root to the target in the Capturing phase, trigger at the Target, and bubble up to Document.",
+          tags: "Objective MCQ • Event Loop & DOM"
         }
       ];
     } else {
+      // Backend, Java, Systems & Cloud Architect
       raw = [
+        // 5 Descriptive Questions
         {
           id: 1,
+          type: 'descriptive',
           category: "Technical",
-          question: "Describe a major technical project where you solved a critical system bottleneck. What methodology did you follow?",
-          tags: "Technical • Problem Solving • 4-5 min response",
-          expected_points: ["Root cause analysis", "System profiling & benchmarking", "Refactoring & deployment"]
+          difficulty: "Hard",
+          question: "How do you design high-throughput concurrent systems in Java/JVM or Node.js while avoiding race conditions, deadlocks, thread pool exhaustion, and memory leaks?",
+          tags: "Descriptive • Concurrency • 4-5 min response",
+          expected_points: ["Thread pool sizing & non-blocking I/O", "Locks vs atomic CAS constructs", "Memory leaks & JVM heap dumps"]
         },
         {
           id: 2,
+          type: 'descriptive',
           category: "Technical",
-          question: "How do you ensure code quality, unit testing coverage, and maintainability across distributed software teams?",
-          tags: "Technical • Code Quality • 3-4 min response",
-          expected_points: ["CI/CD pipelines", "Automated test suites", "Peer review guidelines"]
+          difficulty: "Hard",
+          question: "Explain how you architect distributed transactions and consistency across decoupled microservices using the Saga Pattern, Transactional Outbox, or Event Sourcing.",
+          tags: "Descriptive • Distributed Systems • 4-6 min response",
+          expected_points: ["Compensating transactions in Sagas", "Transactional Outbox with Debezium/Kafka", "Eventual consistency trade-offs"]
         },
         {
           id: 3,
+          type: 'descriptive',
+          category: "Technical",
+          difficulty: "Medium",
+          question: "Walk through your strategy for database query indexing, connection pooling, and multi-tier cache invalidation (e.g., Cache-Aside, Write-Through) with Redis.",
+          tags: "Descriptive • DB & Caching • 3-4 min response",
+          expected_points: ["B-Tree vs Hash index optimization", "Cache stampede prevention", "TTL and cache invalidation strategies"]
+        },
+        {
+          id: 4,
+          type: 'descriptive',
           category: "Behavioral",
-          question: "Tell me about a time when you faced conflicting project priorities. How did you handle stakeholder expectations?",
-          tags: "Behavioral • Prioritization • 3-4 min response",
-          expected_points: ["Impact vs Effort matrix", "Transparent status updates", "Agile re-scoping"]
+          difficulty: "Medium",
+          question: "Describe a major production outage, performance degradation, or security vulnerability you resolved. How did you conduct root-cause analysis and post-mortem remediation?",
+          tags: "Descriptive • Incident Management • 3-4 min response",
+          expected_points: ["Blameless post-mortem methodology", "Root cause 5-whys analysis", "Actionable remediation & observability"]
+        },
+        {
+          id: 5,
+          type: 'descriptive',
+          category: "Problem-Solving",
+          difficulty: "Hard",
+          question: "How do you design a zero-downtime blue-green or canary deployment pipeline on Kubernetes with automated health checks, circuit breakers, and rate limiting?",
+          tags: "Descriptive • Cloud & DevOps • 4-5 min response",
+          expected_points: ["Readiness & liveness probes", "Istio/Ingress traffic shifting", "Resilience4j circuit breakers & rate limits"]
+        },
+        // 5 Objective Multiple Choice Questions (MCQs)
+        {
+          id: 6,
+          type: 'objective',
+          category: "JVM Internals",
+          difficulty: "Medium",
+          question: "In standard JVM Garbage Collection, in which memory region are newly created Java objects initially allocated?",
+          options: ["A) Tenured / Old Generation", "B) Eden Space in Young Generation", "C) Metaspace", "D) Code Cache"],
+          correctOptionIndex: 1,
+          correctExplanation: "New objects are instantiated in the Eden space within the Young Generation. Survived objects are later promoted to Survivor and Tenured generations.",
+          tags: "Objective MCQ • Memory Management"
+        },
+        {
+          id: 7,
+          type: 'objective',
+          category: "Distributed Systems",
+          difficulty: "Hard",
+          question: "According to Brewer's CAP Theorem, in the presence of a network partition (P), what trade-off must a distributed database system make?",
+          options: ["A) Trade between Consistency and Latency", "B) Choose between Consistency (CP) and Availability (AP)", "C) Deliver all three: C, A, and P simultaneously", "D) Sacrifice Partition Tolerance"],
+          correctOptionIndex: 1,
+          correctExplanation: "When partitions occur, a distributed system can either reject inconsistent operations (CP) or proceed with potentially stale data (AP).",
+          tags: "Objective MCQ • CAP Theorem"
+        },
+        {
+          id: 8,
+          type: 'objective',
+          category: "API Design",
+          difficulty: "Easy",
+          question: "Which HTTP status code is designated by RFC 6585 when a client has exceeded its allowed rate limit quota?",
+          options: ["A) 400 Bad Request", "B) 403 Forbidden", "C) 429 Too Many Requests", "D) 503 Service Unavailable"],
+          correctOptionIndex: 2,
+          correctExplanation: "HTTP 429 Too Many Requests informs the client that rate-limiting thresholds have been exceeded, often paired with a Retry-After header.",
+          tags: "Objective MCQ • REST APIs"
+        },
+        {
+          id: 9,
+          type: 'objective',
+          category: "Databases",
+          difficulty: "Medium",
+          question: "Which ANSI SQL transaction isolation level guarantees complete prevention of dirty reads, non-repeatable reads, and phantom reads?",
+          options: ["A) Read Committed", "B) Repeatable Read", "C) Serializable", "D) Read Uncommitted"],
+          correctOptionIndex: 2,
+          correctExplanation: "Serializable is the highest isolation level, executing transactions with serial equivalence to eliminate phantom reads and inconsistencies.",
+          tags: "Objective MCQ • ACID Transactions"
+        },
+        {
+          id: 10,
+          type: 'objective',
+          category: "Message Brokers",
+          difficulty: "Medium",
+          question: "In Apache Kafka distributed event streaming, what mechanism guarantees strict message ordering?",
+          options: ["A) Global timestamp synchronization across brokers", "B) Publishing messages with the same partition key within a single partition", "C) Consumer group leader reelection", "D) ZooKeeper/KRaft quorum consensus"],
+          correctOptionIndex: 1,
+          correctExplanation: "Kafka strictly guarantees append-order preservation per partition. Messages sharing the same partition key are guaranteed ordered delivery.",
+          tags: "Objective MCQ • Kafka Streaming"
         }
       ];
     }
 
     if (cat === "TECHNICAL") {
-      return raw.filter(q => q.category === "Technical");
+      return raw.filter(q => q.category.toLowerCase().includes("tech") || q.category.toLowerCase().includes("arch") || q.category.toLowerCase().includes("opt") || q.category.toLowerCase().includes("loss") || q.category.toLowerCase().includes("stat") || q.category.toLowerCase().includes("db") || q.category.toLowerCase().includes("react"));
     } else if (cat === "BEHAVIORAL") {
-      return raw.filter(q => q.category === "Behavioral");
+      return raw.filter(q => q.category.toLowerCase().includes("behav") || q.category.toLowerCase().includes("problem") || q.category.toLowerCase().includes("stakeholder"));
     }
 
     return raw;
