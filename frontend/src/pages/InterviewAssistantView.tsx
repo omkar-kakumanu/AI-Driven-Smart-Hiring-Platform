@@ -660,77 +660,172 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
     fetchInterviewQuestions(selectedJobPosition, selectedCategory);
   }, [selectedJobPosition, selectedCategory]);
 
+  // Candidate Responses grouped by Attempt
+  const candidateResponsesList = activeCandidate?.interviewResponses || [];
+
+  const attemptGroups = React.useMemo(() => {
+    const groups: { [key: number]: CandidateInterviewResponse[] } = {};
+    candidateResponsesList.forEach(resp => {
+      const att = resp.attemptNumber || 1;
+      if (!groups[att]) groups[att] = [];
+      groups[att].push(resp);
+    });
+    return groups;
+  }, [candidateResponsesList]);
+
+  const attemptNumbers = React.useMemo(() => {
+    const nums = Object.keys(attemptGroups).map(Number).sort((a, b) => b - a);
+    return nums.length > 0 ? nums : [1];
+  }, [attemptGroups]);
+
+  const maxAttemptInHistory = Math.max(...attemptNumbers, 1);
+  const maxAttemptResponsesCount = (attemptGroups[maxAttemptInHistory] || []).length;
+
+  const [currentAttemptNumber, setCurrentAttemptNumber] = useState<number>(() => {
+    return maxAttemptResponsesCount >= 10 ? maxAttemptInHistory + 1 : maxAttemptInHistory;
+  });
+
+  const [expandedAttempts, setExpandedAttempts] = useState<{ [key: number]: boolean }>({ [maxAttemptInHistory]: true, 1: true });
+
+  const toggleAttemptExpand = (attNum: number) => {
+    setExpandedAttempts(prev => ({ ...prev, [attNum]: !prev[attNum] }));
+  };
+
+  useEffect(() => {
+    const candResponses = activeCandidate?.interviewResponses || [];
+    const candAttempts = Array.from(new Set(candResponses.map(r => r.attemptNumber || 1)));
+    const maxAtt = candAttempts.length > 0 ? Math.max(...candAttempts) : 1;
+    const inAttCount = candResponses.filter(r => (r.attemptNumber || 1) === maxAtt).length;
+    const startingAtt = inAttCount >= 10 ? maxAtt + 1 : maxAtt;
+    setCurrentAttemptNumber(startingAtt);
+    setExpandedAttempts({ [startingAtt]: true, [maxAtt]: true, 1: true });
+  }, [selectedCandidateId]);
+
+  const handleStartNewAttempt = () => {
+    const nextAtt = Math.max(...attemptNumbers, currentAttemptNumber) + 1;
+    setCurrentAttemptNumber(nextAtt);
+    setCurrentQuestionIndex(0);
+    setSessionStatus('Active');
+    setLatestEvaluation(null);
+    setCandidateInputText('');
+    setExpandedAttempts(prev => ({ ...prev, [nextAtt]: true }));
+
+    const firstQ = questions[0];
+    const introText = `Starting Attempt #${nextAtt} for ${activeCandidate.fullName}. You will be answering 10 questions (5 descriptive and 5 objective MCQs) for the role: ${selectedJobPosition}.`;
+    
+    setChatMessages([
+      {
+        id: `msg-${Date.now()}-intro`,
+        sender: 'ai',
+        text: introText,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      },
+      ...(firstQ ? [{
+        id: `msg-${Date.now()}-q1`,
+        sender: 'ai' as const,
+        text: `[Question 1/10 • ${firstQ.type === 'objective' ? 'Objective MCQ' : 'Descriptive'} • ${firstQ.category}]\n${firstQ.question}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }] : [])
+    ]);
+  };
+
   // Start or reset AI Interview Simulation Chat Session
   useEffect(() => {
-    if (activeCandidate) {
-      const introText = `Hello ${activeCandidate.fullName}, I'm your AI interviewer today. Let's start with a technical question about your experience with ${selectedJobPosition.toLowerCase()} deployment.`;
+    if (activeCandidate && questions.length > 0) {
+      const firstQ = questions[0];
+      const introText = `Hello ${activeCandidate.fullName}, welcome to Attempt #${currentAttemptNumber} of your AI interview simulation for ${selectedJobPosition}. You will complete 10 questions (5 Descriptive and 5 Objective MCQs). Here is your first question:`;
       setChatMessages([
         {
-          id: `msg-0`,
+          id: `msg-${Date.now()}-intro`,
           sender: 'ai',
           text: introText,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }
+        },
+        ...(firstQ ? [{
+          id: `msg-${Date.now()}-q1`,
+          sender: 'ai' as const,
+          text: `[Question 1/10 • ${firstQ.type === 'objective' ? 'Objective MCQ' : 'Descriptive'} • ${firstQ.category}]\n${firstQ.question}`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }] : [])
       ]);
       setCurrentQuestionIndex(0);
       setSessionStatus('Active');
       setLatestEvaluation(null);
     }
-  }, [selectedCandidateId, selectedJobPosition]);
+  }, [selectedCandidateId, selectedJobPosition, questions.length]);
 
   // Handle Candidate Response Submission and Real AI Evaluation Scoring (Groq LPU Powered)
-  const handleSendResponse = async (overrideText?: string) => {
+  const handleSendResponse = async (
+    overrideText?: string,
+    objectiveChoice?: { optionText: string; isCorrect: boolean }
+  ) => {
     const textToSend = overrideText || candidateInputText;
     if (!textToSend.trim()) return;
 
-    // Intelligent initial heuristic scores
-    let clarityScore = Math.floor(88 + Math.random() * 8);
-    let relevanceScore = Math.floor(86 + Math.random() * 10);
-    let overallScore = Math.round((clarityScore * 0.4) + (relevanceScore * 0.6));
-    let feedbackText = `Demonstrates high technical depth and clear domain articulation.`;
-    let aiNextReply = '';
-
     const currentQ = questions[currentQuestionIndex];
-    const qText = currentQ ? currentQ.question : `Technical assessment question for ${selectedJobPosition}`;
+    const qText = currentQ ? currentQ.question : `Assessment question for ${selectedJobPosition}`;
+    const isObjective = currentQ?.type === 'objective';
 
-    // Immediately post candidate's bubble to chat
-    const candMsg: ChatBubble = {
-      id: `cand-${Date.now()}`,
-      sender: 'candidate',
-      text: textToSend,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      score: { clarity: clarityScore, relevance: relevanceScore, overall: overallScore, feedback: feedbackText }
-    };
-    setChatMessages(prev => [...prev, candMsg]);
-    setCandidateInputText('');
+    let clarityScore = 90;
+    let relevanceScore = 90;
+    let overallScore = 90;
+    let feedbackText = '';
+    let isOptionCorrect: boolean | undefined = undefined;
 
-    // Call Groq LPU endpoint on AI microservice
-    try {
-      const groqRes = await fetch('http://localhost:8000/api/ai/interview-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          candidate_name: activeCandidate.fullName,
-          job_role: selectedJobPosition,
-          question: qText,
-          candidate_response: textToSend
-        })
-      });
-
-      if (groqRes.ok) {
-        const groqData = await groqRes.json();
-        if (groqData.evaluation) {
-          clarityScore = groqData.evaluation.clarity;
-          relevanceScore = groqData.evaluation.relevance;
-          overallScore = groqData.evaluation.overall;
-          feedbackText = groqData.evaluation.feedback;
-        }
-        if (groqData.next_question) {
-          aiNextReply = groqData.next_question;
-        }
+    if (isObjective) {
+      if (objectiveChoice !== undefined) {
+        isOptionCorrect = objectiveChoice.isCorrect;
+      } else if (currentQ.options && currentQ.correctOptionIndex !== undefined) {
+        const correctOpt = currentQ.options[currentQ.correctOptionIndex];
+        const correctLetter = correctOpt.charAt(0).toUpperCase();
+        const trimmed = textToSend.trim().toUpperCase();
+        isOptionCorrect = trimmed === correctLetter || trimmed.startsWith(correctLetter) || trimmed.includes(correctOpt.substring(3).trim().toUpperCase());
+      } else {
+        isOptionCorrect = true;
       }
-    } catch {
-      // Heuristic fallback if backend is offline
+
+      if (isOptionCorrect) {
+        clarityScore = 98;
+        relevanceScore = 100;
+        overallScore = 100;
+        feedbackText = `Correct! ${currentQ.correctExplanation || 'Accurate objective response demonstrating domain expertise.'}`;
+      } else {
+        clarityScore = 55;
+        relevanceScore = 40;
+        overallScore = 45;
+        const correctOpt = currentQ.options ? currentQ.options[currentQ.correctOptionIndex || 0] : 'the intended option';
+        feedbackText = `Incorrect. The correct answer is: ${correctOpt}. ${currentQ.correctExplanation || ''}`;
+      }
+    } else {
+      clarityScore = Math.floor(88 + Math.random() * 8);
+      relevanceScore = Math.floor(86 + Math.random() * 10);
+      overallScore = Math.round((clarityScore * 0.4) + (relevanceScore * 0.6));
+      feedbackText = `Demonstrates strong technical depth and clear domain articulation.`;
+
+      try {
+        const groqRes = await fetch('http://localhost:8000/api/ai/interview-chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            candidate_name: activeCandidate.fullName,
+            job_role: selectedJobPosition,
+            question: qText,
+            candidate_response: textToSend
+          })
+        });
+
+        if (groqRes.ok) {
+          const groqData = await groqRes.json();
+          if (groqData.evaluation) {
+            clarityScore = groqData.evaluation.clarity;
+            relevanceScore = groqData.evaluation.relevance;
+            overallScore = groqData.evaluation.overall;
+            feedbackText = groqData.evaluation.feedback;
+          }
+        }
+      } catch {
+        // Local fallback
+      }
     }
 
     const evalResult = {
@@ -741,25 +836,43 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
     };
     setLatestEvaluation(evalResult);
 
-    // Save response into candidate's recorded interview responses
+    // Immediately post candidate's bubble to chat
+    const candMsg: ChatBubble = {
+      id: `cand-${Date.now()}`,
+      sender: 'candidate',
+      text: isObjective ? `Selected: ${textToSend}` : textToSend,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      score: evalResult
+    };
+    setChatMessages(prev => [...prev, candMsg]);
+    setCandidateInputText('');
+
+    // Save response into candidate's recorded interview responses under the current attempt
     const newResponseRecord: CandidateInterviewResponse = {
-      id: `resp-${Date.now()}`,
+      id: `resp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       question: qText,
       category: currentQ ? currentQ.category : 'Technical',
       answer: textToSend,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      score: evalResult
+      score: evalResult,
+      attemptNumber: currentAttemptNumber,
+      questionIndex: currentQuestionIndex + 1,
+      questionType: isObjective ? 'objective' : 'descriptive',
+      selectedOption: isObjective ? textToSend : undefined,
+      isCorrect: isOptionCorrect
     };
 
     if (onSaveCandidateInterviewResponse) {
       onSaveCandidateInterviewResponse(activeCandidate.id, newResponseRecord);
     }
 
-    // Advance to next question or complete interview session
+    // Advance to next question or complete interview session (10 questions total)
+    const totalQuestionsCount = Math.max(questions.length, 10);
     setTimeout(() => {
-      if (currentQuestionIndex < questions.length - 1) {
-        const nextQ = questions[currentQuestionIndex + 1];
-        const nextMsgText = aiNextReply || `Great! Let's examine: ${nextQ.question}`;
+      if (currentQuestionIndex < totalQuestionsCount - 1 && currentQuestionIndex < questions.length - 1) {
+        const nextIdx = currentQuestionIndex + 1;
+        const nextQ = questions[nextIdx];
+        const nextMsgText = `[Question ${nextIdx + 1}/10 • ${nextQ.type === 'objective' ? 'Objective MCQ' : 'Descriptive'} • ${nextQ.category}]\n${nextQ.question}`;
         const aiMsg: ChatBubble = {
           id: `ai-${Date.now()}`,
           sender: 'ai',
@@ -767,21 +880,17 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         setChatMessages(prev => [...prev, aiMsg]);
-        setCurrentQuestionIndex(prev => prev + 1);
+        setCurrentQuestionIndex(nextIdx);
       } else {
-        // Final Completion
+        // Final Completion of this Attempt
         const aiFinal: ChatBubble = {
           id: `ai-final-${Date.now()}`,
           sender: 'ai',
-          text: aiNextReply 
-            ? `${aiNextReply}\n\nThank you ${activeCandidate.fullName}! The interview simulation is now complete. Your responses have been evaluated and recorded for ATS review.`
-            : `Thank you ${activeCandidate.fullName}! The interview simulation is now complete. Your responses have been evaluated with an overall score of ${overallScore}% and recorded for ATS review.`,
+          text: `🎉 Congratulations ${activeCandidate.fullName}! You have completed Attempt #${currentAttemptNumber} (All 10 Questions Evaluated). Your score and detailed feedback have been recorded under Attempt #${currentAttemptNumber} below and synchronized with the ATS.`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         setChatMessages(prev => [...prev, aiFinal]);
         setSessionStatus('Completed');
-
-        // Automatically sync completed status with ATS REST API
         syncAtsStatus(activeCandidate.email, "Interview Completed");
       }
     }, 600);
@@ -791,7 +900,7 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
     const aiMsg: ChatBubble = {
       id: `ai-spec-${Date.now()}`,
       sender: 'ai',
-      text: `Question: ${qItem.question}`,
+      text: `[${qItem.type === 'objective' ? 'Objective MCQ' : 'Descriptive'} • ${qItem.category}]\n${qItem.question}`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     setChatMessages(prev => [...prev, aiMsg]);
@@ -802,8 +911,6 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
     setStagingNotice(`Candidate ${activeCandidate.fullName} staged to "${newStage}"! Profile & ATS records updated.`);
     setTimeout(() => setStagingNotice(null), 4000);
   };
-
-  const candidateResponsesList = activeCandidate?.interviewResponses || [];
 
   const syncAtsStatus = async (email: string, status: string) => {
     try {
@@ -1001,16 +1108,49 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
                       {idx + 1}
                     </span>
                     <div className="space-y-2 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                          q.type === 'objective'
+                            ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                            : 'bg-blue-100 text-blue-800 border border-blue-200'
+                        }`}>
+                          {q.type === 'objective' ? 'Objective MCQ' : 'Descriptive'}
+                        </span>
+                        <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-bold">
+                          {q.category}
+                        </span>
+                        {q.difficulty && (
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            q.difficulty === 'Hard' ? 'bg-rose-100 text-rose-700' :
+                            q.difficulty === 'Medium' ? 'bg-amber-100 text-amber-700' :
+                            'bg-emerald-100 text-emerald-700'
+                          }`}>
+                            {q.difficulty}
+                          </span>
+                        )}
+                      </div>
+
                       <p className="text-xs font-bold text-slate-900 leading-relaxed">
                         {q.question}
                       </p>
-                      <div className="flex items-center justify-between">
+
+                      {q.type === 'objective' && q.options && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-2 bg-white rounded-xl border border-slate-200 text-[11px]">
+                          {q.options.map((opt, oIdx) => (
+                            <div key={oIdx} className="px-2 py-1 rounded bg-slate-50 border border-slate-100 text-slate-700 font-medium">
+                              {opt}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-1">
                         <p className="text-[10px] text-slate-500 font-semibold">
-                          {q.tags || `${q.category} • Experience-based • 3-5 min response`}
+                          {q.tags || `${q.category} • Experience-based`}
                         </p>
                         <button
                           onClick={() => handleSendSpecificQuestionToSimulation(q)}
-                          className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline"
+                          className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
                         >
                           + Send to Simulation
                         </button>
@@ -1515,7 +1655,37 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
 
             {/* Response Input Box & Actions with Live Voice Mic */}
             {sessionStatus === 'Active' ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
+                {/* Interactive Objective Question (MCQ) Option Pills */}
+                {questions[currentQuestionIndex]?.type === 'objective' && questions[currentQuestionIndex]?.options && (
+                  <div className="p-3.5 bg-blue-50/80 border border-blue-200 rounded-xl space-y-2.5 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-blue-950 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                        Select your answer:
+                      </span>
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded bg-blue-600 text-white uppercase tracking-wider">
+                        Objective MCQ • Question {currentQuestionIndex + 1} of 10
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {questions[currentQuestionIndex].options!.map((opt, oIdx) => (
+                        <button
+                          key={oIdx}
+                          type="button"
+                          onClick={() => handleSendResponse(opt, {
+                            optionText: opt,
+                            isCorrect: oIdx === questions[currentQuestionIndex].correctOptionIndex
+                          })}
+                          className="text-left p-2.5 bg-white hover:bg-blue-600 hover:text-white border border-blue-200 hover:border-blue-600 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-xs group"
+                        >
+                          <span className="group-hover:text-white">{opt}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {isListeningVoice && (
                   <div className="p-2 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between text-xs text-rose-900 font-bold animate-pulse">
                     <span className="flex items-center gap-2">
@@ -1537,7 +1707,11 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
                     type="text"
                     value={candidateInputText}
                     onChange={e => setCandidateInputText(e.target.value)}
-                    placeholder={isListeningVoice ? "Transcribing speech..." : "Type response or click mic to speak..."}
+                    placeholder={
+                      questions[currentQuestionIndex]?.type === 'objective'
+                        ? "Click an option above or type your answer..."
+                        : isListeningVoice ? "Transcribing speech..." : "Type descriptive response or click mic to speak..."
+                    }
                     onKeyDown={e => e.key === 'Enter' && handleSendResponse()}
                     className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
@@ -1567,36 +1741,40 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
                 <div className="flex items-center justify-between pt-1 text-[11px]">
                   <button
                     type="button"
-                    onClick={() => handleSendResponse(`I'd be happy to discuss my experience with ${selectedJobPosition} deployment, scaling, and optimization techniques.`)}
+                    onClick={() => {
+                      const curQ = questions[currentQuestionIndex];
+                      if (curQ?.type === 'objective' && curQ.options) {
+                        handleSendResponse(curQ.options[curQ.correctOptionIndex || 0], {
+                          optionText: curQ.options[curQ.correctOptionIndex || 0],
+                          isCorrect: true
+                        });
+                      } else {
+                        handleSendResponse(`I have extensive hands-on experience optimizing and deploying ${selectedJobPosition} solutions with robust testing, profiling, and monitoring.`);
+                      }
+                    }}
                     className="text-blue-600 hover:underline font-semibold cursor-pointer"
                   >
                     Quick AI Suggestion
                   </button>
-                  <span className="text-slate-400 font-medium">Question {Math.min(currentQuestionIndex + 1, questions.length)} of {questions.length}</span>
+                  <span className="text-slate-500 font-bold">
+                    Question {Math.min(currentQuestionIndex + 1, questions.length)} of {Math.max(questions.length, 10)} • Attempt #{currentAttemptNumber}
+                  </span>
                 </div>
               </div>
             ) : (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-center space-y-2">
-                <p className="text-xs font-extrabold text-emerald-950">
-                  Interview Completed! Candidate responses evaluated and recorded into ATS review.
+              <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-xl text-center space-y-3">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-xs">
+                  Attempt #{currentAttemptNumber} Completed!
+                </div>
+                <p className="text-xs font-medium text-emerald-950 max-w-md mx-auto">
+                  All 10 questions have been evaluated and recorded under <strong>Attempt #{currentAttemptNumber}</strong> in the review log below and synchronized with the ATS pipeline.
                 </p>
                 <div className="flex items-center justify-center gap-3">
                   <button
-                    onClick={() => {
-                      setCurrentQuestionIndex(0);
-                      setSessionStatus('Active');
-                      setChatMessages([
-                        {
-                          id: `msg-${Date.now()}`,
-                          sender: 'ai',
-                          text: `Hello ${activeCandidate.fullName}, welcome back. Let's restart the AI technical interview simulation for ${selectedJobPosition}.`,
-                          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                        }
-                      ]);
-                    }}
-                    className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all cursor-pointer"
+                    onClick={handleStartNewAttempt}
+                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl shadow-md transition-all cursor-pointer"
                   >
-                    Restart Session
+                    + Take Again (Start Attempt #{Math.max(...attemptNumbers, currentAttemptNumber) + 1})
                   </button>
                 </div>
               </div>
@@ -1622,8 +1800,15 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
 
               <div className="flex items-center gap-2">
                 <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 font-extrabold text-xs rounded-lg border border-indigo-200">
-                  {candidateResponsesList.length} Response{candidateResponsesList.length === 1 ? '' : 's'} Logged
+                  {candidateResponsesList.length > 0 ? attemptNumbers.length : 0} Attempt{attemptNumbers.length === 1 && candidateResponsesList.length > 0 ? '' : 's'} • {candidateResponsesList.length} Total Answer{candidateResponsesList.length === 1 ? '' : 's'}
                 </span>
+                <button
+                  type="button"
+                  onClick={handleStartNewAttempt}
+                  className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-lg transition-all cursor-pointer shadow-xs"
+                >
+                  + New Attempt
+                </button>
               </div>
             </div>
 
@@ -1703,73 +1888,162 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
               </div>
             )}
 
-            {/* Stored Responses List */}
-            <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-              {candidateResponsesList.length > 0 ? (
-                candidateResponsesList.map((resp, idx) => (
-                  <div key={resp.id || idx} className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 font-black text-[10px] flex items-center justify-center">
-                          {idx + 1}
-                        </span>
-                        <span className="px-2 py-0.5 bg-slate-200 text-slate-700 rounded text-[10px] font-bold uppercase">
-                          {resp.category || 'Technical'}
-                        </span>
-                        <span className="text-[11px] font-semibold text-slate-400">
-                          {resp.timestamp}
-                        </span>
-                      </div>
+            {/* Stored Responses Partitioned by Attempt (Attempt 1, 2, ...) */}
+            <div className="space-y-4 max-h-[550px] overflow-y-auto pr-1">
+              {candidateResponsesList.length > 0 && attemptNumbers.length > 0 ? (
+                attemptNumbers.map(attNum => {
+                  const attResponses = (attemptGroups[attNum] || []).slice().sort((a, b) => (a.questionIndex || 0) - (b.questionIndex || 0));
+                  const isExpanded = expandedAttempts[attNum] ?? true;
+                  const isComplete = attResponses.length >= 10;
+                  const avgScore = Math.round(
+                    attResponses.reduce((sum, r) => sum + (r.score?.overall || 0), 0) / (attResponses.length || 1)
+                  );
+                  const descriptiveCount = attResponses.filter(r => r.questionType === 'descriptive' || !r.questionType).length;
+                  const objectiveCount = attResponses.filter(r => r.questionType === 'objective').length;
+                  const correctObjCount = attResponses.filter(r => r.questionType === 'objective' && r.isCorrect).length;
 
-                      <div className="flex items-center gap-2">
-                        {resp.score && (
-                          <div className="flex items-center gap-2 text-xs font-bold">
-                            <span className="text-emerald-700">Clarity: {resp.score.clarity}%</span>
-                            <span className="text-emerald-700">Relevance: {resp.score.relevance}%</span>
-                            <span className="px-2 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-black">
-                              Overall {resp.score.overall}%
-                            </span>
+                  return (
+                    <div key={attNum} className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xs">
+                      {/* Attempt Accordion Header */}
+                      <div 
+                        onClick={() => toggleAttemptExpand(attNum)}
+                        className="p-4 bg-slate-50 hover:bg-slate-100/90 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer select-none border-b border-slate-200"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="w-9 h-9 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
+                            #{attNum}
+                          </span>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-extrabold text-slate-900 text-sm">Attempt {attNum}</h4>
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                isComplete 
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
+                                  : 'bg-amber-100 text-amber-800 border border-amber-300'
+                              }`}>
+                                {isComplete ? '10 / 10 Completed' : `${attResponses.length} / 10 Logged`}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500 font-medium mt-0.5">
+                              {descriptiveCount} Descriptive • {objectiveCount} Objective ({correctObjCount}/{objectiveCount} Correct) • {attResponses[0]?.timestamp || ''}
+                            </p>
                           </div>
-                        )}
-                        {onDeleteCandidateInterviewResponse && canModifyActiveCandidate && (
+                        </div>
+
+                        <div className="flex items-center gap-3 self-end sm:self-auto">
+                          <div className="text-right">
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block">Attempt Score</span>
+                            <span className="text-sm font-extrabold text-emerald-700">{avgScore}%</span>
+                          </div>
                           <button
                             type="button"
-                            onClick={() => {
-                              if (window.confirm(`Delete interview response for "${resp.question}"?`)) {
-                                onDeleteCandidateInterviewResponse(activeCandidate.id || activeCandidate.email, resp.id || resp.question);
-                              }
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleAttemptExpand(attNum);
                             }}
-                            className="px-2 py-0.5 text-[10px] font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded transition-colors cursor-pointer"
-                            title="Delete this interview answer"
+                            className="text-xs font-bold text-slate-600 hover:text-slate-900 px-2.5 py-1 bg-white border border-slate-200 rounded-lg cursor-pointer"
                           >
-                            Delete
+                            {isExpanded ? 'Collapse' : 'Expand'}
                           </button>
-                        )}
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="space-y-1">
-                      <p className="text-xs font-extrabold text-slate-900">
-                        {resp.question}
-                      </p>
-                      <div className="p-3 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-800 leading-relaxed italic">
-                        "{resp.answer}"
-                      </div>
-                    </div>
+                      {/* Attempt Questions Breakdown (Total 10 for Session) */}
+                      {isExpanded && (
+                        <div className="p-4 space-y-3 bg-slate-50/40">
+                          {attResponses.map((resp, qIdx) => (
+                            <div key={resp.id || qIdx} className="p-4 bg-white border border-slate-200 rounded-xl space-y-2.5 shadow-xs">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-800 font-black text-[10px] flex items-center justify-center border border-slate-200">
+                                    Q{resp.questionIndex || (qIdx + 1)}
+                                  </span>
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                                    resp.questionType === 'objective'
+                                      ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                                      : 'bg-blue-100 text-blue-800 border border-blue-200'
+                                  }`}>
+                                    {resp.questionType === 'objective' ? 'Objective MCQ' : 'Descriptive'}
+                                  </span>
+                                  <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-bold">
+                                    {resp.category || 'Technical'}
+                                  </span>
+                                  <span className="text-[11px] font-semibold text-slate-400">
+                                    {resp.timestamp}
+                                  </span>
+                                </div>
 
-                    {resp.score?.feedback && (
-                      <p className="text-[11px] text-emerald-800 font-medium bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
-                        <span className="font-bold">AI Evaluator Feedback:</span> {resp.score.feedback}
-                      </p>
-                    )}
-                  </div>
-                ))
+                                <div className="flex items-center gap-2">
+                                  {resp.score && (
+                                    <div className="flex items-center gap-2 text-xs font-bold">
+                                      <span className="text-emerald-700">Clarity: {resp.score.clarity}%</span>
+                                      <span className="text-emerald-700">Relevance: {resp.score.relevance}%</span>
+                                      <span className="px-2 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-black">
+                                        Overall {resp.score.overall}%
+                                      </span>
+                                    </div>
+                                  )}
+                                  {onDeleteCandidateInterviewResponse && canModifyActiveCandidate && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (window.confirm(`Delete answer for Question ${resp.questionIndex || (qIdx + 1)} in Attempt ${attNum}?`)) {
+                                          onDeleteCandidateInterviewResponse(activeCandidate.id || activeCandidate.email, resp.id || resp.question);
+                                        }
+                                      }}
+                                      className="px-2 py-0.5 text-[10px] font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded transition-colors cursor-pointer"
+                                      title="Delete this answer"
+                                    >
+                                      Delete
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="space-y-1">
+                                <p className="text-xs font-bold text-slate-900 leading-relaxed">
+                                  {resp.question}
+                                </p>
+                                
+                                {resp.questionType === 'objective' ? (
+                                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                                    <div>
+                                      <span className="text-slate-500 font-semibold block text-[10px] uppercase">Selected Choice:</span>
+                                      <span className="font-bold text-slate-900">{resp.answer}</span>
+                                    </div>
+                                    <span className={`px-2.5 py-1 rounded-lg font-black text-xs shrink-0 ${
+                                      resp.isCorrect
+                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                        : 'bg-rose-100 text-rose-800 border border-rose-300'
+                                    }`}>
+                                      {resp.isCorrect ? 'Correct Choice (+100%)' : 'Incorrect Choice (+45%)'}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 leading-relaxed italic">
+                                    "{resp.answer}"
+                                  </div>
+                                )}
+                              </div>
+
+                              {resp.score?.feedback && (
+                                <p className="text-[11px] text-emerald-800 font-medium bg-emerald-50 px-2.5 py-1.5 rounded-md border border-emerald-200 leading-relaxed">
+                                  <span className="font-bold">AI Evaluator Feedback:</span> {resp.score.feedback}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
               ) : (
                 <div className="p-6 text-center text-slate-400 text-xs font-medium bg-slate-50 rounded-xl border border-dashed border-slate-300">
                   No interview responses logged yet for this candidate.
                   <br />
                   <span className="text-slate-500 font-bold">
-                    Conduct an interview above or submit a response to record it here for staging!
+                    Start Attempt #1 in the simulation console above to answer the 10 questions!
                   </span>
                 </div>
               )}
