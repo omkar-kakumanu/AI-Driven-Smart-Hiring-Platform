@@ -32,6 +32,69 @@ const normalizeIndianJob = (job: Job): Job => {
   };
 };
 
+export const isStaffOrAdminEmailOrRole = (
+  email?: string,
+  name?: string,
+  role?: string,
+  userType?: string,
+  accounts?: UserAccount[]
+): boolean => {
+  const cleanEmail = (email || '').toLowerCase().trim();
+  const cleanName = (name || '').toLowerCase().trim();
+  const cleanRole = (role || '').toLowerCase().trim();
+
+  // 1. Explicit admin/recruiter emails
+  if (
+    cleanEmail === 'admin@copilot.com' ||
+    cleanEmail === 'recruiter@copilot.com' ||
+    cleanEmail === 'j.manju.raghvin@gmail.com' ||
+    cleanEmail === 'sarah.jenkins@gmail.com'
+  ) {
+    return true;
+  }
+
+  // 2. Generic staff keywords in email
+  if (cleanEmail.includes('admin') || cleanEmail.includes('recruiter')) {
+    return true;
+  }
+
+  // 3. User type ADMIN
+  if (userType === 'ADMIN') {
+    return true;
+  }
+
+  // 4. Staff name checks
+  if (
+    cleanName.includes('j manju raghvin') ||
+    cleanName.includes('super-admin') ||
+    cleanName.includes('administrator') ||
+    cleanName.includes('sarah jenkins')
+  ) {
+    return true;
+  }
+
+  // 5. Staff role checks
+  if (
+    cleanRole.includes('administrator') ||
+    cleanRole.includes('hiring director') ||
+    cleanRole.includes('talent acquisition') ||
+    cleanRole.includes('lead recruiter') ||
+    cleanRole.includes('system admin')
+  ) {
+    return true;
+  }
+
+  // 6. Registered user accounts lookup
+  if (accounts && cleanEmail) {
+    const found = accounts.find(u => u.email.toLowerCase() === cleanEmail);
+    if (found && (found.userType === 'ADMIN' || found.isSuperAdmin || found.role?.toLowerCase().includes('admin') || found.role?.toLowerCase().includes('recruiter'))) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 const safeStorageSet = (key: string, value: string) => {
   try {
     localStorage.setItem(key, value);
@@ -72,6 +135,15 @@ export function useRecruitmentStore() {
         if (Array.isArray(parsed) && parsed.length > 0) cands = parsed;
       } catch (e) {}
     }
+
+    // 1. Strict Staff & Admin purge: Under no circumstances should an Admin or Recruiter exist in candidates
+    cands = cands.filter(c => !isStaffOrAdminEmailOrRole(c.email, c.fullName, c.currentRole));
+
+    // 2. Purge rogue "Abhishek Ai Ml Resume 1" candidate records
+    cands = cands.filter(c => {
+      const n = (c.fullName || '').toLowerCase();
+      return !n.includes('abhishek ai ml resume') && n !== 'abhishek ai ml resume 1';
+    });
     
     // Ensure all standard initial candidates are preserved and never collapsed
     const existingIds = new Set(cands.map(c => c.id));
@@ -81,12 +153,20 @@ export function useRecruitmentStore() {
     }
 
     const initialMap = new Map(INITIAL_CANDIDATES.map(ic => [ic.id, ic]));
-    const cand1CustomName = localStorage.getItem('rc_name_candidate@copilot.com') ||
+    let cand1CustomName = localStorage.getItem('rc_name_candidate@copilot.com') ||
       localStorage.getItem('rc_name_sarah.johnson@example.com') ||
       localStorage.getItem('rc_name_cand-1');
     const cand1CustomAvatar = localStorage.getItem('rc_avatar_candidate@copilot.com') ||
       localStorage.getItem('rc_avatar_sarah.johnson@example.com') ||
       localStorage.getItem('rc_avatar_cand-1');
+
+    // Clean up if cand1 was contaminated with rogue "Abhishek Ai Ml Resume 1"
+    if (cand1CustomName && (cand1CustomName.toLowerCase().includes('abhishek ai ml resume') || cand1CustomName.toLowerCase().includes('resume 1'))) {
+      localStorage.removeItem('rc_name_candidate@copilot.com');
+      localStorage.removeItem('rc_name_sarah.johnson@example.com');
+      localStorage.removeItem('rc_name_cand-1');
+      cand1CustomName = null;
+    }
 
     const sanitized = cands.map(c => {
       const cMail = (c.email || '').toLowerCase();
@@ -112,7 +192,8 @@ export function useRecruitmentStore() {
           (cand1CustomName && c.fullName.toLowerCase() === cand1CustomName.toLowerCase()) ||
           !c.fullName || 
           c.fullName.trim() === '' ||
-          c.fullName === 'Candidate';
+          c.fullName === 'Candidate' ||
+          c.fullName.toLowerCase().includes('abhishek ai ml resume');
 
         const cleanName = (specificCustomName && specificCustomName.trim() && !isContaminated)
           ? specificCustomName.trim()
@@ -465,8 +546,21 @@ export function useRecruitmentStore() {
       }));
 
       setCandidates(prevCands => {
+        const isStaff = isStaffOrAdminEmailOrRole(
+          targetEmail,
+          updates.name || prev.name,
+          updates.role || prev.role,
+          updates.userType || prev.userType,
+          userAccounts
+        );
+
+        // Staff & Administrators must NEVER exist as candidates or be ranked in skill gap analysis!
+        if (isStaff) {
+          return prevCands.filter(c => !isStaffOrAdminEmailOrRole(c.email, c.fullName, c.currentRole, undefined, userAccounts));
+        }
+
         const cExists = prevCands.some(c => c.email.toLowerCase() === targetEmail);
-        if (!cExists && targetEmail && !targetEmail.includes('admin') && !targetEmail.includes('recruiter')) {
+        if (!cExists && targetEmail) {
           const newCandidate: Candidate = {
             id: `cand-${targetEmail.replace(/[^a-z0-9]/g, '-')}`,
             fullName: updates.name ? updates.name.trim() : (prev.name || targetEmail.split('@')[0]),
@@ -625,17 +719,40 @@ export function useRecruitmentStore() {
   };
 
   const addCandidate = (newCandidate: Omit<Candidate, 'id' | 'status' | 'matchScore'>) => {
+    // Guard: Staff/Admins cannot be added as candidates in directory or skill gap ranking
+    if (isStaffOrAdminEmailOrRole(newCandidate.email, newCandidate.fullName, newCandidate.currentRole, undefined, userAccounts)) {
+      console.warn("Staff/Admin cannot be added as candidate:", newCandidate.email);
+      return null as any;
+    }
+
+    const cleanMail = (newCandidate.email || '').toLowerCase().trim();
     const candidateId = `cand-${Date.now()}`;
-    const candidate: Candidate = {
+    const score = calculateMatchScore(newCandidate.skills, jobs.find(j => j.id === activeJobId)?.requiredSkills || []);
+
+    let savedCand: Candidate = {
       ...newCandidate,
       id: candidateId,
       status: 'Applied',
-      matchScore: calculateMatchScore(newCandidate.skills, jobs.find(j => j.id === activeJobId)?.requiredSkills || [])
+      matchScore: score
     };
 
-    setCandidates(prev => [candidate, ...prev]);
-    setActiveCandidateId(candidateId);
-    return candidate;
+    setCandidates(prev => {
+      const existingIdx = cleanMail ? prev.findIndex(c => (c.email || '').toLowerCase().trim() === cleanMail) : -1;
+      if (existingIdx >= 0) {
+        const updated = [...prev];
+        savedCand = {
+          ...updated[existingIdx],
+          ...newCandidate,
+          matchScore: score
+        };
+        updated[existingIdx] = savedCand;
+        return updated;
+      }
+      return [savedCand, ...prev];
+    });
+
+    setActiveCandidateId(savedCand.id);
+    return savedCand;
   };
 
   const addJob = (newJob: Omit<Job, 'id' | 'candidateCount' | 'createdAt'>) => {

@@ -12,8 +12,8 @@ import { VoiceScreeningView } from './pages/VoiceScreeningView';
 import { AtsIntegrationView } from './pages/AtsIntegrationView';
 import { CandidatePortalView } from './pages/CandidatePortalView';
 import { NewJobModal } from './components/NewJobModal';
-import { useRecruitmentStore } from './store/useRecruitmentStore';
-import type { UserProfile } from './types';
+import { useRecruitmentStore, isStaffOrAdminEmailOrRole } from './store/useRecruitmentStore';
+import type { UserProfile, Candidate } from './types';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -86,10 +86,49 @@ export default function App() {
     );
   });
 
-  // Candidate Role Access Control:
-  // All candidates are visible in the platform directory and pipelines,
-  // while candidates can only edit/delete their own record.
-  const roleFilteredCandidates = filteredCandidates;
+  // Candidate Role Access Control & Privacy Sandboxing:
+  // 1. CANDIDATE ISOLATION:
+  //    When a candidate is logged in (isCandidateUser === true), candidate privacy is strictly enforced.
+  //    Candidates can NEVER see other candidates' resumes, profiles, match scores, or voice screening records.
+  //    They only see their own candidate record.
+  // 2. ADMIN/STAFF EXCLUSION:
+  //    When an Administrator or Recruiter is logged in, they see all actual applicants, but staff
+  //    (Admins and Recruiters) are strictly excluded from candidates so they NEVER appear in skill gap rankings.
+  const currentCandidateEmail = (store.userProfile?.email || '').toLowerCase().trim();
+  const isDemoCandidate = currentCandidateEmail === 'candidate@copilot.com' || currentCandidateEmail === 'sarah.johnson@example.com';
+
+  const roleFilteredCandidates: Candidate[] = isCandidateUser
+    ? (() => {
+        const myCandidates = filteredCandidates.filter(c => {
+          const cMail = (c.email || '').toLowerCase().trim();
+          if (cMail === currentCandidateEmail) return true;
+          if (isDemoCandidate && (c.id === 'cand-1' || cMail === 'candidate@copilot.com' || cMail === 'sarah.johnson@example.com')) return true;
+          return false;
+        });
+
+        if (myCandidates.length > 0) return myCandidates;
+
+        // If newly registered candidate has not uploaded a resume yet, provide isolated self-profile
+        const selfCandidate: Candidate = {
+          id: `cand-${currentCandidateEmail.replace(/[^a-z0-9]/g, '-') || 'user'}`,
+          fullName: store.userProfile?.name || 'My Candidate Profile',
+          email: store.userProfile?.email || currentCandidateEmail,
+          phone: localStorage.getItem(`rc_candidate_prefs_${currentCandidateEmail}_phone`) || '+91 98765 43210',
+          location: localStorage.getItem(`rc_candidate_prefs_${currentCandidateEmail}_city`) || 'Bengaluru, Karnataka (Hybrid)',
+          currentRole: store.userProfile?.role || 'Software Developer',
+          totalExperienceYears: 2,
+          headline: `${store.userProfile?.role || 'Software Developer'} Candidate Profile`,
+          skills: [],
+          degree: '',
+          institution: '',
+          status: 'Applied',
+          matchScore: 85,
+          avatar: store.userProfile?.avatar,
+          interviewResponses: []
+        };
+        return [selfCandidate];
+      })()
+    : filteredCandidates.filter(c => !isStaffOrAdminEmailOrRole(c.email, c.fullName, c.currentRole, undefined, store.userAccounts));
 
   const handleLogin = (profile: UserProfile & { userType: 'ADMIN' | 'USER'; status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'REVOKED'; isSuperAdmin?: boolean }) => {
     const isAdminAccount = profile.userType === 'ADMIN' || profile.email.toLowerCase() === 'admin@copilot.com';

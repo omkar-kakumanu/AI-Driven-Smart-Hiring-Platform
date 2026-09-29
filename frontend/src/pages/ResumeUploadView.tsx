@@ -14,6 +14,7 @@ interface ResumeUploadViewProps {
   isMainAdmin?: boolean;
   isCandidateUser?: boolean;
   currentCandidateEmail?: string;
+  userProfileName?: string;
   onAddCandidate: (cand: Omit<Candidate, 'id' | 'status' | 'matchScore'>) => Candidate;
   onDeleteCandidate?: (candidateId: string) => void;
   onAddSkillToCandidate?: (candidateId: string, skill: string) => void;
@@ -30,6 +31,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   isMainAdmin = false,
   isCandidateUser = false,
   currentCandidateEmail,
+  userProfileName,
   onAddCandidate,
   onDeleteCandidate,
   onAddSkillToCandidate,
@@ -185,7 +187,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
 
     // Extract Name
     let formattedName = '';
-    const excludedNameWords = ['resume', 'curriculum', 'vitae', 'cv', 'page', 'skills', 'experience', 'education', 'contact', 'email', 'phone', 'about', 'summary', 'profile', 'building', 'intelligent', 'solutions', 'student', 'engineer', 'developer'];
+    const excludedNameWords = ['resume', 'curriculum', 'vitae', 'cv', 'page', 'skills', 'experience', 'education', 'contact', 'email', 'phone', 'about', 'summary', 'profile', 'building', 'intelligent', 'solutions', 'student', 'engineer', 'developer', 'intern'];
     
     for (const l of lines.slice(0, 6)) {
       const cleanLine = l.replace(/[^a-zA-Z\s]/g, '').trim();
@@ -198,7 +200,17 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
       }
     }
     if (!formattedName) {
-      formattedName = fileName.split('.')[0].replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      if (isCandidateUser && userProfileName && userProfileName !== 'Candidate' && !userProfileName.toLowerCase().includes('resume')) {
+        formattedName = userProfileName;
+      } else {
+        const cleanFile = fileName.split('.')[0]
+          .replace(/[-_]/g, ' ')
+          .replace(/\b(resume|cv|ai|ml|engineering|developer|\d+)\b/gi, '')
+          .trim();
+        formattedName = cleanFile.length >= 2 
+          ? cleanFile.replace(/\b\w/g, l => l.toUpperCase()) 
+          : (userProfileName || 'Candidate Applicant');
+      }
     }
 
     // Contact
@@ -207,25 +219,29 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
     const locMatch = cleanText.match(/(?:Hyderabad|Bengaluru|Bangalore|Mumbai|Delhi|Pune|Chennai|San Francisco|New York|London)[,\s]+[A-Za-z\s]+/i);
 
     // Role & Experience
-    const roleMatch = cleanText.match(/\b(AI\/ML\s+ENGINEERING\s+STUDENT|Full\s*Stack\s*Developer\s*Intern|Software\s*Engineer|Developer|Data\s*Scientist|ML\s*Engineer)\b/i);
+    const roleMatch = cleanText.match(/\b(Full\s*Stack\s*Developer|Software\s*Engineer|Backend\s*Developer|Frontend\s*Developer|Data\s*Scientist|ML\s*Engineer|Machine\s*Learning\s*Engineer|DevOps\s*Engineer)\b/i);
     const role = roleMatch ? roleMatch[0].replace(/\b\w/g, c => c.toUpperCase()) : 'Software Developer';
 
     const expYearsMatch = cleanText.match(/(\d{1,2})\s*\+?\s*(?:years?|yrs?)\s*(?:of)?\s*(?:experience|exp)/i);
-    const experienceYears = expYearsMatch ? parseInt(expYearsMatch[1], 10) : 1;
+    const experienceYears = expYearsMatch ? parseInt(expYearsMatch[1], 10) : 2;
 
     // Degree & Institution
     const degreeMatch = cleanText.match(/(?:B\.?Tech(?:\s*-\s*[A-Za-z\s&]+)?|Bachelor[^\n,]*|Master[^\n,]*|BS[^\n,]*|MS[^\n,]*)/i);
-    const degree = degreeMatch ? degreeMatch[0].trim() : 'B.Tech - AI & Machine Learning';
+    const degree = degreeMatch ? degreeMatch[0].trim() : 'B.Tech in Computer Science';
 
-    const instMatch = cleanText.match(/([A-Za-z\s]+(?:University|College|Institute|Malla\s*Reddy)[A-Za-z\s]*)/i);
-    const institution = instMatch ? instMatch[1].trim() : 'Malla Reddy University (MR)';
+    const instMatch = cleanText.match(/([A-Za-z\s]+(?:University|College|Institute)[A-Za-z\s]*)/i);
+    const institution = instMatch ? instMatch[1].trim() : 'Engineering University';
+
+    const fallbackEmail = (isCandidateUser && currentCandidateEmail) 
+      ? currentCandidateEmail 
+      : `${fileName.split('.')[0].toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`;
 
     return {
       isValid: true,
       name: formattedName,
-      email: emailMatch ? emailMatch[0] : `${fileName.split('.')[0].toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`,
-      phone: phoneMatch ? phoneMatch[0].trim() : '+91 8179171254',
-      location: locMatch ? locMatch[0].trim() : 'Hyderabad, India',
+      email: emailMatch ? emailMatch[0] : fallbackEmail,
+      phone: phoneMatch ? phoneMatch[0].trim() : '+91 98765 43210',
+      location: locMatch ? locMatch[0].trim() : 'Bengaluru, Karnataka (Hybrid)',
       skills: foundSkills,
       experienceYears: experienceYears,
       role: role,
@@ -258,14 +274,16 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
             setIsParsing(false);
             setParsed(true);
 
-            setFullName(profile.full_name || profile.name || selectedFile.name.split('.')[0]);
-            setEmail(profile.email || `${selectedFile.name.toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`);
-            setPhone(profile.phone || '+1 (555) 392-1049');
-            setLocation(profile.location || 'Hyderabad, India');
+            const defaultName = (isCandidateUser && userProfileName) ? userProfileName : selectedFile.name.split('.')[0];
+            const defaultEmail = (isCandidateUser && currentCandidateEmail) ? currentCandidateEmail : `${selectedFile.name.toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`;
+            setFullName(profile.full_name || profile.name || defaultName);
+            setEmail(profile.email || defaultEmail);
+            setPhone(profile.phone || '+91 98765 43210');
+            setLocation(profile.location || 'Bengaluru, Karnataka (Hybrid)');
             setCurrentRole(profile.current_role || profile.experience?.[0] || 'Software Developer');
-            setExperienceYears(profile.total_experience_years || 1);
-            setDegree(profile.education?.degree || profile.education_history?.[0] || 'B.Tech - AI & Machine Learning');
-            setInstitution(profile.education?.institution || 'Malla Reddy University (MR)');
+            setExperienceYears(profile.total_experience_years || 2);
+            setDegree(profile.education?.degree || profile.education_history?.[0] || 'B.Tech in Computer Science');
+            setInstitution(profile.education?.institution || 'Engineering University');
             setSkills(profile.skills || []);
             return;
           }
@@ -321,9 +339,11 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   const handleSaveCandidate = () => {
     if (!fullName.trim()) return alert("Please enter candidate full name.");
     
+    const finalEmail = (isCandidateUser && currentCandidateEmail) ? currentCandidateEmail : email;
+
     onAddCandidate({
       fullName,
-      email,
+      email: finalEmail,
       phone,
       location,
       currentRole,
@@ -346,7 +366,9 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
     setFile(null);
     setParsed(false);
 
-    alert(`Candidate "${fullName}" profile saved successfully!`);
+    alert(isCandidateUser 
+      ? `Your candidate profile & resume were saved successfully!` 
+      : `Candidate "${fullName}" profile saved successfully!`);
     onNavigateToMatching();
   };
 
