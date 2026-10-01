@@ -16,6 +16,7 @@ interface SettingsViewProps {
   onMakeUserAdmin?: (userId: string) => void;
   onClearAllCandidates?: () => void;
   onClearAllUserAccounts?: () => void;
+  onRestoreDefaultJobs?: () => void;
 }
 
 const safeSetItem = (key: string, value: string) => {
@@ -77,7 +78,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onDeleteUserAccount,
   onMakeUserAdmin,
   onClearAllCandidates,
-  onClearAllUserAccounts
+  onClearAllUserAccounts,
+  onRestoreDefaultJobs
 }) => {
   const isCandidate = isCandidateUser || Boolean(
     userProfile?.userType !== 'ADMIN' &&
@@ -1056,6 +1058,27 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer"
               >
                 Clear All Candidate Resumes
+              </button>
+            </div>
+          </div>
+
+          {/* Job Openings & Specifications Reset Management */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">Job Postings & Requirements Reset</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Restore all original 5 core engineering job specifications (ML, Frontend, DevOps, Backend, Full Stack).</p>
+              </div>
+              <button
+                onClick={() => {
+                  if (window.confirm("Restore all default job postings and requirements? Any custom changes to default jobs will reset.")) {
+                    onRestoreDefaultJobs && onRestoreDefaultJobs();
+                    alert("All default job postings and requirements restored successfully!");
+                  }
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer"
+              >
+                🔄 Restore Default Job Postings
               </button>
             </div>
           </div>

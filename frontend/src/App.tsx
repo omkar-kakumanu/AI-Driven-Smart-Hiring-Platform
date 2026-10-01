@@ -13,7 +13,7 @@ import { AtsIntegrationView } from './pages/AtsIntegrationView';
 import { CandidatePortalView } from './pages/CandidatePortalView';
 import { NewJobModal } from './components/NewJobModal';
 import { useRecruitmentStore, isStaffOrAdminEmailOrRole } from './store/useRecruitmentStore';
-import type { UserProfile, Candidate } from './types';
+import type { UserProfile, Candidate, Job } from './types';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -22,10 +22,21 @@ export default function App() {
   const [inApp, setInApp] = useState(true);
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [showNewJobModal, setShowNewJobModal] = useState(false);
+  const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('rc_theme') as 'light' | 'dark') || 'light';
   });
+
+  const handleOpenNewJobModal = () => {
+    setEditingJob(null);
+    setShowNewJobModal(true);
+  };
+
+  const handleEditJob = (job: Job) => {
+    setEditingJob(job);
+    setShowNewJobModal(true);
+  };
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -272,7 +283,7 @@ export default function App() {
           theme={theme}
           onToggleTheme={toggleTheme}
           onSearchChange={setSearchQuery}
-          onNewJobClick={() => setShowNewJobModal(true)}
+          onNewJobClick={handleOpenNewJobModal}
           onProfileClick={() => setCurrentTab('settings')}
           onLogout={handleLogout}
         />
@@ -286,6 +297,10 @@ export default function App() {
               jobs={store.jobs}
               searchQuery={searchQuery}
               onClearSearch={() => setSearchQuery('')}
+              isAdmin={isMainAdmin}
+              onEditJob={handleEditJob}
+              onNewJobClick={handleOpenNewJobModal}
+              onRestoreDefaultJobs={store.restoreDefaultJobs}
             />
           )}
           {(currentTab === 'candidates' || currentTab === 'resume-upload') && (
@@ -316,6 +331,7 @@ export default function App() {
               isCandidateUser={isCandidateUser}
               onAddSkillToCandidate={store.addSkillToCandidate}
               onRemoveSkillFromCandidate={store.removeSkillFromCandidate}
+              onEditJob={handleEditJob}
             />
           )}
           {currentTab === 'interview-assistant' && (
@@ -397,19 +413,26 @@ export default function App() {
               onMakeUserAdmin={store.makeUserAdmin}
               onClearAllCandidates={store.clearAllCandidates}
               onClearAllUserAccounts={store.clearAllUserAccounts}
+              onRestoreDefaultJobs={store.restoreDefaultJobs}
             />
           )}
         </main>
       </div>
 
-      {/* AI-Assisted New Job Modal */}
+      {/* AI-Assisted New / Edit Job Modal */}
       <NewJobModal
         isOpen={showNewJobModal}
-        onClose={() => setShowNewJobModal(false)}
+        initialJob={editingJob}
+        onClose={() => {
+          setShowNewJobModal(false);
+          setEditingJob(null);
+        }}
         onCreateJob={(job) => {
           store.addJob(job);
           alert(`New Job Profile "${job.title}" created & published successfully!`);
         }}
+        onUpdateJob={store.updateJob}
+        onDeleteJob={store.deleteJob}
       />
     </div>
   );
