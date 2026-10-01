@@ -760,6 +760,30 @@ export function useRecruitmentStore() {
     return job;
   };
 
+  const updateJob = (jobId: string, updates: Partial<Job>) => {
+    setJobs(prev => {
+      const updated = prev.map(j => {
+        if (j.id === jobId) {
+          return normalizeIndianJob({ ...j, ...updates });
+        }
+        return j;
+      });
+      safeStorageSet('rc_jobs', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const deleteJob = (jobId: string) => {
+    setJobs(prev => {
+      const updated = prev.filter(j => j.id !== jobId);
+      safeStorageSet('rc_jobs', JSON.stringify(updated));
+      return updated;
+    });
+    if (activeJobId === jobId) {
+      setActiveJobId(jobs.find(j => j.id !== jobId)?.id || '');
+    }
+  };
+
   const updateCandidateStatus = (candidateId: string, status: Candidate['status']) => {
     setCandidates(prev => prev.map(c => c.id === candidateId ? { ...c, status } : c));
   };
@@ -951,6 +975,8 @@ export function useRecruitmentStore() {
     setActiveCandidateId,
     addCandidate,
     addJob,
+    updateJob,
+    deleteJob,
     updateCandidateStatus,
     updateCandidateStatusByEmail,
     addCandidateInterviewResponse,

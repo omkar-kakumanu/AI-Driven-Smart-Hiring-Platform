@@ -1,13 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Job } from '../types';
 
 interface NewJobModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateJob: (job: Omit<Job, 'id' | 'candidateCount' | 'createdAt'>) => void;
+  onCreateJob?: (job: Omit<Job, 'id' | 'candidateCount' | 'createdAt'>) => void;
+  onUpdateJob?: (jobId: string, updates: Partial<Job>) => void;
+  onDeleteJob?: (jobId: string) => void;
+  initialJob?: Job | null;
 }
 
-export const NewJobModal: React.FC<NewJobModalProps> = ({ isOpen, onClose, onCreateJob }) => {
+export const NewJobModal: React.FC<NewJobModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onCreateJob,
+  onUpdateJob,
+  onDeleteJob,
+  initialJob = null 
+}) => {
   const [jobTitle, setJobTitle] = useState('');
   const [department, setDepartment] = useState('Engineering');
   const [location, setLocation] = useState('Bengaluru, Karnataka (Hybrid)');
@@ -24,6 +34,34 @@ export const NewJobModal: React.FC<NewJobModalProps> = ({ isOpen, onClose, onCre
   const [newPreferredInput, setNewPreferredInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiGeneratedNotice, setAiGeneratedNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialJob && isOpen) {
+      setJobTitle(initialJob.title || '');
+      setDepartment(initialJob.department || 'Engineering');
+      setLocation(initialJob.location || 'Bengaluru, Karnataka (Hybrid)');
+      setEmploymentType(initialJob.employmentType || 'Full-time');
+      setMinSalary(initialJob.minSalary || 1600000);
+      setMaxSalary(initialJob.maxSalary || 2600000);
+      setMinExperienceYears(initialJob.minExperienceYears || 3);
+      setEducationRequirement(initialJob.educationRequirement || "B.Tech / M.Tech in Computer Science or equivalent");
+      setDescription(initialJob.description || '');
+      setRequiredSkills(initialJob.requiredSkills ? [...initialJob.requiredSkills] : []);
+      setPreferredSkills(initialJob.preferredSkills ? [...initialJob.preferredSkills] : []);
+    } else if (!initialJob && isOpen) {
+      setJobTitle('');
+      setDepartment('Engineering');
+      setLocation('Bengaluru, Karnataka (Hybrid)');
+      setEmploymentType('Full-time');
+      setMinSalary(1600000);
+      setMaxSalary(2600000);
+      setMinExperienceYears(3);
+      setEducationRequirement("B.Tech / M.Tech in Computer Science or equivalent");
+      setDescription('');
+      setRequiredSkills(['Python', 'React', 'Docker']);
+      setPreferredSkills(['AWS', 'Kubernetes', 'CI/CD']);
+    }
+  }, [initialJob, isOpen]);
 
   if (!isOpen) return null;
 
@@ -122,20 +160,37 @@ export const NewJobModal: React.FC<NewJobModalProps> = ({ isOpen, onClose, onCre
       return;
     }
 
-    onCreateJob({
-      title: jobTitle.trim(),
-      department: department.trim() || 'Engineering',
-      location,
-      employmentType,
-      minSalary: Number(minSalary) || 120000,
-      maxSalary: Number(maxSalary) || 180000,
-      description: description.trim() || `Position for ${jobTitle} in the ${department} team.`,
-      requiredSkills: requiredSkills.length > 0 ? requiredSkills : ['Problem Solving', 'Engineering'],
-      preferredSkills,
-      minExperienceYears: Number(minExperienceYears) || 2,
-      educationRequirement: educationRequirement.trim() || "Bachelor's Degree",
-      status: 'ACTIVE'
-    });
+    if (initialJob && onUpdateJob) {
+      onUpdateJob(initialJob.id, {
+        title: jobTitle.trim(),
+        department: department.trim() || 'Engineering',
+        location,
+        employmentType,
+        minSalary: Number(minSalary) || 1200000,
+        maxSalary: Number(maxSalary) || 1800000,
+        description: description.trim() || `Position for ${jobTitle} in the ${department} team.`,
+        requiredSkills: requiredSkills.length > 0 ? requiredSkills : ['Problem Solving', 'Engineering'],
+        preferredSkills,
+        minExperienceYears: Number(minExperienceYears) || 2,
+        educationRequirement: educationRequirement.trim() || "Bachelor's Degree",
+      });
+      alert(`Job Opening "${jobTitle.trim()}" updated successfully!`);
+    } else if (onCreateJob) {
+      onCreateJob({
+        title: jobTitle.trim(),
+        department: department.trim() || 'Engineering',
+        location,
+        employmentType,
+        minSalary: Number(minSalary) || 1200000,
+        maxSalary: Number(maxSalary) || 1800000,
+        description: description.trim() || `Position for ${jobTitle} in the ${department} team.`,
+        requiredSkills: requiredSkills.length > 0 ? requiredSkills : ['Problem Solving', 'Engineering'],
+        preferredSkills,
+        minExperienceYears: Number(minExperienceYears) || 2,
+        educationRequirement: educationRequirement.trim() || "Bachelor's Degree",
+        status: 'ACTIVE'
+      });
+    }
 
     onClose();
   };
@@ -147,12 +202,22 @@ export const NewJobModal: React.FC<NewJobModalProps> = ({ isOpen, onClose, onCre
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-black shadow-md shadow-blue-500/20">
-              ⚡
+            <div className={`w-10 h-10 rounded-2xl text-white flex items-center justify-center font-black shadow-md ${
+              initialJob 
+                ? 'bg-gradient-to-tr from-amber-500 to-indigo-600 shadow-amber-500/20' 
+                : 'bg-gradient-to-tr from-blue-600 to-indigo-600 shadow-blue-500/20'
+            }`}>
+              {initialJob ? '✏️' : '⚡'}
             </div>
             <div>
-              <h3 className="text-xl font-black text-slate-900">Create Job Opening & AI JD Writer</h3>
-              <p className="text-xs font-semibold text-slate-500">Draft or auto-generate complete specifications with AI</p>
+              <h3 className="text-xl font-black text-slate-900">
+                {initialJob ? 'Edit Job Opening & Requirements' : 'Create Job Opening & AI JD Writer'}
+              </h3>
+              <p className="text-xs font-semibold text-slate-500">
+                {initialJob 
+                  ? 'Update job title, technical skills, experience requirements, and salary compensation' 
+                  : 'Draft or auto-generate complete specifications with AI'}
+              </p>
             </div>
           </div>
           <button 
@@ -411,20 +476,38 @@ export const NewJobModal: React.FC<NewJobModalProps> = ({ isOpen, onClose, onCre
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-500/25 transition-all cursor-pointer"
-            >
-              🚀 Publish Job Opening
-            </button>
+          <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-100">
+            <div>
+              {initialJob && onDeleteJob && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm(`Are you sure you want to permanently delete "${jobTitle}"? This role will be removed.`)) {
+                      onDeleteJob(initialJob.id);
+                      onClose();
+                    }
+                  }}
+                  className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  🗑️ Delete Job
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-5 py-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-500/25 transition-all cursor-pointer"
+              >
+                {initialJob ? '💾 Save Changes' : '🚀 Publish Job Opening'}
+              </button>
+            </div>
           </div>
         </form>
       </div>

@@ -22,6 +22,10 @@ interface DashboardViewProps {
   jobs?: Job[];
   searchQuery?: string;
   onClearSearch?: () => void;
+  isAdmin?: boolean;
+  onEditJob?: (job: Job) => void;
+  onNewJobClick?: () => void;
+  onRestoreDefaultJobs?: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({ 
@@ -30,7 +34,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   allCandidatesCount = 0,
   jobs = [],
   searchQuery = '',
-  onClearSearch
+  onClearSearch,
+  isAdmin = false,
+  onEditJob,
+  onNewJobClick,
+  onRestoreDefaultJobs
 }) => {
   const stats = [
     { title: 'Matching Candidates', value: candidates.length.toString(), change: searchQuery ? 'Filtered' : '+12%', note: searchQuery ? `out of ${allCandidatesCount} total` : 'vs last month' },
@@ -260,31 +268,108 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Active Job Postings */}
-        <div className="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="font-bold text-slate-900 text-base">Active Job Postings</h3>
-            <span className="text-xs font-bold text-slate-500">{jobs.length} Active Roles</span>
+        <div className="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-slate-900 text-base">Active Job Postings</h3>
+                <span className="px-2 py-0.5 bg-blue-100 text-blue-800 font-extrabold text-[11px] rounded-full">
+                  {jobs.length} Active Roles
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">All engineering openings & technical specifications</p>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {isAdmin && onRestoreDefaultJobs && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm("Restore the original default job postings and requirements? Any custom changes to default jobs will reset.")) {
+                      onRestoreDefaultJobs();
+                    }
+                  }}
+                  title="Restore original 5 core jobs data"
+                  className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <span>🔄</span>
+                  <span className="hidden sm:inline">Reset Defaults</span>
+                </button>
+              )}
+              {isAdmin && onNewJobClick && (
+                <button
+                  type="button"
+                  onClick={onNewJobClick}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all cursor-pointer flex items-center gap-1"
+                >
+                  <span>+</span>
+                  <span>New Role</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="space-y-3">
-            {jobs.slice(0, 3).map((job) => (
-              <div key={job.id} className="p-4 bg-slate-50/70 border border-slate-200 rounded-xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-bold text-slate-900">{job.title}</p>
-                  <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                    {job.department}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500">{job.location} • Min {job.minExperienceYears} yrs experience</p>
-                <div className="flex flex-wrap gap-1 pt-1">
-                  {job.requiredSkills.slice(0, 4).map((sk, i) => (
-                    <span key={i} className="text-[10px] font-semibold bg-white border border-slate-200 text-slate-700 px-2 py-0.5 rounded">
-                      {sk}
-                    </span>
-                  ))}
-                </div>
+          <div className="space-y-3 overflow-y-auto max-h-[500px] pr-1.5">
+            {jobs.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 space-y-3">
+                <p className="text-xs font-bold text-slate-600">No active job openings found</p>
+                {isAdmin && onRestoreDefaultJobs && (
+                  <button
+                    onClick={onRestoreDefaultJobs}
+                    className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl"
+                  >
+                    Restore 5 Default Job Postings
+                  </button>
+                )}
               </div>
-            ))}
+            ) : (
+              jobs.map((job) => (
+                <div 
+                  key={job.id} 
+                  className="p-4 bg-slate-50/70 border border-slate-200 hover:border-slate-300 rounded-xl space-y-2 transition-all hover:bg-white hover:shadow-xs group"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{job.title}</p>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">
+                        {job.location} • Min {job.minExperienceYears} yrs exp • ₹{(job.minSalary / 100000).toFixed(1)}-{(job.maxSalary / 100000).toFixed(1)} LPA
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                        {job.department}
+                      </span>
+                      {isAdmin && onEditJob && (
+                        <button
+                          type="button"
+                          onClick={() => onEditJob(job)}
+                          title="Change Job Title, Requirements, Experience & Salary"
+                          className="px-2.5 py-1 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-300 rounded text-[11px] font-bold shadow-xs transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>✏️</span>
+                          <span>Edit</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {job.description && (
+                    <p className="text-[11px] text-slate-600 line-clamp-2 leading-relaxed">
+                      {job.description}
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    <span className="text-[10px] font-bold text-slate-500 self-center mr-1">Skills:</span>
+                    {job.requiredSkills.map((sk, i) => (
+                      <span key={i} className="text-[10px] font-semibold bg-white border border-slate-200 text-slate-700 px-2 py-0.5 rounded">
+                        {sk}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
