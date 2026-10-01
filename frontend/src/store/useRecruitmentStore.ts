@@ -111,7 +111,10 @@ export function useRecruitmentStore() {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          loadedJobs = parsed;
+          // Guarantee that all 5 default initial jobs are present even if localStorage had an older subset
+          const existingIds = new Set(parsed.map((j: Job) => j.id));
+          const missing = INITIAL_JOBS.filter(ij => !existingIds.has(ij.id));
+          loadedJobs = [...parsed, ...missing];
         }
       } catch (e) {
         // Fallback
@@ -139,15 +142,19 @@ export function useRecruitmentStore() {
     // 1. Strict Staff & Admin purge: Under no circumstances should an Admin or Recruiter exist in candidates
     cands = cands.filter(c => !isStaffOrAdminEmailOrRole(c.email, c.fullName, c.currentRole));
 
-    // 2. Purge rogue "Abhishek Ai Ml Resume 1" candidate records
-    cands = cands.filter(c => {
-      const n = (c.fullName || '').toLowerCase();
-      return !n.includes('abhishek ai ml resume') && n !== 'abhishek ai ml resume 1';
+    // 2. Sanitize candidate names: Clean up any filename artifact (e.g. "Abhishek Ai Ml Resume 1" -> "Abhishek")
+    cands = cands.map(c => {
+      let n = c.fullName || '';
+      if (n.toLowerCase().includes('abhishek ai ml resume') || n.toLowerCase().includes('abhishek resume')) {
+        n = 'Abhishek';
+      }
+      return { ...c, fullName: n };
     });
     
-    // Ensure all standard initial candidates are preserved and never collapsed
+    // Ensure all standard initial candidates (including Abhishek cand-7) are preserved and never lost
     const existingIds = new Set(cands.map(c => c.id));
-    const missing = INITIAL_CANDIDATES.filter(ic => !existingIds.has(ic.id));
+    const existingEmails = new Set(cands.map(c => (c.email || '').toLowerCase().trim()));
+    const missing = INITIAL_CANDIDATES.filter(ic => !existingIds.has(ic.id) && !existingEmails.has(ic.email.toLowerCase().trim()));
     if (missing.length > 0) {
       cands = [...cands, ...missing];
     }
@@ -160,12 +167,9 @@ export function useRecruitmentStore() {
       localStorage.getItem('rc_avatar_sarah.johnson@example.com') ||
       localStorage.getItem('rc_avatar_cand-1');
 
-    // Clean up if cand1 was contaminated with rogue "Abhishek Ai Ml Resume 1"
+    // Clean up if cand1 had filename artifact
     if (cand1CustomName && (cand1CustomName.toLowerCase().includes('abhishek ai ml resume') || cand1CustomName.toLowerCase().includes('resume 1'))) {
-      localStorage.removeItem('rc_name_candidate@copilot.com');
-      localStorage.removeItem('rc_name_sarah.johnson@example.com');
-      localStorage.removeItem('rc_name_cand-1');
-      cand1CustomName = null;
+      cand1CustomName = 'Abhishek';
     }
 
     const sanitized = cands.map(c => {
@@ -184,20 +188,10 @@ export function useRecruitmentStore() {
       }
 
       if (orig) {
-        // Standard initial candidates (cand-2..cand-6: Alex Chen, Emily Rodriguez, Marcus Vance, Elena Rostova, Priya Sharma):
-        // Only accept a custom name if explicitly saved for this specific email/id and not contaminated with cand-1
         const specificCustomName = localStorage.getItem(`rc_name_${cMail}`) || localStorage.getItem(`rc_name_${c.id}`);
-        const isContaminated = 
-          c.fullName === 'Sarah Johnson' || 
-          (cand1CustomName && c.fullName.toLowerCase() === cand1CustomName.toLowerCase()) ||
-          !c.fullName || 
-          c.fullName.trim() === '' ||
-          c.fullName === 'Candidate' ||
-          c.fullName.toLowerCase().includes('abhishek ai ml resume');
-
-        const cleanName = (specificCustomName && specificCustomName.trim() && !isContaminated)
+        const cleanName = (specificCustomName && specificCustomName.trim())
           ? specificCustomName.trim()
-          : (isContaminated ? orig.fullName : (c.fullName || orig.fullName));
+          : (c.fullName || orig.fullName);
 
         const savedSpecificAvatar = localStorage.getItem(`rc_avatar_${cMail}`) || localStorage.getItem(`rc_avatar_${c.id}`);
 
@@ -216,20 +210,8 @@ export function useRecruitmentStore() {
       return c;
     });
 
-    // Guard against any remaining duplicate names among standard candidates
-    const finalCand1Name = sanitized.find(c => c.id === 'cand-1')?.fullName || 'Sarah Johnson';
-    const cleanCandidates = sanitized.map(c => {
-      if (c.id !== 'cand-1') {
-        const orig = initialMap.get(c.id);
-        if (orig && (c.fullName.toLowerCase() === finalCand1Name.toLowerCase() || c.fullName.toLowerCase() === 'sarah johnson')) {
-          return { ...c, fullName: orig.fullName };
-        }
-      }
-      return c;
-    });
-
-    localStorage.setItem('rc_candidates', JSON.stringify(cleanCandidates));
-    return cleanCandidates;
+    localStorage.setItem('rc_candidates', JSON.stringify(sanitized));
+    return sanitized;
   });
 
   useEffect(() => {
@@ -266,6 +248,16 @@ export function useRecruitmentStore() {
       userType: 'USER',
       status: 'APPROVED',
       createdAt: '2026-02-15',
+      password: 'candidate123'
+    },
+    {
+      id: 'usr-cand-2',
+      name: 'Abhishek (Candidate)',
+      email: 'abhishek@gmail.com',
+      role: 'AI/ML Engineering Student & Full Stack Developer',
+      userType: 'USER',
+      status: 'APPROVED',
+      createdAt: '2026-03-01',
       password: 'candidate123'
     }
   ];

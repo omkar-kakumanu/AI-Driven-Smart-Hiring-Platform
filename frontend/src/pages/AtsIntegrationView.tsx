@@ -427,9 +427,15 @@ export const AtsIntegrationView: React.FC<AtsIntegrationViewProps> = ({
                 {isCandidateUser ? "My Application ATS Sync Record" : "Candidate Application REST Sync Matrix"}
               </h3>
             </div>
-            <p className="text-xs text-slate-500 font-medium">
-              Synchronize candidate statuses across all configured ATS platforms via <code className="text-blue-700 font-mono font-bold">PUT /api/ats/update_status/[email]</code>
-            </p>
+            {!isCandidateUser ? (
+              <p className="text-xs text-slate-500 font-medium">
+                Synchronize candidate statuses across all configured ATS platforms via <code className="text-blue-700 font-mono font-bold">PUT /api/ats/update_status/[email]</code>
+              </p>
+            ) : (
+              <p className="text-xs text-slate-500 font-medium">
+                Live status tracking and automated ATS synchronization across employer recruitment pipelines
+              </p>
+            )}
           </div>
 
           {!isCandidateUser && (

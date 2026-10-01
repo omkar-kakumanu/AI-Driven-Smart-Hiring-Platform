@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 import type { Candidate, Job } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
+import { INITIAL_JOBS } from '../services/mockData';
 
 interface MatchingViewProps {
   candidates?: Candidate[];
@@ -41,24 +42,7 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
   const [adminSkillInput, setAdminSkillInput] = useState('');
 
   // Available Jobs List
-  const availableJobs = jobs.length > 0 ? jobs : [
-    {
-      id: 'job-1',
-      title: 'Senior Machine Learning Engineer',
-      department: 'AI & Data Science',
-      requiredSkills: ['Python', 'TensorFlow', 'PyTorch', 'MLOps', 'Kubernetes', 'AWS SageMaker', 'SQL'],
-      minExperienceYears: 5,
-      educationRequirement: 'MS in Computer Science'
-    },
-    {
-      id: 'job-2',
-      title: 'Frontend React & UI Engineer',
-      department: 'Frontend Engineering',
-      requiredSkills: ['React', 'TypeScript', 'JavaScript', 'HTML5', 'Tailwind CSS', 'Redux', 'REST APIs'],
-      minExperienceYears: 3,
-      educationRequirement: 'BS in Computer Science'
-    }
-  ];
+  const availableJobs = jobs.length > 0 ? jobs : INITIAL_JOBS;
 
   const [selectedJobId, setSelectedJobId] = useState<string>(availableJobs[0].id);
   const selectedJob = availableJobs.find(j => j.id === selectedJobId) || availableJobs[0];

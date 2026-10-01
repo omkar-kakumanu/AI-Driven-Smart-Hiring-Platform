@@ -153,16 +153,26 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
   const rawCandidate = existingCandidate || demoCandidate || defaultIsolatedCandidate;
 
   const candidateCleanFullName = (() => {
-    if (candidatePersistedName && candidatePersistedName.trim() && !candidatePersistedName.toLowerCase().includes('abhishek ai ml resume')) {
-      return candidatePersistedName.trim();
+    const cleanRaw = (name?: string) => {
+      if (!name) return '';
+      const t = name.trim();
+      if (t.toLowerCase().includes('abhishek ai ml resume') || t.toLowerCase().includes('abhishek resume')) {
+        return 'Abhishek';
+      }
+      return t;
+    };
+
+    if (candidatePersistedName && candidatePersistedName.trim()) {
+      return cleanRaw(candidatePersistedName);
     }
-    if (userProfile?.name && userProfile.name.trim() && !userProfile.name.toLowerCase().includes('abhishek ai ml resume')) {
-      return userProfile.name.trim();
+    if (userProfile?.name && userProfile.name.trim()) {
+      return cleanRaw(userProfile.name);
+    }
+    if (rawCandidate?.fullName) {
+      return cleanRaw(rawCandidate.fullName);
     }
     if (isCandidateEmail) return 'Sarah Johnson';
-    return rawCandidate.fullName && !rawCandidate.fullName.toLowerCase().includes('abhishek ai ml resume') 
-      ? rawCandidate.fullName 
-      : (userProfile?.name || 'Candidate');
+    return 'Candidate';
   })();
 
   const activeCandidate = {

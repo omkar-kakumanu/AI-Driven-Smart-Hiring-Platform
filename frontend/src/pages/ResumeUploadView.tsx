@@ -562,8 +562,9 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                   <label className="font-bold text-slate-700 block mb-1">Total Experience (Years)</label>
                   <input 
                     type="number" 
+                    min="0"
                     value={experienceYears} 
-                    onChange={e => setExperienceYears(Number(e.target.value))} 
+                    onChange={e => setExperienceYears(Math.max(0, Number(e.target.value) || 0))} 
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-semibold text-slate-900 focus:ring-2 focus:ring-blue-500" 
                   />
                 </div>

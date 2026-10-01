@@ -282,25 +282,27 @@ export const NewJobModal: React.FC<NewJobModalProps> = ({ isOpen, onClose, onCre
               <label className="font-bold text-slate-700 block mb-1">Minimum Base Salary (₹ / yr)</label>
               <input
                 type="number"
+                min="0"
                 step="50000"
                 value={minSalary}
-                onChange={e => setMinSalary(Number(e.target.value))}
+                onChange={e => setMinSalary(Math.max(0, Number(e.target.value) || 0))}
                 placeholder="e.g. 1600000 for 16 LPA"
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500"
               />
-              <p className="text-[10px] text-slate-400 mt-0.5">₹{(minSalary / 100000).toFixed(1)} LPA</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">₹{(Math.max(0, minSalary) / 100000).toFixed(1)} LPA</p>
             </div>
             <div>
               <label className="font-bold text-slate-700 block mb-1">Maximum Base Salary (₹ / yr)</label>
               <input
                 type="number"
+                min="0"
                 step="50000"
                 value={maxSalary}
-                onChange={e => setMaxSalary(Number(e.target.value))}
+                onChange={e => setMaxSalary(Math.max(0, Number(e.target.value) || 0))}
                 placeholder="e.g. 2600000 for 26 LPA"
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500"
               />
-              <p className="text-[10px] text-slate-400 mt-0.5">₹{(maxSalary / 100000).toFixed(1)} LPA</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">₹{(Math.max(0, maxSalary) / 100000).toFixed(1)} LPA</p>
             </div>
           </div>
 

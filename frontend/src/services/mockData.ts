@@ -244,6 +244,36 @@ export const INITIAL_CANDIDATES: Candidate[] = [
     institution: 'UC Berkeley',
     status: 'Applied',
     matchScore: 89
+  },
+  {
+    id: 'cand-7',
+    fullName: 'Abhishek',
+    email: 'abhishek@gmail.com',
+    phone: '+91 8179171254',
+    location: 'Hyderabad, Telangana',
+    currentRole: 'AI/ML Engineering Student & Full Stack Developer',
+    totalExperienceYears: 2,
+    headline: 'B.Tech AI & ML Student & Full Stack Developer with React, Node.js, Python, TensorFlow',
+    skills: ['Python', 'Java', 'JavaScript', 'React', 'Node.js', 'MongoDB', 'TensorFlow', 'React Native', 'Firebase', 'HTML', 'CSS', 'SQL'],
+    degree: 'B.Tech - AI & Machine Learning',
+    institution: 'Malla Reddy University (MR)',
+    status: 'Screened',
+    matchScore: 92,
+    interviewResponses: [
+      {
+        id: 'resp-abh-1',
+        question: 'Describe your hands-on experience building full-stack applications and AI models.',
+        category: 'Technical',
+        answer: 'I engineered Tripzy, an AI-powered tour planner supporting 22+ languages with voice assistant using React Native, Node.js, and Firebase. Additionally developed deep learning models for AI-generated image detection with Python and TensorFlow, and interned as Full Stack Developer at CODEC building responsive React/Node.js web applications.',
+        timestamp: 'Recently',
+        score: {
+          clarity: 95,
+          relevance: 96,
+          overall: 95,
+          feedback: 'Strong end-to-end full-stack and AI project execution with hands-on architecture.'
+        }
+      }
+    ]
   }
 ];
 

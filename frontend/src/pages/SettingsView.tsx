@@ -208,8 +208,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       safeSetItem(`${candidatePrefsKey}_city`, currentCity);
       safeSetItem(`${candidatePrefsKey}_status`, searchStatus);
       safeSetItem(`${candidatePrefsKey}_notice`, noticePeriod);
-      safeSetItem(`${candidatePrefsKey}_current_ctc`, currentCtc);
-      safeSetItem(`${candidatePrefsKey}_expected_ctc`, expectedCtc);
+      const cleanCurrentCtc = Math.max(0, parseFloat(currentCtc) || 0).toString();
+      const cleanExpectedCtc = Math.max(0, parseFloat(expectedCtc) || 0).toString();
+      safeSetItem(`${candidatePrefsKey}_current_ctc`, cleanCurrentCtc);
+      safeSetItem(`${candidatePrefsKey}_expected_ctc`, cleanExpectedCtc);
       safeSetItem(`${candidatePrefsKey}_workmode`, workMode);
       safeSetItem(`${candidatePrefsKey}_locations`, JSON.stringify(selectedLocations));
       safeSetItem(`${candidatePrefsKey}_linkedin`, linkedinUrl);
@@ -619,15 +621,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <span className="absolute left-3.5 top-2.5 text-slate-400 font-bold">₹</span>
                   <input
                     type="number"
+                    min="0"
                     step="0.5"
                     value={currentCtc}
-                    onChange={e => setCurrentCtc(e.target.value)}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '') {
+                        setCurrentCtc('');
+                      } else {
+                        const num = parseFloat(val);
+                        setCurrentCtc(isNaN(num) || num < 0 ? '0' : val);
+                      }
+                    }}
                     className="w-full pl-8 pr-16 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-blue-500"
                     placeholder="18.5"
                   />
                   <span className="absolute right-3.5 top-2.5 text-slate-400 font-bold">LPA</span>
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1">₹{(Number(currentCtc || 0) * 100000).toLocaleString('en-IN')} Per Annum</p>
+                <p className="text-[10px] text-slate-400 mt-1">₹{(Math.max(0, Number(currentCtc || 0)) * 100000).toLocaleString('en-IN')} Per Annum</p>
               </div>
 
               <div>
@@ -636,15 +647,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <span className="absolute left-3.5 top-2.5 text-slate-400 font-bold">₹</span>
                   <input
                     type="number"
+                    min="0"
                     step="0.5"
                     value={expectedCtc}
-                    onChange={e => setExpectedCtc(e.target.value)}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '') {
+                        setExpectedCtc('');
+                      } else {
+                        const num = parseFloat(val);
+                        setExpectedCtc(isNaN(num) || num < 0 ? '0' : val);
+                      }
+                    }}
                     className="w-full pl-8 pr-16 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-blue-500"
                     placeholder="28.0"
                   />
                   <span className="absolute right-3.5 top-2.5 text-slate-400 font-bold">LPA</span>
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1">₹{(Number(expectedCtc || 0) * 100000).toLocaleString('en-IN')} Per Annum</p>
+                <p className="text-[10px] text-slate-400 mt-1">₹{(Math.max(0, Number(expectedCtc || 0)) * 100000).toLocaleString('en-IN')} Per Annum</p>
               </div>
             </div>
 
