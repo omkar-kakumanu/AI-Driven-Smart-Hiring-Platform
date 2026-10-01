@@ -24,22 +24,22 @@ const getPersistedName = (email: string, fallback: string, userAccounts: UserAcc
   const clean = email.trim().toLowerCase();
   const direct = localStorage.getItem(`rc_name_${clean}`);
   if (direct && direct.trim()) return direct.trim();
-  
+
   if (clean === 'candidate@copilot.com' || clean === 'sarah.johnson@example.com') {
     const candName1 = localStorage.getItem('rc_name_candidate@copilot.com');
     if (candName1 && candName1.trim()) return candName1.trim();
     const candName2 = localStorage.getItem('rc_name_sarah.johnson@example.com');
     if (candName2 && candName2.trim()) return candName2.trim();
   }
-  
-  const found = userAccounts.find(u => u.email.toLowerCase() === clean || 
-    ((clean === 'candidate@copilot.com' || clean === 'sarah.johnson@example.com') && 
-     (u.email.toLowerCase() === 'candidate@copilot.com' || u.email.toLowerCase() === 'sarah.johnson@example.com')));
+
+  const found = userAccounts.find(u => u.email.toLowerCase() === clean ||
+    ((clean === 'candidate@copilot.com' || clean === 'sarah.johnson@example.com') &&
+      (u.email.toLowerCase() === 'candidate@copilot.com' || u.email.toLowerCase() === 'sarah.johnson@example.com')));
   if (found && found.name && found.name.trim()) {
     const cleanFoundName = found.name.replace(/\s*\(Candidate\)\s*/i, '').trim();
     if (cleanFoundName) return cleanFoundName;
   }
-  
+
   return fallback;
 };
 
@@ -58,16 +58,16 @@ const getPersistedAvatar = (email: string, storedAvatar?: string): string | unde
   return storedAvatar || undefined;
 };
 
-export const LoginPage: React.FC<LoginPageProps> = ({ 
-  userAccounts, 
-  onLogin, 
-  onRegister, 
-  theme = 'light', 
-  onToggleTheme 
+export const LoginPage: React.FC<LoginPageProps> = ({
+  userAccounts,
+  onLogin,
+  onRegister,
+  theme = 'light',
+  onToggleTheme
 }) => {
   // Modes: 'RECRUITER' | 'CANDIDATE' | 'ADMIN' | 'SIGN_UP'
   const [mode, setMode] = useState<'RECRUITER' | 'CANDIDATE' | 'ADMIN' | 'SIGN_UP'>('RECRUITER');
-  
+
   // Form Input States
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -89,10 +89,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   // Google SSO Login Handler (Enforces Administrator Approval & Account Registration)
   const handleGoogleSelect = (selectedEmail: string, selectedName: string, userRole: string, isAdmin = false) => {
     const cleanMail = selectedEmail.trim().toLowerCase();
-    const isPreApprovedDemo = 
-      cleanMail === 'admin@copilot.com' || 
-      cleanMail === 'recruiter@copilot.com' || 
-      cleanMail === 'candidate@copilot.com' || 
+    const isPreApprovedDemo =
+      cleanMail === 'admin@copilot.com' ||
+      cleanMail === 'recruiter@copilot.com' ||
+      cleanMail === 'candidate@copilot.com' ||
       cleanMail === 'sarah.johnson@example.com' ||
       cleanMail === 'sarah.jenkins@gmail.com' ||
       cleanMail === 'j.manju.raghvin@gmail.com';
@@ -249,16 +249,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
       if (found) {
         if (found.status === 'PENDING') {
-          setStatusNotice({ 
-            type: 'PENDING', 
-            message: `Access Pending Approval: Candidate account for "${found.email}" is pending Administrator review.` 
+          setStatusNotice({
+            type: 'PENDING',
+            message: `Access Pending Approval: Candidate account for "${found.email}" is pending Administrator review.`
           });
           return;
         }
         if (found.status === 'REVOKED' || found.status === 'REJECTED') {
-          setStatusNotice({ 
-            type: 'REVOKED', 
-            message: `Access Revoked: Candidate access for "${found.email}" has been rejected or revoked by an Administrator.` 
+          setStatusNotice({
+            type: 'REVOKED',
+            message: `Access Revoked: Candidate access for "${found.email}" has been rejected or revoked by an Administrator.`
           });
           return;
         }
@@ -483,44 +483,40 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               <button
                 type="button"
                 onClick={() => { setMode('RECRUITER'); setEmail('recruiter@copilot.com'); setPassword('recruiter123'); setStatusNotice(null); }}
-                className={`py-1.5 rounded-lg text-[11px] font-bold transition-all text-center truncate ${
-                  mode === 'RECRUITER'
+                className={`py-1.5 rounded-lg text-[11px] font-bold transition-all text-center truncate ${mode === 'RECRUITER'
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 1. Recruiter
               </button>
               <button
                 type="button"
                 onClick={() => { setMode('CANDIDATE'); setEmail('candidate@copilot.com'); setPassword('candidate123'); setStatusNotice(null); }}
-                className={`py-1.5 rounded-lg text-[11px] font-bold transition-all text-center truncate ${
-                  mode === 'CANDIDATE'
+                className={`py-1.5 rounded-lg text-[11px] font-bold transition-all text-center truncate ${mode === 'CANDIDATE'
                     ? 'bg-purple-600 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 2. Candidate
               </button>
               <button
                 type="button"
                 onClick={() => { setMode('ADMIN'); setEmail('admin@copilot.com'); setPassword('admin123'); setStatusNotice(null); }}
-                className={`py-1.5 rounded-lg text-[11px] font-bold transition-all text-center truncate ${
-                  mode === 'ADMIN'
+                className={`py-1.5 rounded-lg text-[11px] font-bold transition-all text-center truncate ${mode === 'ADMIN'
                     ? 'bg-slate-900 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 3. Admin
               </button>
               <button
                 type="button"
                 onClick={() => { setMode('SIGN_UP'); setEmail(''); setPassword(''); setStatusNotice(null); }}
-                className={`py-1.5 rounded-lg text-[11px] font-bold transition-all text-center truncate ${
-                  mode === 'SIGN_UP'
+                className={`py-1.5 rounded-lg text-[11px] font-bold transition-all text-center truncate ${mode === 'SIGN_UP'
                     ? 'bg-emerald-600 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 4. Request
               </button>
@@ -543,32 +539,31 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               {mode === 'RECRUITER'
                 ? 'Recruiter Gateway'
                 : mode === 'CANDIDATE'
-                ? 'Candidate Applicant Portal'
-                : mode === 'ADMIN'
-                ? 'Administrator Governance'
-                : 'Request Enterprise Access'}
+                  ? 'Candidate Applicant Portal'
+                  : mode === 'ADMIN'
+                    ? 'Administrator Governance'
+                    : 'Request Enterprise Access'}
             </h2>
             <p className="text-slate-500 text-xs font-medium">
               {mode === 'RECRUITER'
                 ? 'Sign in with your approved recruiter credentials or Google SSO.'
                 : mode === 'CANDIDATE'
-                ? 'Sign in to view your candidate resume, application status, and match reports.'
-                : mode === 'ADMIN'
-                ? 'System administrator access & access control management.'
-                : 'Submit your enterprise details for Administrator approval.'}
+                  ? 'Sign in to view your candidate resume, application status, and match reports.'
+                  : mode === 'ADMIN'
+                    ? 'System administrator access & access control management.'
+                    : 'Submit your enterprise details for Administrator approval.'}
             </p>
           </div>
 
           {/* Status Notice Alert */}
           {statusNotice && (
             <div
-              className={`p-3.5 rounded-xl border text-xs leading-relaxed flex items-start gap-2.5 ${
-                statusNotice.type === 'PENDING'
+              className={`p-3.5 rounded-xl border text-xs leading-relaxed flex items-start gap-2.5 ${statusNotice.type === 'PENDING'
                   ? 'bg-amber-50 border-amber-300 text-amber-900 font-medium'
                   : statusNotice.type === 'REVOKED' || statusNotice.type === 'ERROR'
-                  ? 'bg-rose-50 border-rose-300 text-rose-900 font-medium'
-                  : 'bg-emerald-50 border-emerald-300 text-emerald-900 font-medium'
-              }`}
+                    ? 'bg-rose-50 border-rose-300 text-rose-900 font-medium'
+                    : 'bg-emerald-50 border-emerald-300 text-emerald-900 font-medium'
+                }`}
             >
               {statusNotice.type === 'SUCCESS' ? (
                 <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 mt-0.5" />
@@ -580,10 +575,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   {statusNotice.type === 'PENDING'
                     ? 'Access Pending Review'
                     : statusNotice.type === 'REVOKED'
-                    ? 'Access Revoked'
-                    : statusNotice.type === 'SUCCESS'
-                    ? 'Request Submitted'
-                    : 'Authentication Alert'}
+                      ? 'Access Revoked'
+                      : statusNotice.type === 'SUCCESS'
+                        ? 'Request Submitted'
+                        : 'Authentication Alert'}
                 </span>
                 {statusNotice.message}
               </div>
@@ -649,8 +644,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 mode === 'ADMIN'
                   ? 'admin@copilot.com'
                   : mode === 'RECRUITER'
-                  ? 'recruiter@copilot.com'
-                  : 'david.miller@company.com'
+                    ? 'recruiter@copilot.com'
+                    : 'david.miller@company.com'
               }
               type="email"
               value={email}
@@ -681,19 +676,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             {/* Submit Button */}
             <button
               type="submit"
-              className={`w-full h-11 text-white font-bold rounded-xl text-xs shadow-md transition-all mt-2 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] ${
-                mode === 'ADMIN'
+              className={`w-full h-11 text-white font-bold rounded-xl text-xs shadow-md transition-all mt-2 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] ${mode === 'ADMIN'
                   ? 'bg-slate-900 hover:bg-slate-800 shadow-slate-900/20'
                   : mode === 'SIGN_UP'
-                  ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20'
-                  : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'
-              }`}
+                    ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20'
+                    : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'
+                }`}
             >
               {mode === 'SIGN_UP'
                 ? 'Submit Access Request →'
                 : mode === 'RECRUITER'
-                ? 'Log In to Recruiter Platform →'
-                : 'Log In to Admin Console →'}
+                  ? 'Log In to Recruiter Platform →'
+                  : 'Log In to Admin Console →'}
             </button>
           </form>
 
@@ -866,16 +860,14 @@ export const StepItem: React.FC<StepItemProps> = ({ number, text, subtext, activ
   return (
     <div
       onClick={onClick}
-      className={`flex items-start gap-3 p-3 rounded-2xl transition-all duration-300 cursor-pointer ${
-        active
+      className={`flex items-start gap-3 p-3 rounded-2xl transition-all duration-300 cursor-pointer ${active
           ? 'bg-white text-slate-900 border border-slate-200 shadow-md scale-[1.02]'
           : 'bg-slate-900/60 text-white/90 border border-white/10 hover:bg-slate-900/80'
-      }`}
+        }`}
     >
       <div
-        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 transition-all ${
-          active ? 'bg-blue-600 text-white shadow-sm' : 'bg-white/20 text-white/70'
-        }`}
+        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 transition-all ${active ? 'bg-blue-600 text-white shadow-sm' : 'bg-white/20 text-white/70'
+          }`}
       >
         {number}
       </div>
