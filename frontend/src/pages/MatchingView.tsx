@@ -27,6 +27,7 @@ interface MatchingViewProps {
   onAddSkillToCandidate?: (candidateId: string, skill: string) => void;
   onRemoveSkillFromCandidate?: (candidateId: string, skill: string) => void;
   onNavigateToUpload?: () => void;
+  onEditJob?: (job: Job) => void;
 }
 
 export const MatchingView: React.FC<MatchingViewProps> = ({ 
@@ -37,7 +38,8 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
   isMainAdmin = false,
   isCandidateUser = false,
   onAddSkillToCandidate,
-  onRemoveSkillFromCandidate
+  onRemoveSkillFromCandidate,
+  onEditJob
 }) => {
   const [adminSkillInput, setAdminSkillInput] = useState('');
 
@@ -255,7 +257,20 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
         {/* Target Job Selector */}
         <div>
-          <label className="text-xs font-bold text-slate-700 block mb-1">Target Job Role for Skill Analysis</label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs font-bold text-slate-700">Target Job Role for Skill Analysis</label>
+            {isMainAdmin && onEditJob && (
+              <button
+                type="button"
+                onClick={() => onEditJob(selectedJob)}
+                className="text-[11px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 hover:underline cursor-pointer"
+                title="Edit this role's title, required skills, and experience"
+              >
+                <span>✏️</span>
+                <span>Change Title & Requirements</span>
+              </button>
+            )}
+          </div>
           <select 
             value={selectedJobId} 
             onChange={e => setSelectedJobId(e.target.value)}

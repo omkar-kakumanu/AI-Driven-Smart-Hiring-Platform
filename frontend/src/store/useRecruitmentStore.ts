@@ -111,10 +111,14 @@ export function useRecruitmentStore() {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Guarantee that all 5 default initial jobs are present even if localStorage had an older subset
+          // Guarantee that all default initial jobs are present even if localStorage had an older subset
           const existingIds = new Set(parsed.map((j: Job) => j.id));
-          const missing = INITIAL_JOBS.filter(ij => !existingIds.has(ij.id));
+          const existingTitles = new Set(parsed.map((j: Job) => (j.title || '').toLowerCase().trim()));
+          const missing = INITIAL_JOBS.filter(ij => !existingIds.has(ij.id) && !existingTitles.has(ij.title.toLowerCase().trim()));
           loadedJobs = [...parsed, ...missing];
+          if (loadedJobs.length < 5) {
+            loadedJobs = INITIAL_JOBS;
+          }
         }
       } catch (e) {
         // Fallback
@@ -784,6 +788,14 @@ export function useRecruitmentStore() {
     }
   };
 
+  const restoreDefaultJobs = () => {
+    const normalized = INITIAL_JOBS.map(normalizeIndianJob);
+    setJobs(normalized);
+    safeStorageSet('rc_jobs', JSON.stringify(normalized));
+    setActiveJobId(normalized[0]?.id || '');
+    return normalized;
+  };
+
   const updateCandidateStatus = (candidateId: string, status: Candidate['status']) => {
     setCandidates(prev => prev.map(c => c.id === candidateId ? { ...c, status } : c));
   };
@@ -977,6 +989,7 @@ export function useRecruitmentStore() {
     addJob,
     updateJob,
     deleteJob,
+    restoreDefaultJobs,
     updateCandidateStatus,
     updateCandidateStatusByEmail,
     addCandidateInterviewResponse,
