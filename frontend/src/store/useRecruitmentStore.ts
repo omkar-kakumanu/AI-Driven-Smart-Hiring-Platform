@@ -681,9 +681,9 @@ export function useRecruitmentStore() {
   };
 
   const clearAllCandidates = () => {
-    setCandidates([]);
-    setActiveCandidateId('');
-    localStorage.removeItem('rc_candidates');
+    setCandidates(INITIAL_CANDIDATES);
+    setActiveCandidateId(INITIAL_CANDIDATES[0]?.id || '');
+    localStorage.setItem('rc_candidates', JSON.stringify(INITIAL_CANDIDATES));
   };
 
   const clearAllUserAccounts = () => {

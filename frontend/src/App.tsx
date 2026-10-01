@@ -103,10 +103,19 @@ export default function App() {
           const cMail = (c.email || '').toLowerCase().trim();
           if (cMail === currentCandidateEmail) return true;
           if (isDemoCandidate && (c.id === 'cand-1' || cMail === 'candidate@copilot.com' || cMail === 'sarah.johnson@example.com')) return true;
+          if (currentCandidateEmail === 'abhishek@gmail.com' && (c.id === 'cand-7' || cMail === 'abhishek@gmail.com')) return true;
           return false;
         });
 
         if (myCandidates.length > 0) return myCandidates;
+
+        const existingStoreCandidate = store.candidates.find(c => {
+          const cMail = (c.email || '').toLowerCase().trim();
+          const cName = (c.fullName || '').toLowerCase().trim();
+          const uName = (store.userProfile?.name || '').toLowerCase().trim();
+          return cMail === currentCandidateEmail || (uName && cName && (cName === uName || cName.includes(uName)));
+        });
+        if (existingStoreCandidate) return [existingStoreCandidate];
 
         // If newly registered candidate has not uploaded a resume yet, provide isolated self-profile
         const selfCandidate: Candidate = {
