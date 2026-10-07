@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Candidate } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
+import { EditCandidateSkillsModal } from '../components/EditCandidateSkillsModal';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
@@ -12,6 +13,8 @@ interface ResumeUploadViewProps {
   searchQuery?: string;
   onClearSearch?: () => void;
   isMainAdmin?: boolean;
+  isRecruiterUser?: boolean;
+  canEditSkills?: boolean;
   isCandidateUser?: boolean;
   currentCandidateEmail?: string;
   userProfileName?: string;
@@ -19,6 +22,7 @@ interface ResumeUploadViewProps {
   onDeleteCandidate?: (candidateId: string) => void;
   onAddSkillToCandidate?: (candidateId: string, skill: string) => void;
   onRemoveSkillFromCandidate?: (candidateId: string, skill: string) => void;
+  onUpdateCandidateSkills?: (candidateId: string, skills: string[]) => void;
   onUpdateCandidateRoleAndExperience?: (candidateId: string, role: string, exp: number) => void;
   onUpdateCandidateAvatar?: (candidateId: string, avatar: string | undefined) => void;
   onNavigateToMatching: () => void;
@@ -29,6 +33,8 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   searchQuery = '',
   onClearSearch,
   isMainAdmin = false,
+  isRecruiterUser = false,
+  canEditSkills,
   isCandidateUser = false,
   currentCandidateEmail,
   userProfileName,
@@ -36,10 +42,13 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   onDeleteCandidate,
   onAddSkillToCandidate,
   onRemoveSkillFromCandidate,
+  onUpdateCandidateSkills,
   onUpdateCandidateRoleAndExperience,
   onUpdateCandidateAvatar,
   onNavigateToMatching
 }) => {
+  const canEditCandidateSkills = canEditSkills ?? (isMainAdmin || isRecruiterUser || !isCandidateUser);
+  const [editingCandidate, setEditingCandidate] = useState<Candidate | null>(null);
   const [adminAddSkillCandId, setAdminAddSkillCandId] = useState<string | null>(null);
   const [adminSkillText, setAdminSkillText] = useState('');
   const [file, setFile] = useState<File | null>(null);

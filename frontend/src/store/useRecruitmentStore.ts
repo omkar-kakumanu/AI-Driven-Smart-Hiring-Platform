@@ -1048,6 +1048,7 @@ export function useRecruitmentStore() {
     deleteCandidate,
     addSkillToCandidate,
     removeSkillFromCandidate,
+    updateCandidateSkills,
     updateCandidateRoleAndExperience,
     setUserProfileExplicit,
     updateCandidateAvatar,
