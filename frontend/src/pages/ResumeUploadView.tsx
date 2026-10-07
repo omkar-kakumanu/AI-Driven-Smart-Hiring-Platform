@@ -824,11 +824,11 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                                 {cand.skills.map((sk, i) => (
                                   <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-semibold border border-slate-200">
                                     {sk}
-                                    {isMainAdmin && (
+                                    {canEditCandidateSkills && (
                                       <button
                                         onClick={() => onRemoveSkillFromCandidate && onRemoveSkillFromCandidate(cand.id, sk)}
-                                        className="hover:text-rose-600 font-black text-[10px]"
-                                        title={`Main Admin: Remove ${sk}`}
+                                        className="hover:text-rose-600 font-black text-[10px] cursor-pointer"
+                                        title={`Remove ${sk}`}
                                       >
                                         ×
                                       </button>
@@ -836,7 +836,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                                   </span>
                                 ))}
 
-                                {isMainAdmin && (
+                                {canEditCandidateSkills && (
                                   isAddingSkill ? (
                                     <div className="inline-flex items-center gap-1">
                                       <input
@@ -854,7 +854,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                                             setAdminAddSkillCandId(null);
                                           }
                                         }}
-                                        className="px-2 py-0.5 text-[10px] font-semibold border border-purple-400 rounded focus:outline-none focus:ring-1 focus:ring-purple-600 w-24 bg-white"
+                                        className="px-2 py-0.5 text-[10px] font-semibold border border-indigo-400 rounded focus:outline-none focus:ring-1 focus:ring-indigo-600 w-24 bg-white"
                                       />
                                       <button
                                         onClick={() => {
@@ -864,22 +864,31 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                                           setAdminAddSkillCandId(null);
                                           setAdminSkillText('');
                                         }}
-                                        className="px-1.5 py-0.5 bg-purple-600 text-white text-[10px] font-extrabold rounded"
+                                        className="px-1.5 py-0.5 bg-indigo-600 text-white text-[10px] font-extrabold rounded cursor-pointer"
                                       >
                                         Save
                                       </button>
                                     </div>
                                   ) : (
-                                    <button
-                                      onClick={() => {
-                                        setAdminAddSkillCandId(cand.id);
-                                        setAdminSkillText('');
-                                      }}
-                                      className="px-2 py-0.5 bg-purple-100 hover:bg-purple-200 text-purple-900 border border-purple-300 font-extrabold text-[10px] rounded transition-colors"
-                                      title="Main Admin: Add Skill to Candidate"
-                                    >
-                                      + Skill
-                                    </button>
+                                    <div className="inline-flex items-center gap-1">
+                                      <button
+                                        onClick={() => {
+                                          setAdminAddSkillCandId(cand.id);
+                                          setAdminSkillText('');
+                                        }}
+                                        className="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-extrabold text-[10px] rounded transition-colors cursor-pointer"
+                                        title="Add a quick technical skill"
+                                      >
+                                        + Skill
+                                      </button>
+                                      <button
+                                        onClick={() => setEditingCandidate(cand)}
+                                        className="px-2 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-extrabold text-[10px] rounded transition-colors cursor-pointer"
+                                        title="Open full skills editor for this candidate"
+                                      >
+                                        ✏️ Edit Skills
+                                      </button>
+                                    </div>
                                   )
                                 )}
                               </div>
@@ -970,6 +979,17 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
           );
         })()}
       </div>
+      {/* Recruiter Full Skill Editor Modal */}
+      <EditCandidateSkillsModal
+        isOpen={Boolean(editingCandidate)}
+        onClose={() => setEditingCandidate(null)}
+        candidate={editingCandidate}
+        onSaveSkills={(candidateId, updatedSkills) => {
+          if (onUpdateCandidateSkills) {
+            onUpdateCandidateSkills(candidateId, updatedSkills);
+          }
+        }}
+      />
     </div>
   );
 };
