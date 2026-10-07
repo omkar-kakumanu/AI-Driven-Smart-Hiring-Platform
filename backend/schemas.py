@@ -34,6 +34,13 @@ class CandidateResponse(CandidateBase):
     class Config:
         from_attributes = True
 
+class CandidateSkillsUpdate(BaseModel):
+    skills: List[str]
+    email: Optional[str] = None
+
+class CandidateAddSkillRequest(BaseModel):
+    skill: str
+
 class JobBase(BaseModel):
     title: str
     department: str

@@ -36,6 +36,16 @@ class Candidate(Base):
     experience = Column(JSON, default=list)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+class CandidateSkill(Base):
+    __tablename__ = "candidate_skills"
+
+    id = Column(Integer, primary_key=True, index=True)
+    candidate_id = Column(Integer, ForeignKey("candidates.id", ondelete="CASCADE"), nullable=False)
+    skill_name = Column(String(100), nullable=False)
+    skill_category = Column(String(50), default="TECHNICAL")
+    proficiency_level = Column(String(30), default="ADVANCED")
+    years_of_experience = Column(Integer, default=1)
+
 class Job(Base):
     __tablename__ = "jobs"
 
