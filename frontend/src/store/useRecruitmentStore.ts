@@ -807,18 +807,35 @@ export function useRecruitmentStore() {
     }
   };
 
+  const syncSkillsToBackend = async (candidateId: string, skills: string[], email?: string) => {
+    try {
+      await fetch(`/api/candidates/${candidateId}/skills`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skills, email })
+      });
+    } catch {
+      // Offline fallback: state is still preserved in localStorage
+    }
+  };
+
   const addSkillToCandidate = (candidateId: string, newSkill: string) => {
     const trimmedSkill = newSkill.trim();
     if (!trimmedSkill) return;
 
+    let targetEmail: string | undefined;
+    let syncedSkills: string[] = [];
+
     setCandidates(prev => prev.map(cand => {
       if (cand.id === candidateId) {
+        targetEmail = cand.email;
         const existingSkills = cand.skills || [];
         // Prevent duplicate skill addition (case-insensitive check)
         if (existingSkills.some(s => s.toLowerCase() === trimmedSkill.toLowerCase())) {
           return cand;
         }
         const updatedSkills = [...existingSkills, trimmedSkill];
+        syncedSkills = updatedSkills;
         const activeJob = jobs.find(j => j.id === activeJobId) || jobs[0];
         const newScore = calculateMatchScore(updatedSkills, activeJob?.requiredSkills || []);
 
@@ -831,12 +848,21 @@ export function useRecruitmentStore() {
       }
       return cand;
     }));
+
+    if (syncedSkills.length > 0) {
+      syncSkillsToBackend(candidateId, syncedSkills, targetEmail);
+    }
   };
 
   const removeSkillFromCandidate = (candidateId: string, skillToRemove: string) => {
+    let targetEmail: string | undefined;
+    let syncedSkills: string[] = [];
+
     setCandidates(prev => prev.map(cand => {
       if (cand.id === candidateId) {
+        targetEmail = cand.email;
         const updatedSkills = (cand.skills || []).filter(s => s.toLowerCase() !== skillToRemove.toLowerCase());
+        syncedSkills = updatedSkills;
         const activeJob = jobs.find(j => j.id === activeJobId) || jobs[0];
         const newScore = calculateMatchScore(updatedSkills, activeJob?.requiredSkills || []);
 
@@ -848,6 +874,31 @@ export function useRecruitmentStore() {
       }
       return cand;
     }));
+
+    syncSkillsToBackend(candidateId, syncedSkills, targetEmail);
+  };
+
+  const updateCandidateSkills = (candidateId: string, newSkills: string[]) => {
+    let targetEmail: string | undefined;
+    const cleanSkills = Array.from(new Set(newSkills.map(s => s.trim()).filter(Boolean)));
+
+    setCandidates(prev => prev.map(cand => {
+      if (cand.id === candidateId) {
+        targetEmail = cand.email;
+        const activeJob = jobs.find(j => j.id === activeJobId) || jobs[0];
+        const newScore = calculateMatchScore(cleanSkills, activeJob?.requiredSkills || []);
+
+        return {
+          ...cand,
+          skills: cleanSkills,
+          matchScore: newScore,
+          headline: `${cand.currentRole} with experience in ${cleanSkills.slice(0, 3).join(', ')}`
+        };
+      }
+      return cand;
+    }));
+
+    syncSkillsToBackend(candidateId, cleanSkills, targetEmail);
   };
 
   const updateCandidateRoleAndExperience = (candidateId: string, newRole: string, newExperienceYears: number) => {
