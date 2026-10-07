@@ -23,6 +23,8 @@ interface MatchingViewProps {
   searchQuery?: string;
   onClearSearch?: () => void;
   isMainAdmin?: boolean;
+  isRecruiterUser?: boolean;
+  canEditSkills?: boolean;
   isCandidateUser?: boolean;
   onAddSkillToCandidate?: (candidateId: string, skill: string) => void;
   onRemoveSkillFromCandidate?: (candidateId: string, skill: string) => void;
@@ -36,11 +38,14 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
   searchQuery = '',
   onClearSearch,
   isMainAdmin = false,
+  isRecruiterUser = false,
+  canEditSkills,
   isCandidateUser = false,
   onAddSkillToCandidate,
   onRemoveSkillFromCandidate,
   onEditJob
 }) => {
+  const canEditCandidateSkills = canEditSkills ?? (isMainAdmin || isRecruiterUser || !isCandidateUser);
   const [adminSkillInput, setAdminSkillInput] = useState('');
 
   // Available Jobs List
@@ -210,15 +215,15 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
         </span>
       </div>
 
-      {/* Main Admin Dedicated Skill Addition Box */}
-      {isMainAdmin && !isCandidateUser && selectedCandidate && (
-        <div className="p-4 bg-gradient-to-r from-purple-900 to-indigo-900 text-white rounded-2xl shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
+      {/* Recruiter & Admin Dedicated Skill Addition Box */}
+      {canEditCandidateSkills && selectedCandidate && (
+        <div className="p-4 bg-gradient-to-r from-blue-900 via-indigo-900 to-purple-900 text-white rounded-2xl shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/30 border border-purple-400/40 flex items-center justify-center font-black text-xs text-purple-200 shrink-0">
-              ADMIN
+            <div className="w-10 h-10 rounded-xl bg-blue-500/30 border border-blue-400/40 flex items-center justify-center font-black text-xs text-blue-200 shrink-0">
+              RECRUITER
             </div>
             <div>
-              <p className="text-[11px] font-black text-purple-300 uppercase tracking-wider">Main Admin Special Privileges</p>
+              <p className="text-[11px] font-black text-blue-300 uppercase tracking-wider">Recruiter & Admin Skill Privileges</p>
               <p className="text-sm font-extrabold">Add Technical Skill to <span className="text-amber-300 underline">{selectedCandidate.name}</span></p>
             </div>
           </div>
@@ -235,7 +240,7 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
                   setAdminSkillInput('');
                 }
               }}
-              className="px-3.5 py-2 bg-white/10 border border-purple-400/40 rounded-xl text-xs text-white placeholder-purple-200 font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400 w-full md:w-64"
+              className="px-3.5 py-2 bg-white/10 border border-blue-400/40 rounded-xl text-xs text-white placeholder-blue-200 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 w-full md:w-64"
             />
             <button
               type="button"
@@ -245,7 +250,7 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
                   setAdminSkillInput('');
                 }
               }}
-              className="px-4 py-2 bg-purple-500 hover:bg-purple-400 text-white text-xs font-bold rounded-xl shadow-md transition-all whitespace-nowrap"
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-400 text-white text-xs font-bold rounded-xl shadow-md transition-all whitespace-nowrap cursor-pointer"
             >
               + Add Skill
             </button>
