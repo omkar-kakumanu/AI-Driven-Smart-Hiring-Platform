@@ -309,6 +309,8 @@ export default function App() {
               searchQuery={searchQuery}
               onClearSearch={() => setSearchQuery('')}
               isMainAdmin={isMainAdmin}
+              isRecruiterUser={isRecruiterUser}
+              canEditSkills={isMainAdmin || isRecruiterUser || !isCandidateUser}
               isCandidateUser={isCandidateUser}
               currentCandidateEmail={store.userProfile?.email || 'candidate@copilot.com'}
               userProfileName={store.userProfile?.name}
@@ -316,6 +318,7 @@ export default function App() {
               onDeleteCandidate={store.deleteCandidate}
               onAddSkillToCandidate={store.addSkillToCandidate}
               onRemoveSkillFromCandidate={store.removeSkillFromCandidate}
+              onUpdateCandidateSkills={store.updateCandidateSkills}
               onUpdateCandidateRoleAndExperience={store.updateCandidateRoleAndExperience}
               onUpdateCandidateAvatar={store.updateCandidateAvatar}
               onNavigateToMatching={() => setCurrentTab('matching')}
@@ -328,6 +331,8 @@ export default function App() {
               onClearSearch={() => setSearchQuery('')}
               jobs={store.jobs}
               isMainAdmin={isMainAdmin}
+              isRecruiterUser={isRecruiterUser}
+              canEditSkills={isMainAdmin || isRecruiterUser || !isCandidateUser}
               isCandidateUser={isCandidateUser}
               onAddSkillToCandidate={store.addSkillToCandidate}
               onRemoveSkillFromCandidate={store.removeSkillFromCandidate}

@@ -579,11 +579,11 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
                       <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white text-emerald-800 border border-emerald-300 font-bold rounded-lg text-[11px]">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                         <span>{sk}</span>
-                        {isMainAdmin && (
+                        {canEditCandidateSkills && (
                           <button
                             onClick={() => selectedCandidate && onRemoveSkillFromCandidate && onRemoveSkillFromCandidate(selectedCandidate.id, sk)}
                             className="hover:text-rose-600 font-black text-xs cursor-pointer ml-0.5"
-                            title={`Main Admin: Remove ${sk}`}
+                            title={`Remove ${sk}`}
                           >
                             ×
                           </button>
@@ -604,11 +604,11 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
                       <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white text-rose-800 border border-rose-300 font-bold rounded-lg text-[11px]">
                         <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
                         <span>{sk}</span>
-                        {isMainAdmin && (
+                        {canEditCandidateSkills && (
                           <button
                             onClick={() => selectedCandidate && onAddSkillToCandidate && onAddSkillToCandidate(selectedCandidate.id, sk)}
-                            className="ml-1 px-1.5 py-0.5 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-black rounded transition-colors cursor-pointer"
-                            title={`Main Admin: Add ${sk} to candidate`}
+                            className="ml-1 px-1.5 py-0.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black rounded transition-colors cursor-pointer"
+                            title={`Add ${sk} to candidate`}
                           >
                             + Add
                           </button>
