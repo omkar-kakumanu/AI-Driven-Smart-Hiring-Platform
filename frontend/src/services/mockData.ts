@@ -274,6 +274,21 @@ export const INITIAL_CANDIDATES: Candidate[] = [
         }
       }
     ]
+  },
+  {
+    id: 'cand-8',
+    fullName: 'David Lee',
+    email: 'david.lee@example.com',
+    phone: '+1 (555) 392-1084',
+    location: 'Bengaluru, Karnataka (Hybrid)',
+    currentRole: 'Backend Developer',
+    totalExperienceYears: 4,
+    headline: 'Backend Engineer specializing in Java, Spring Boot, AWS, SQL, and Microservices',
+    skills: ['Java', 'Spring', 'AWS', 'SQL', 'Docker', 'PostgreSQL', 'Microservices'],
+    degree: 'BS Computer Science',
+    institution: 'University of Illinois',
+    status: 'Shortlisted',
+    matchScore: 91
   }
 ];
 
@@ -297,9 +312,9 @@ export const INITIAL_QUESTIONS: InterviewQuestion[] = [
 ];
 
 export const INITIAL_ATS_PROVIDERS: ATSProvider[] = [
-  { id: 'greenhouse', name: 'Greenhouse ATS', logo: 'GH', status: 'Connected', lastSync: 'Just now', candidateCount: 0 },
-  { id: 'lever', name: 'Lever Recruiter', logo: 'LV', status: 'Connected', lastSync: '15 mins ago', candidateCount: 0 },
-  { id: 'workday', name: 'Workday HCM', logo: 'WD', status: 'Disconnected', lastSync: 'Never', candidateCount: 0 }
+  { id: 'greenhouse', name: 'Greenhouse ATS', logo: 'GH', status: 'Connected', lastSync: 'Just now', candidateCount: 84 },
+  { id: 'lever', name: 'Lever Recruiter', logo: 'LV', status: 'Connected', lastSync: '15 mins ago', candidateCount: 42 },
+  { id: 'workday', name: 'Workday HCM', logo: 'WD', status: 'Connected', lastSync: '1 hour ago', candidateCount: 118 }
 ];
 
 export const MOCK_JOBS = INITIAL_JOBS;
@@ -308,10 +323,11 @@ export const MOCK_QUESTIONS = INITIAL_QUESTIONS;
 export const MOCK_ATS_PROVIDERS = INITIAL_ATS_PROVIDERS;
 
 export const INITIAL_FUNNEL_DATA = [
-  { name: 'Applied', count: 0 },
-  { name: 'Screened', count: 0 },
-  { name: 'Interviewed', count: 0 },
-  { name: 'Offered', count: 0 },
-  { name: 'Hired', count: 0 }
+  { name: 'Applied', count: 1247 },
+  { name: 'Screened', count: 850 },
+  { name: 'Interviewed', count: 450 },
+  { name: 'Offered', count: 180 },
+  { name: 'Hired', count: 89 }
 ];
+
 

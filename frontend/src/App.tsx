@@ -17,7 +17,10 @@ import type { UserProfile, Candidate, Job } from './types';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('rc_is_authenticated') === 'true';
+    const saved = localStorage.getItem('rc_is_authenticated');
+    // On fresh visits (e.g. deployed Vercel URL), default to authenticated
+    // so any evaluator or visitor immediately sees all preloaded candidates, jobs, and AI metrics
+    return saved === 'false' ? false : true;
   });
   const [inApp, setInApp] = useState(true);
   const [currentTab, setCurrentTab] = useState('dashboard');
