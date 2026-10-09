@@ -1,7 +1,53 @@
 import { useState, useEffect } from 'react';
 import type { Job, Candidate, InterviewQuestion, ATSProvider, UserProfile, UserAccount, CandidateInterviewResponse, ScheduledInterview, CandidateNotification } from '../types';
 
-import { INITIAL_JOBS, INITIAL_CANDIDATES, INITIAL_QUESTIONS, INITIAL_ATS_PROVIDERS } from '../services/mockData';
+import { INITIAL_JOBS, INITIAL_CANDIDATES, INITIAL_QUESTIONS, INITIAL_ATS_PROVIDERS, DEFAULT_AVATARS } from '../services/mockData';
+
+const ensureDefaultPreferences = () => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (!localStorage.getItem('rc_avatar_j.manju.raghvin@gmail.com') && DEFAULT_AVATARS.admin) {
+      localStorage.setItem('rc_avatar_j.manju.raghvin@gmail.com', DEFAULT_AVATARS.admin);
+    }
+    if (!localStorage.getItem('rc_avatar_admin@copilot.com') && DEFAULT_AVATARS.admin) {
+      localStorage.setItem('rc_avatar_admin@copilot.com', DEFAULT_AVATARS.admin);
+    }
+    if (!localStorage.getItem('rc_avatar_candidate@copilot.com') && DEFAULT_AVATARS.candidate) {
+      localStorage.setItem('rc_avatar_candidate@copilot.com', DEFAULT_AVATARS.candidate);
+    }
+    if (!localStorage.getItem('rc_avatar_sarah.johnson@example.com') && DEFAULT_AVATARS.candidate) {
+      localStorage.setItem('rc_avatar_sarah.johnson@example.com', DEFAULT_AVATARS.candidate);
+    }
+    if (!localStorage.getItem('rc_avatar_omkar.kakumanu17@gmail.com') && DEFAULT_AVATARS.omkar) {
+      localStorage.setItem('rc_avatar_omkar.kakumanu17@gmail.com', DEFAULT_AVATARS.omkar);
+    }
+    if (!localStorage.getItem('rc_avatar_recruiter@copilot.com') && DEFAULT_AVATARS.recruiter) {
+      localStorage.setItem('rc_avatar_recruiter@copilot.com', DEFAULT_AVATARS.recruiter);
+    }
+
+    const defaultPrefs: Record<string, string> = {
+      'rc_candidate_prefs_omkar.kakumanu17@gmail.com_status': 'ACTIVELY_LOOKING',
+      'rc_candidate_prefs_omkar.kakumanu17@gmail.com_locations': JSON.stringify(["Bengaluru", "Hyderabad"]),
+      'rc_candidate_prefs_omkar.kakumanu17@gmail.com_current_ctc': '18.5',
+      'rc_candidate_prefs_omkar.kakumanu17@gmail.com_notice': '15_DAYS',
+      'rc_candidate_prefs_omkar.kakumanu17@gmail.com_workmode': 'HYBRID',
+      'rc_candidate_prefs_omkar17057@gmail.com_current_ctc': '18.5',
+      'rc_candidate_prefs_omkar17057@gmail.com_notice': '15_DAYS',
+      'rc_candidate_prefs_omkar17057@gmail.com_workmode': 'HYBRID',
+      'rc_candidate_prefs_sarah.johnson@example.com_linkedin': 'https://linkedin.com/in/sarah-johnson-dev',
+      'rc_candidate_prefs_sarah.johnson@example.com_portfolio': 'https://sarahjohnson.dev',
+      'rc_candidate_prefs_sarah.johnson@example.com_phone': '+91 98765 43210',
+      'rc_candidate_prefs_sarah.johnson@example.com_status': 'ACTIVELY_LOOKING'
+    };
+    for (const [k, v] of Object.entries(defaultPrefs)) {
+      if (!localStorage.getItem(k)) {
+        localStorage.setItem(k, v);
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+};
 
 const normalizeIndianJob = (job: Job): Job => {
   let location = job.location || 'Bengaluru, Karnataka (Hybrid)';
@@ -104,6 +150,7 @@ const safeStorageSet = (key: string, value: string) => {
 };
 
 export function useRecruitmentStore() {
+  ensureDefaultPreferences();
   const [jobs, setJobs] = useState<Job[]>(() => {
     const saved = localStorage.getItem('rc_jobs');
     let loadedJobs = INITIAL_JOBS;
@@ -232,7 +279,8 @@ export function useRecruitmentStore() {
       status: 'APPROVED',
       createdAt: '2026-01-10',
       password: 'admin123',
-      isSuperAdmin: true
+      isSuperAdmin: true,
+      avatar: DEFAULT_AVATARS.admin
     },
     {
       id: 'usr-recruiter-1',
@@ -242,7 +290,8 @@ export function useRecruitmentStore() {
       userType: 'USER',
       status: 'APPROVED',
       createdAt: '2026-01-12',
-      password: 'recruiter123'
+      password: 'recruiter123',
+      avatar: DEFAULT_AVATARS.recruiter
     },
     {
       id: 'usr-cand-1',
@@ -252,7 +301,8 @@ export function useRecruitmentStore() {
       userType: 'USER',
       status: 'APPROVED',
       createdAt: '2026-02-15',
-      password: 'candidate123'
+      password: 'candidate123',
+      avatar: DEFAULT_AVATARS.candidate
     },
     {
       id: 'usr-cand-2',
@@ -263,6 +313,17 @@ export function useRecruitmentStore() {
       status: 'APPROVED',
       createdAt: '2026-03-01',
       password: 'candidate123'
+    },
+    {
+      id: 'usr-cand-3',
+      name: 'Omkar Kakumanu (Candidate)',
+      email: 'omkar.kakumanu17@gmail.com',
+      role: 'Software Engineer / Developer',
+      userType: 'USER',
+      status: 'APPROVED',
+      createdAt: '2026-03-01',
+      password: 'candidate123',
+      avatar: DEFAULT_AVATARS.omkar
     }
   ];
 
@@ -345,7 +406,7 @@ export function useRecruitmentStore() {
       } catch (e) {}
     }
     const defaultEmail = 'admin@copilot.com';
-    const adminAvatar = localStorage.getItem(`rc_avatar_${defaultEmail}`) || undefined;
+    const adminAvatar = localStorage.getItem(`rc_avatar_${defaultEmail}`) || localStorage.getItem('rc_avatar_j.manju.raghvin@gmail.com') || DEFAULT_AVATARS.admin;
     return {
       name: 'J Manju Raghvin (Main Super-Admin)',
       role: 'System Administrator & Hiring Director',

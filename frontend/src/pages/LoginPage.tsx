@@ -95,7 +95,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       cleanMail === 'candidate@copilot.com' ||
       cleanMail === 'sarah.johnson@example.com' ||
       cleanMail === 'sarah.jenkins@gmail.com' ||
-      cleanMail === 'j.manju.raghvin@gmail.com';
+      cleanMail === 'j.manju.raghvin@gmail.com' ||
+      cleanMail === 'omkar.kakumanu17@gmail.com' ||
+      cleanMail === 'sailathakakumanu@gmail.com';
 
     const stored = userAccounts.find(u => u.email.toLowerCase() === cleanMail);
 
