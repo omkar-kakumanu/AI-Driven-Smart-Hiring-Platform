@@ -484,8 +484,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 type="button"
                 onClick={() => { setMode('RECRUITER'); setEmail('recruiter@copilot.com'); setPassword('recruiter123'); setStatusNotice(null); }}
                 className={`py-1.5 rounded-lg text-[11px] font-bold transition-all text-center truncate ${mode === 'RECRUITER'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
                   }`}
               >
                 1. Recruiter
@@ -494,8 +494,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 type="button"
                 onClick={() => { setMode('CANDIDATE'); setEmail('candidate@copilot.com'); setPassword('candidate123'); setStatusNotice(null); }}
                 className={`py-1.5 rounded-lg text-[11px] font-bold transition-all text-center truncate ${mode === 'CANDIDATE'
-                    ? 'bg-purple-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-purple-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
                   }`}
               >
                 2. Candidate
@@ -504,8 +504,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 type="button"
                 onClick={() => { setMode('ADMIN'); setEmail('admin@copilot.com'); setPassword('admin123'); setStatusNotice(null); }}
                 className={`py-1.5 rounded-lg text-[11px] font-bold transition-all text-center truncate ${mode === 'ADMIN'
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
                   }`}
               >
                 3. Admin
@@ -514,8 +514,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 type="button"
                 onClick={() => { setMode('SIGN_UP'); setEmail(''); setPassword(''); setStatusNotice(null); }}
                 className={`py-1.5 rounded-lg text-[11px] font-bold transition-all text-center truncate ${mode === 'SIGN_UP'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
                   }`}
               >
                 4. Request
@@ -559,10 +559,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           {statusNotice && (
             <div
               className={`p-3.5 rounded-xl border text-xs leading-relaxed flex items-start gap-2.5 ${statusNotice.type === 'PENDING'
-                  ? 'bg-amber-50 border-amber-300 text-amber-900 font-medium'
-                  : statusNotice.type === 'REVOKED' || statusNotice.type === 'ERROR'
-                    ? 'bg-rose-50 border-rose-300 text-rose-900 font-medium'
-                    : 'bg-emerald-50 border-emerald-300 text-emerald-900 font-medium'
+                ? 'bg-amber-50 border-amber-300 text-amber-900 font-medium'
+                : statusNotice.type === 'REVOKED' || statusNotice.type === 'ERROR'
+                  ? 'bg-rose-50 border-rose-300 text-rose-900 font-medium'
+                  : 'bg-emerald-50 border-emerald-300 text-emerald-900 font-medium'
                 }`}
             >
               {statusNotice.type === 'SUCCESS' ? (
@@ -677,10 +677,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             <button
               type="submit"
               className={`w-full h-11 text-white font-bold rounded-xl text-xs shadow-md transition-all mt-2 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] ${mode === 'ADMIN'
-                  ? 'bg-slate-900 hover:bg-slate-800 shadow-slate-900/20'
-                  : mode === 'SIGN_UP'
-                    ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20'
-                    : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'
+                ? 'bg-slate-900 hover:bg-slate-800 shadow-slate-900/20'
+                : mode === 'SIGN_UP'
+                  ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20'
+                  : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'
                 }`}
             >
               {mode === 'SIGN_UP'
@@ -861,8 +861,8 @@ export const StepItem: React.FC<StepItemProps> = ({ number, text, subtext, activ
     <div
       onClick={onClick}
       className={`flex items-start gap-3 p-3 rounded-2xl transition-all duration-300 cursor-pointer ${active
-          ? 'bg-white text-slate-900 border border-slate-200 shadow-md scale-[1.02]'
-          : 'bg-slate-900/60 text-white/90 border border-white/10 hover:bg-slate-900/80'
+        ? 'bg-white text-slate-900 border border-slate-200 shadow-md scale-[1.02]'
+        : 'bg-slate-900/60 text-white/90 border border-white/10 hover:bg-slate-900/80'
         }`}
     >
       <div
