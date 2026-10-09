@@ -936,23 +936,23 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 font-sans">
+    <div className="p-3.5 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-5 sm:space-y-8 font-sans">
       {/* Top Page Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-900 rounded-full font-bold text-xs mb-2 border border-blue-300">
             <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
             Interview Intelligence • AI Interview Simulation
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">AI Interview Simulation & Question Generation</h2>
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">AI Interview Simulation & Question Generation</h2>
           <p className="text-slate-500 text-xs mt-1 font-medium">Interactive neural interview simulation, real-time response evaluation, and question generator</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {onNavigateToVoiceScreening && (
             <button
               onClick={onNavigateToVoiceScreening}
-              className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200 transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+              className="px-3.5 sm:px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shadow-xs"
             >
               <span>Voice Screening Studio</span>
               <span className="text-xs font-mono font-bold">→</span>
@@ -961,24 +961,24 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
           {onNavigateToAts && (
             <button
               onClick={onNavigateToAts}
-              className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl border border-blue-200 transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+              className="px-3.5 sm:px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl border border-blue-200 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shadow-xs"
             >
-              <span>Open ATS Integration Hub</span>
+              <span>Open ATS Hub</span>
               <span className="text-xs font-mono font-bold">→</span>
             </button>
           )}
-          <span className="px-3 py-1 bg-slate-900 text-white font-bold text-xs rounded-xl shadow-sm">
-            AI Intelligence Hub
+          <span className="px-3 py-1.5 bg-slate-900 text-white font-bold text-xs rounded-xl shadow-sm shrink-0">
+            AI Hub
           </span>
         </div>
       </div>
 
       {/* View Mode Subtab Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
-        <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-2 p-1 bg-slate-100 rounded-2xl w-full sm:w-fit">
           <button
             onClick={() => setActiveSubTab('SIMULATION')}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+            className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
               activeSubTab === 'SIMULATION'
                 ? 'bg-white text-slate-900 shadow-sm'
                 : 'text-slate-500 hover:text-slate-800'

@@ -97,53 +97,53 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       ];
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 font-sans">
+    <div className="p-3.5 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-5 sm:space-y-8 font-sans">
       {/* Top Banner */}
-      <div className="bg-slate-900 text-white rounded-2xl p-8 shadow-sm border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="bg-slate-900 text-white rounded-2xl p-4 sm:p-6 lg:p-8 shadow-sm border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6">
         <div className="space-y-2 max-w-2xl">
           <div className="inline-flex items-center px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400 font-bold text-xs">
             Recruitment Operations & Analytics
           </div>
-          <h2 className="text-3xl font-extrabold tracking-tight">Automated Candidate Profiling & Analytics</h2>
-          <p className="text-slate-400 text-sm">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight">Automated Candidate Profiling & Analytics</h2>
+          <p className="text-slate-400 text-xs sm:text-sm">
             Process candidate resumes, analyze skill alignment against open job descriptions, and evaluate data visualizations.
           </p>
         </div>
 
         <button 
           onClick={() => onNavigate('candidates')}
-          className="px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-sm transition-all whitespace-nowrap"
+          className="w-full md:w-auto text-center px-5 py-3 sm:px-6 sm:py-3.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-sm transition-all whitespace-nowrap cursor-pointer shrink-0"
         >
           Upload Resume & View Candidates →
         </button>
       </div>
 
       {/* Stats Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
         {stats.map((stat, idx) => (
-          <div key={idx} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
-            <p className="text-xs font-bold text-slate-500">{stat.title}</p>
-            <div className="flex items-baseline justify-between">
-              <span className="text-3xl font-black text-slate-900">{stat.value}</span>
-              <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+          <div key={idx} className="bg-white border border-slate-200 rounded-2xl p-3.5 sm:p-5 shadow-sm space-y-2 sm:space-y-3">
+            <p className="text-[11px] sm:text-xs font-bold text-slate-500 truncate">{stat.title}</p>
+            <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
+              <span className="text-xl sm:text-3xl font-black text-slate-900">{stat.value}</span>
+              <span className="text-[10px] sm:text-xs font-bold text-emerald-600 bg-emerald-50 px-1.5 sm:px-2 py-0.5 rounded border border-emerald-200 w-fit">
                 {stat.change}
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium">{stat.note}</p>
+            <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">{stat.note}</p>
           </div>
         ))}
       </div>
 
       {/* Data Visualization Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8">
         {/* Candidate Skill Distribution Pie Chart */}
-        <div className="lg:col-span-6 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="font-bold text-slate-900 text-base">Candidate Skill Distribution (Pie Chart)</h3>
-            <span className="text-xs font-bold text-slate-500">Top Technical Skills</span>
+        <div className="lg:col-span-6 bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-1">
+            <h3 className="font-bold text-slate-900 text-sm sm:text-base">Candidate Skill Distribution (Pie Chart)</h3>
+            <span className="text-[11px] sm:text-xs font-bold text-slate-500">Top Technical Skills</span>
           </div>
 
-          <div className="h-64 w-full pt-2">
+          <div className="h-56 sm:h-64 w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -174,18 +174,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Candidate Fit Score Distribution Bar Graph */}
-        <div className="lg:col-span-6 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="font-bold text-slate-900 text-base">Candidate Match Score Distribution (Bar Graph)</h3>
-            <span className="text-xs font-bold text-slate-500">Compatibility Ranges</span>
+        <div className="lg:col-span-6 bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-1">
+            <h3 className="font-bold text-slate-900 text-sm sm:text-base">Candidate Match Score Distribution (Bar Graph)</h3>
+            <span className="text-[11px] sm:text-xs font-bold text-slate-500">Compatibility Ranges</span>
           </div>
 
-          <div className="h-64 w-full pt-4">
+          <div className="h-56 sm:h-64 w-full pt-4">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', fontSize: '12px' }} />
                 <Bar dataKey="count" fill="#2563eb" radius={[8, 8, 0, 0]} />
               </BarChart>
@@ -195,13 +195,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </div>
 
       {/* Main Grid Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8">
         {/* Active Candidates List */}
-        <div className="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="font-bold text-slate-900 text-base">Top Ranked Candidates Leaderboard</h3>
+            <h3 className="font-bold text-slate-900 text-sm sm:text-base">Top Ranked Candidates Leaderboard</h3>
             <button onClick={() => onNavigate('candidates')} className="text-xs font-bold text-blue-600 hover:underline">
-              View All Directory →
+              View All →
             </button>
           </div>
 
@@ -222,9 +222,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 .map((cand, index) => {
                   const isTopTier = (cand.matchScore || 0) >= 85;
                   return (
-                    <div key={cand.id} className="py-3.5 flex items-center justify-between hover:bg-slate-50/60 transition-colors px-2 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-black shrink-0 ${
+                    <div key={cand.id} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/60 transition-colors px-2 rounded-lg">
+                      <div className="flex items-start sm:items-center gap-3 min-w-0">
+                        <span className={`inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full text-xs font-black shrink-0 ${
                           index === 0 ? 'bg-amber-400 text-amber-950 ring-2 ring-amber-300' :
                           index === 1 ? 'bg-slate-200 text-slate-800' :
                           index === 2 ? 'bg-amber-100 text-amber-900 border border-amber-300' :
@@ -233,9 +233,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           #{index + 1}
                         </span>
                         <UserAvatar name={cand.fullName} avatar={cand.avatar} size="md" />
-                        <div>
-                          <p className="text-sm font-bold text-slate-900">{cand.fullName}</p>
-                          <p className="text-xs text-slate-500 font-medium">{cand.currentRole} • {cand.totalExperienceYears} yrs exp</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-slate-900 truncate">{cand.fullName}</p>
+                          <p className="text-xs text-slate-500 font-medium truncate">{cand.currentRole} • {cand.totalExperienceYears} yrs exp</p>
                           <div className="flex flex-wrap gap-1 mt-1">
                             {(cand.skills || []).slice(0, 3).map((sk, i) => (
                               <span key={i} className="text-[10px] bg-slate-100 font-semibold px-1.5 py-0.2 rounded border border-slate-200 text-slate-600">
@@ -246,17 +246,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex items-center justify-between sm:justify-end gap-2.5 w-full sm:w-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-100">
                         {isTopTier ? (
                           <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 font-black text-xs rounded-full">
-                            {cand.matchScore}% (≥85% Top Fit)
+                            {cand.matchScore}% (≥85% Fit)
                           </span>
                         ) : (
                           <span className="px-2.5 py-1 bg-rose-50 text-rose-800 border border-rose-200 font-black text-xs rounded-full">
-                            {cand.matchScore}% (&lt;85% Alert)
+                            {cand.matchScore}% (&lt;85%)
                           </span>
                         )}
-                        <button onClick={() => onNavigate('matching')} className="text-xs font-bold text-blue-600 hover:text-blue-800">
+                        <button onClick={() => onNavigate('matching')} className="text-xs font-bold text-blue-600 hover:text-blue-800 shrink-0">
                           Details →
                         </button>
                       </div>

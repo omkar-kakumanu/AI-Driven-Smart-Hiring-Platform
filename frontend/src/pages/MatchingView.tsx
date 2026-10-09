@@ -193,14 +193,14 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 font-sans">
+    <div className="p-3.5 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-5 sm:space-y-8 font-sans">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
         <div>
           <div className="inline-flex items-center px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-xs mb-2">
             {isCandidateUser ? 'Career Alignment • Neural Job Match & Gap Engine' : 'Neural Matching • Candidate-Job Matching Engine'}
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">
             {isCandidateUser ? 'My Skill Alignment & Job Fit Analysis' : 'Candidate Skill Alignment & Gap Analysis'}
           </h2>
           <p className="text-slate-500 text-xs mt-1 font-medium">
@@ -210,7 +210,7 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
           </p>
         </div>
 
-        <span className="px-4 py-2 bg-slate-900 text-white font-bold text-xs rounded-xl shadow-sm self-start md:self-auto">
+        <span className="px-3.5 py-2 bg-slate-900 text-white font-bold text-xs rounded-xl shadow-sm self-start md:self-auto shrink-0">
           Weighted Model: Skill 60% • Exp 25% • Edu 15%
         </span>
       </div>
@@ -259,7 +259,7 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
       )}
 
       {/* Target Job & Candidate Selection Bar */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-center">
         {/* Target Job Selector */}
         <div>
           <div className="flex items-center justify-between mb-1">
@@ -330,7 +330,7 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
       </div>
 
       {/* Candidate Ranking Leaderboard */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div>
             <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">

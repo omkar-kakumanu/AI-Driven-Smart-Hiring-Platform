@@ -787,7 +787,7 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
   const isInspectedAllReviewed = inspectedCandidateScreenings.length > 0 && inspectedCandidateScreenings.every(s => s.isReviewed);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-3.5 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-5 sm:space-y-6 font-sans">
       
       {/* Toast Notification */}
       {toastMessage && (
@@ -797,7 +797,7 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
       )}
 
       {/* Header Banner without emojis */}
-      <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-sm border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-slate-900 text-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded uppercase tracking-wider">
@@ -807,7 +807,7 @@ export const VoiceScreeningView: React.FC<VoiceScreeningViewProps> = ({
               Operational Speech-to-Text and TTS
             </span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
             Voice-Based Screening Studio
           </h1>
           <p className="text-xs text-slate-300 font-medium max-w-2xl leading-relaxed">

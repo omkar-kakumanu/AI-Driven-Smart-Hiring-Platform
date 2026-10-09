@@ -396,38 +396,38 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 font-sans">
+    <div className="p-3.5 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-5 sm:space-y-8 font-sans">
       {/* Candidate Role RBAC Notice Banner */}
       {isCandidateUser && (
-        <div className="p-4 bg-purple-50 border border-purple-200 rounded-2xl flex items-center justify-between text-purple-900 text-xs font-semibold shadow-sm">
+        <div className="p-3.5 sm:p-4 bg-purple-50 border border-purple-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-purple-900 text-xs font-semibold shadow-sm">
           <div className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-600 animate-pulse"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-purple-600 animate-pulse shrink-0"></span>
             <span>
               <strong>Candidate Self-Service Mode:</strong> You are viewing your personal candidate profile & uploaded resume record. Full directory access across all candidate resumes is reserved for Recruiters and Administrators.
             </span>
           </div>
-          <span className="px-2.5 py-1 bg-purple-100 border border-purple-300 rounded-lg text-[10px] font-bold uppercase tracking-wider text-purple-800">
+          <span className="px-2.5 py-1 bg-purple-100 border border-purple-300 rounded-lg text-[10px] font-bold uppercase tracking-wider text-purple-800 shrink-0 w-fit">
             Candidate Role Active
           </span>
         </div>
       )}
 
       {/* Unified Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
             {isCandidateUser ? 'My Candidate Resume & Profile' : 'Candidate Profiles & Resume Parser'}
           </h2>
-          <p className="text-slate-500 text-sm mt-0.5">
+          <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
             {isCandidateUser 
               ? 'Manage your candidate resume document, review extracted skills, and track application status.' 
               : 'Upload candidate resumes to extract skills automatically, edit profiles, and view the directory.'}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button 
             onClick={loadSampleResume}
-            className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-all border border-slate-300"
+            className="w-full sm:w-auto px-3.5 py-2 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-all border border-slate-300 cursor-pointer"
           >
             Load Sample Resume
           </button>
@@ -539,7 +539,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs">
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">Full Name</label>
                   <input 
@@ -670,7 +670,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
       </div>
 
       {/* Candidate Records Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
         {(() => {
           const rankedCandidatesList = [...candidates]
             .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))

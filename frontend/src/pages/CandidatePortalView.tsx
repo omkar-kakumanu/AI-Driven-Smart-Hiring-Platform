@@ -241,11 +241,11 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
     : 89;
 
   return (
-    <div className="p-6 sm:p-8 max-w-7xl mx-auto space-y-8 font-sans">
+    <div className="p-3.5 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-5 sm:space-y-8 font-sans">
       
       {/* Top Welcome Hero Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-indigo-700/50">
-        <div className="relative z-[1] flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="relative overflow-hidden bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-3xl p-4 sm:p-6 lg:p-8 shadow-2xl border border-indigo-700/50">
+        <div className="relative z-[1] flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
           <div className="flex items-center gap-5">
             <div className="relative group shrink-0">
               <UserAvatar
@@ -349,7 +349,7 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
       </div>
 
       {/* 5-Stage ATS Pipeline Stepper */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
+      <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
           <div>
             <h3 className="text-lg font-black text-slate-900">Application Pipeline Tracker</h3>

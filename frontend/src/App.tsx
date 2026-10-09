@@ -13,10 +13,12 @@ import { AtsIntegrationView } from './pages/AtsIntegrationView';
 import { CandidatePortalView } from './pages/CandidatePortalView';
 import { NewJobModal } from './components/NewJobModal';
 import { SyncDataModal } from './components/SyncDataModal';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { useRecruitmentStore, isStaffOrAdminEmailOrRole } from './store/useRecruitmentStore';
 import type { UserProfile, Candidate, Job } from './types';
 
 export default function App() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     const saved = localStorage.getItem('rc_is_authenticated');
     // On fresh visits (e.g. deployed Vercel URL), default to authenticated
@@ -269,12 +271,14 @@ export default function App() {
   const headerInfo = getHeaderInfo();
 
   return (
-    <div className="h-screen bg-slate-50 flex text-slate-800 font-sans antialiased overflow-hidden">
-      {/* Sidebar */}
+    <div className="h-screen bg-slate-50 flex text-slate-800 font-sans antialiased overflow-hidden relative">
+      {/* Sidebar (Desktop sticky & Mobile drawer) */}
       <Sidebar 
         currentTab={currentTab} 
         setCurrentTab={setCurrentTab} 
         userProfile={store.userProfile}
+        isMobileOpen={mobileMenuOpen}
+        onCloseMobile={() => setMobileMenuOpen(false)}
       />
 
       {/* Main Content Area */}
@@ -292,9 +296,10 @@ export default function App() {
           onProfileClick={() => setCurrentTab('settings')}
           onLogout={handleLogout}
           onOpenSyncModal={() => setShowSyncModal(true)}
+          onToggleMobileMenu={() => setMobileMenuOpen(prev => !prev)}
         />
 
-        <main className="flex-1 overflow-y-auto focus:outline-none">
+        <main className="flex-1 overflow-y-auto focus:outline-none pb-20 lg:pb-0">
           {currentTab === 'dashboard' && (
             <DashboardView 
               onNavigate={setCurrentTab} 
@@ -428,6 +433,13 @@ export default function App() {
             />
           )}
         </main>
+
+        {/* Mobile App Bottom Navigation Bar (Hidden on desktop lg) */}
+        <MobileBottomNav 
+          currentTab={currentTab}
+          setCurrentTab={setCurrentTab}
+          userProfile={store.userProfile}
+        />
       </div>
 
       {/* AI-Assisted New / Edit Job Modal */}

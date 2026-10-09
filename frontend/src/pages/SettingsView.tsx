@@ -307,7 +307,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8 font-sans relative">
+    <div className="p-3.5 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-5 sm:space-y-8 font-sans relative">
       {/* Floating Save Success Banner */}
       {savedSuccess && (
         <div className="fixed top-20 right-8 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-emerald-400">
