@@ -367,8 +367,39 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     }
   };
 
+  // Quick 1-Click Demo Login Handlers for Evaluators & Visitors
+  const handleQuickRecruiterLogin = () => {
+    const stored = userAccounts.find(u => u.email.toLowerCase() === 'recruiter@copilot.com');
+    const savedAvatar = getPersistedAvatar('recruiter@copilot.com', stored?.avatar);
+    onLogin({
+      name: getPersistedName('recruiter@copilot.com', stored?.name || 'Sarah Jenkins', userAccounts),
+      role: stored?.role || 'Talent Acquisition Specialist',
+      email: 'recruiter@copilot.com',
+      userType: 'USER',
+      status: 'APPROVED',
+      isSuperAdmin: false,
+      avatar: savedAvatar
+    });
+  };
+
+  const handleQuickAdminLogin = () => {
+    const storedAdmin = userAccounts.find(u => u.email.toLowerCase() === 'admin@copilot.com');
+    const savedAvatar = getPersistedAvatar('admin@copilot.com', storedAdmin?.avatar);
+    const adminFallback = (storedAdmin?.name && !storedAdmin.name.includes('Alex Vance')) ? storedAdmin.name : 'J Manju Raghvin (Main Super-Admin)';
+    onLogin({
+      name: getPersistedName('admin@copilot.com', adminFallback, userAccounts),
+      role: storedAdmin?.role || 'System Administrator & Hiring Director',
+      email: 'admin@copilot.com',
+      userType: 'ADMIN',
+      status: 'APPROVED',
+      isSuperAdmin: true,
+      avatar: savedAvatar
+    });
+  };
+
   return (
     <main className="flex min-h-screen w-full bg-slate-50 selection:bg-blue-600 selection:text-white p-2 transition-all duration-500 lg:h-screen lg:overflow-hidden lg:p-4 font-sans text-slate-900 relative">
+
       {/* LEFT COLUMN: HERO, LIVE METRICS & VIDEO BACKGROUND */}
       <div className="w-[52%] hidden lg:flex relative flex-col items-center justify-between p-8 rounded-3xl overflow-hidden shadow-2xl border border-slate-200/80 bg-slate-950 text-white h-full">
         {/* Absolutely Positioned Video with NO overlays */}
@@ -531,6 +562,40 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 {theme === 'dark' ? '☀️' : '🌙'}
               </button>
             )}
+          </div>
+
+          {/* Quick 1-Click Demo Access Bar for Evaluators */}
+          <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-slate-50 border border-blue-200/90 rounded-2xl p-3.5 space-y-2 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-blue-950 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
+                1-Click Evaluator & Live Demo Access
+              </span>
+              <span className="text-[10px] font-bold text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-full border border-blue-200">
+                All Data Preloaded
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={handleQuickRecruiterLogin}
+                className="flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white rounded-xl text-xs font-bold shadow-sm shadow-blue-500/25 transition-all cursor-pointer"
+              >
+                <span>⚡ Recruiter Dashboard</span>
+                <ArrowRight className="w-3 h-3 opacity-80" />
+              </button>
+              <button
+                type="button"
+                onClick={handleQuickAdminLogin}
+                className="flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white rounded-xl text-xs font-bold shadow-sm shadow-slate-900/20 transition-all cursor-pointer"
+              >
+                <span>👑 Super-Admin Portal</span>
+                <ArrowRight className="w-3 h-3 opacity-80" />
+              </button>
+            </div>
+            <p className="text-[10px] text-slate-500 font-medium text-center leading-tight">
+              Instantly explores all 7 candidates, 8 jobs, matching scores & voice screenings without typing passwords.
+            </p>
           </div>
 
           {/* Form Header */}
