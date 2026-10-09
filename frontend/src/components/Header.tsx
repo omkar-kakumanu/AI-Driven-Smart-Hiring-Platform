@@ -1,4 +1,5 @@
 import React from 'react';
+import { RefreshCw } from 'lucide-react';
 import { UserAvatar } from './UserAvatar';
 import type { UserProfile } from '../types';
 
@@ -14,6 +15,7 @@ interface HeaderProps {
   onNewJobClick?: () => void;
   onProfileClick?: () => void;
   onLogout?: () => void;
+  onOpenSyncModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -27,7 +29,8 @@ export const Header: React.FC<HeaderProps> = ({
   onSearchChange,
   onNewJobClick, 
   onProfileClick,
-  onLogout
+  onLogout,
+  onOpenSyncModal
 }) => {
   const isAdmin = userProfile?.userType === 'ADMIN';
   const isCandidateUser = Boolean(
@@ -110,6 +113,19 @@ export const Header: React.FC<HeaderProps> = ({
           </span>
         )}
 
+
+        {/* Cloud Data Sync Button (Localhost <-> Vercel) */}
+        {onOpenSyncModal && (
+          <button
+            type="button"
+            onClick={onOpenSyncModal}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 transition-all border border-blue-200 cursor-pointer text-xs font-bold shrink-0 shadow-xs active:scale-95"
+            title="Sync all candidates & data with Vercel"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Sync Data</span>
+          </button>
+        )}
 
         {/* Theme Toggle (Dark/Light Mode) */}
         {onToggleTheme && (

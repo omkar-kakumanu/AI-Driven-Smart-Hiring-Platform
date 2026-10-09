@@ -12,6 +12,7 @@ import { VoiceScreeningView } from './pages/VoiceScreeningView';
 import { AtsIntegrationView } from './pages/AtsIntegrationView';
 import { CandidatePortalView } from './pages/CandidatePortalView';
 import { NewJobModal } from './components/NewJobModal';
+import { SyncDataModal } from './components/SyncDataModal';
 import { useRecruitmentStore, isStaffOrAdminEmailOrRole } from './store/useRecruitmentStore';
 import type { UserProfile, Candidate, Job } from './types';
 
@@ -25,6 +26,7 @@ export default function App() {
   const [inApp, setInApp] = useState(true);
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [showNewJobModal, setShowNewJobModal] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState(false);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -289,6 +291,7 @@ export default function App() {
           onNewJobClick={handleOpenNewJobModal}
           onProfileClick={() => setCurrentTab('settings')}
           onLogout={handleLogout}
+          onOpenSyncModal={() => setShowSyncModal(true)}
         />
 
         <main className="flex-1 overflow-y-auto focus:outline-none">
@@ -441,6 +444,12 @@ export default function App() {
         }}
         onUpdateJob={store.updateJob}
         onDeleteJob={store.deleteJob}
+      />
+
+      {/* Cloud Data Sync Modal (Transfer data between Localhost and Vercel) */}
+      <SyncDataModal
+        isOpen={showSyncModal}
+        onClose={() => setShowSyncModal(false)}
       />
     </div>
   );
