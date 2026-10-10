@@ -427,6 +427,8 @@ export default function App() {
               onRevokeUserAccess={store.revokeUserAccess}
               onDeleteUserAccount={store.deleteUserAccount}
               onMakeUserAdmin={store.makeUserAdmin}
+              onRemoveUserAdmin={store.removeUserAdmin}
+              onMakeUserRecruiter={store.makeUserRecruiter}
               onClearAllCandidates={store.clearAllCandidates}
               onClearAllUserAccounts={store.clearAllUserAccounts}
               onRestoreDefaultJobs={store.restoreDefaultJobs}

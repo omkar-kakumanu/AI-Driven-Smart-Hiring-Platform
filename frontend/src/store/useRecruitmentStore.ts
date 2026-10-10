@@ -741,8 +741,46 @@ export function useRecruitmentStore() {
   };
 
   const makeUserAdmin = (userId: string) => {
-    // Single Admin Policy: Keep only J Manju Raghvin as Admin, or explicitly confirm transfer
-    setUserAccounts(prev => prev.map(u => u.id === userId ? { ...u, userType: 'ADMIN' as const, status: 'APPROVED' as const } : u));
+    setUserAccounts(prev => prev.map(u => {
+      if (u.id === userId) {
+        return {
+          ...u,
+          userType: 'ADMIN' as const,
+          status: 'APPROVED' as const,
+          role: u.role.toLowerCase().includes('candidate') ? 'Administrator' : u.role
+        };
+      }
+      return u;
+    }));
+  };
+
+  const removeUserAdmin = (userId: string) => {
+    setUserAccounts(prev => prev.map(u => {
+      if (u.id === userId) {
+        if (u.isSuperAdmin || u.email.toLowerCase() === 'admin@copilot.com') return u; // Main Super Admin protected
+        return {
+          ...u,
+          userType: 'USER' as const,
+          role: u.role.toLowerCase().includes('admin') ? 'Talent Acquisition Specialist' : u.role
+        };
+      }
+      return u;
+    }));
+  };
+
+  const makeUserRecruiter = (userId: string) => {
+    setUserAccounts(prev => prev.map(u => {
+      if (u.id === userId) {
+        if (u.isSuperAdmin || u.email.toLowerCase() === 'admin@copilot.com') return u; // Main Super Admin protected
+        return {
+          ...u,
+          userType: 'USER' as const,
+          role: 'Talent Acquisition Specialist',
+          status: 'APPROVED' as const
+        };
+      }
+      return u;
+    }));
   };
 
   const clearAllCandidates = () => {
@@ -1087,6 +1125,8 @@ export function useRecruitmentStore() {
     revokeUserAccess,
     deleteUserAccount,
     makeUserAdmin,
+    removeUserAdmin,
+    makeUserRecruiter,
     registerUser,
     clearAllCandidates,
     clearAllUserAccounts,

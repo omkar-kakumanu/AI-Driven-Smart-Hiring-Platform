@@ -14,6 +14,8 @@ interface SettingsViewProps {
   onRevokeUserAccess?: (userId: string) => void;
   onDeleteUserAccount?: (userId: string) => void;
   onMakeUserAdmin?: (userId: string) => void;
+  onRemoveUserAdmin?: (userId: string) => void;
+  onMakeUserRecruiter?: (userId: string) => void;
   onClearAllCandidates?: () => void;
   onClearAllUserAccounts?: () => void;
   onRestoreDefaultJobs?: () => void;
@@ -77,6 +79,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onRevokeUserAccess,
   onDeleteUserAccount,
   onMakeUserAdmin,
+  onRemoveUserAdmin,
+  onMakeUserRecruiter,
   onClearAllCandidates,
   onClearAllUserAccounts,
   onRestoreDefaultJobs
@@ -153,6 +157,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [whatsappAlerts, setWhatsappAlerts] = useState(true);
   const [aiReportAlerts, setAiReportAlerts] = useState(true);
+  const [accountFilter, setAccountFilter] = useState<'ALL' | 'PENDING' | 'ADMIN' | 'RECRUITER' | 'CANDIDATE'>('ALL');
 
   const INDIAN_TECH_HUBS = [
     'Bengaluru',
@@ -915,128 +920,211 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-200 font-bold text-slate-500 bg-slate-50">
-                      <th className="py-2.5 px-3">User Name</th>
-                      <th className="py-2.5 px-3">Email Address</th>
-                      <th className="py-2.5 px-3">Role</th>
-                      <th className="py-2.5 px-3">Type</th>
-                      <th className="py-2.5 px-3">Status</th>
-                      <th className="py-2.5 px-3 text-right">Access Control Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-medium">
-                    {userAccounts.map((user) => (
-                      <tr key={user.id} className="hover:bg-slate-50">
-                        <td className="py-3 px-3 font-bold text-slate-900">
-                          <div className="flex items-center gap-2">
-                            <UserAvatar 
-                              name={user.name} 
-                              avatar={user.avatar || localStorage.getItem(`rc_avatar_${user.email.toLowerCase()}`) || undefined} 
-                              size="xs" 
-                            />
-                            <span>{user.name}</span>
-                            {user.isSuperAdmin && (
-                              <span className="px-2 py-0.5 bg-blue-100 text-blue-900 text-[10px] font-black rounded border border-blue-200">
-                                Main Super-Admin
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3 px-3 text-slate-700">{user.email}</td>
-                        <td className="py-3 px-3 text-slate-600">{user.role}</td>
-                        <td className="py-3 px-3 font-semibold text-slate-800">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            user.userType === 'ADMIN' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'
-                          }`}>
-                            {user.userType}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            user.status === 'APPROVED' 
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : user.status === 'PENDING'
-                              ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                              : 'bg-rose-100 text-rose-800'
-                          }`}>
-                            {user.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3 text-right space-x-2">
-                          {user.isSuperAdmin ? (
-                            <span className="text-[11px] font-extrabold text-blue-700 bg-blue-50 px-2.5 py-1 rounded border border-blue-200">
-                              Protected Main Admin
-                            </span>
-                          ) : (
-                            <>
-                              {user.status === 'PENDING' && (
-                                <>
-                                  <button
-                                    onClick={() => onApproveUser && onApproveUser(user.id)}
-                                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-[11px] cursor-pointer"
-                                  >
-                                    Approve Access
-                                  </button>
-                                  <button
-                                    onClick={() => onRejectUser && onRejectUser(user.id)}
-                                    className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded text-[11px] cursor-pointer"
-                                  >
-                                    Reject
-                                  </button>
-                                </>
-                              )}
+              <div className="space-y-3">
+                {/* User Account Type / Status Filters */}
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setAccountFilter('ALL')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      accountFilter === 'ALL' ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    All Accounts ({userAccounts.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAccountFilter('PENDING')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      accountFilter === 'PENDING' ? 'bg-amber-600 text-white shadow-xs' : 'bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900'
+                    }`}
+                  >
+                    <span>⏳</span> Pending Requests ({userAccounts.filter(u => u.status === 'PENDING').length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAccountFilter('ADMIN')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      accountFilter === 'ADMIN' ? 'bg-purple-700 text-white shadow-xs' : 'bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-900'
+                    }`}
+                  >
+                    👑 Admins ({userAccounts.filter(u => u.userType === 'ADMIN').length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAccountFilter('RECRUITER')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      accountFilter === 'RECRUITER' ? 'bg-blue-600 text-white shadow-xs' : 'bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900'
+                    }`}
+                  >
+                    💼 Recruiters ({userAccounts.filter(u => u.role.toLowerCase().includes('recruiter') || (u.userType === 'USER' && !u.role.toLowerCase().includes('candidate'))).length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAccountFilter('CANDIDATE')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      accountFilter === 'CANDIDATE' ? 'bg-slate-700 text-white shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    🎯 Candidates ({userAccounts.filter(u => u.role.toLowerCase().includes('candidate')).length})
+                  </button>
+                </div>
 
-                              {user.status === 'APPROVED' && (
-                                <>
-                                  {user.userType !== 'ADMIN' && (
-                                    <button
-                                      onClick={() => onMakeUserAdmin && onMakeUserAdmin(user.id)}
-                                      className="px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-800 font-bold rounded text-[10px] hover:bg-blue-100 cursor-pointer"
-                                      title="Promote to Administrator"
-                                    >
-                                      + Make Admin
-                                    </button>
-                                  )}
-                                  <button
-                                    onClick={() => onRevokeUserAccess && onRevokeUserAccess(user.id)}
-                                    className="px-2.5 py-1 bg-rose-50 border border-rose-200 text-rose-700 font-bold rounded text-[10px] hover:bg-rose-100 cursor-pointer"
-                                    title="Revoke user access at any time"
-                                  >
-                                    Revoke Access
-                                  </button>
-                                </>
-                              )}
-
-                              {(user.status === 'REJECTED' || user.status === 'REVOKED') && (
-                                <button
-                                  onClick={() => onApproveUser && onApproveUser(user.id)}
-                                  className="px-2.5 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold rounded text-[10px] cursor-pointer"
-                                >
-                                  Re-Approve Access
-                                </button>
-                              )}
-
-                              <button
-                                onClick={() => {
-                                  if (window.confirm(`Permanently delete account for "${user.name}" (${user.email})?`)) {
-                                    onDeleteUserAccount && onDeleteUserAccount(user.id);
-                                  }
-                                }}
-                                className="px-2.5 py-1 bg-slate-100 hover:bg-rose-600 hover:text-white border border-slate-300 text-slate-700 font-bold rounded text-[10px] transition-colors cursor-pointer"
-                                title="Permanently delete user account from system"
-                              >
-                                Delete Account
-                              </button>
-                            </>
-                          )}
-                        </td>
+                <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-xs">
+                  <table className="w-full min-w-[920px] text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 font-bold text-slate-500 bg-slate-50">
+                        <th className="py-2.5 px-3">User Name</th>
+                        <th className="py-2.5 px-3">Email Address</th>
+                        <th className="py-2.5 px-3">Role</th>
+                        <th className="py-2.5 px-3">Type</th>
+                        <th className="py-2.5 px-3">Status</th>
+                        <th className="py-2.5 px-3 text-right">Access Control Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-medium">
+                      {userAccounts
+                        .filter(u => {
+                          if (accountFilter === 'PENDING') return u.status === 'PENDING';
+                          if (accountFilter === 'ADMIN') return u.userType === 'ADMIN';
+                          if (accountFilter === 'RECRUITER') return u.role.toLowerCase().includes('recruiter') || (u.userType === 'USER' && !u.role.toLowerCase().includes('candidate'));
+                          if (accountFilter === 'CANDIDATE') return u.role.toLowerCase().includes('candidate');
+                          return true;
+                        })
+                        .map((user) => (
+                        <tr key={user.id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-3 px-3 font-bold text-slate-900">
+                            <div className="flex items-center gap-2">
+                              <UserAvatar 
+                                name={user.name} 
+                                avatar={user.avatar || localStorage.getItem(`rc_avatar_${user.email.toLowerCase()}`) || undefined} 
+                                size="xs" 
+                              />
+                              <span>{user.name}</span>
+                              {user.isSuperAdmin && (
+                                <span className="px-2 py-0.5 bg-blue-100 text-blue-900 text-[10px] font-black rounded border border-blue-200">
+                                  Main Super-Admin
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 text-slate-700">{user.email}</td>
+                          <td className="py-3 px-3 text-slate-600">{user.role}</td>
+                          <td className="py-3 px-3 font-semibold text-slate-800">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              user.userType === 'ADMIN' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'
+                            }`}>
+                              {user.userType}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                              user.status === 'APPROVED' 
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : user.status === 'PENDING'
+                                ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                : 'bg-rose-100 text-rose-800'
+                            }`}>
+                              {user.status}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            {user.isSuperAdmin ? (
+                              <span className="text-[11px] font-extrabold text-blue-700 bg-blue-50 px-2.5 py-1 rounded border border-blue-200 inline-block">
+                                👑 Protected Main Admin
+                              </span>
+                            ) : (
+                              <div className="flex flex-wrap items-center justify-end gap-1.5">
+                                {/* 1. APPROVE */}
+                                {user.status !== 'APPROVED' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onApproveUser && onApproveUser(user.id)}
+                                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold rounded text-[11px] transition-all cursor-pointer shadow-xs inline-flex items-center gap-1"
+                                    title="Approve user access"
+                                  >
+                                    <span>✓</span> Approve
+                                  </button>
+                                )}
+
+                                {/* 2. REVOKE */}
+                                {user.status === 'APPROVED' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onRevokeUserAccess && onRevokeUserAccess(user.id)}
+                                    className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 font-bold rounded text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
+                                    title="Revoke active user access"
+                                  >
+                                    <span>⛔</span> Revoke
+                                  </button>
+                                )}
+
+                                {/* 3. REJECT */}
+                                {user.status === 'PENDING' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onRejectUser && onRejectUser(user.id)}
+                                    className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-700 font-bold rounded text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
+                                    title="Reject access request"
+                                  >
+                                    <span>✕</span> Reject
+                                  </button>
+                                )}
+
+                                {/* 4. MAKE ADMIN / 5. REMOVE ADMIN */}
+                                {user.userType !== 'ADMIN' ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => onMakeUserAdmin && onMakeUserAdmin(user.id)}
+                                    className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-bold rounded text-[11px] transition-all cursor-pointer shadow-xs inline-flex items-center gap-1"
+                                    title="Promote to Administrator"
+                                  >
+                                    <span>👑</span> Make Admin
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => onRemoveUserAdmin && onRemoveUserAdmin(user.id)}
+                                    className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 border border-purple-300 text-purple-800 font-bold rounded text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
+                                    title="Remove Administrator privileges (demote to Recruiter)"
+                                  >
+                                    <span>🛡️</span> Remove Admin
+                                  </button>
+                                )}
+
+                                {/* 6. MAKE RECRUITER */}
+                                {(user.userType === 'ADMIN' || !user.role.toLowerCase().includes('recruiter') || user.role.toLowerCase().includes('candidate')) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onMakeUserRecruiter && onMakeUserRecruiter(user.id)}
+                                    className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-700 font-bold rounded text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
+                                    title="Assign standard Recruiter role"
+                                  >
+                                    <span>💼</span> Make Recruiter
+                                  </button>
+                                )}
+
+                                {/* 7. DELETE */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (window.confirm(`Permanently delete account for "${user.name}" (${user.email})? This action cannot be undone.`)) {
+                                      onDeleteUserAccount && onDeleteUserAccount(user.id);
+                                    }
+                                  }}
+                                  className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white font-bold rounded text-[11px] transition-all cursor-pointer shadow-xs inline-flex items-center gap-1"
+                                  title="Permanently delete user account"
+                                >
+                                  <span>🗑️</span> Delete
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
