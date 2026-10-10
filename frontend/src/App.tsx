@@ -84,8 +84,7 @@ export default function App() {
     store.userProfile?.email?.toLowerCase() !== 'admin@copilot.com' &&
     store.userProfile?.email?.toLowerCase() !== 'recruiter@copilot.com' && (
       store.userProfile?.role?.toLowerCase().includes('candidate') ||
-      store.userProfile?.email?.toLowerCase().includes('candidate') ||
-      store.userProfile?.email?.toLowerCase() === 'sarah.johnson@example.com'
+      store.userProfile?.email?.toLowerCase().includes('candidate')
     )
   );
 
@@ -185,12 +184,63 @@ export default function App() {
     });
     setIsAuthenticated(true);
     localStorage.setItem('rc_is_authenticated', 'true');
-    if (profile.role?.toLowerCase().includes('candidate') || profile.email?.toLowerCase().includes('candidate') || profile.email?.toLowerCase() === 'sarah.johnson@example.com') {
+    if (isAdminAccount || profile.role?.toLowerCase().includes('recruiter') || profile.role?.toLowerCase().includes('talent')) {
+      setCurrentTab('dashboard');
+    } else if (profile.role?.toLowerCase().includes('candidate') || profile.email?.toLowerCase().includes('candidate')) {
       setCurrentTab('candidate-portal');
     } else {
       setCurrentTab('dashboard');
     }
   };
+
+  // REAL-TIME ACCESS TERMINATION & ROLE DEMOTION ENFORCEMENT
+  useEffect(() => {
+    if (!isAuthenticated || !store.userProfile?.email) return;
+
+    const currentEmail = store.userProfile.email.toLowerCase();
+    const account = store.userAccounts.find(u => u.email.toLowerCase() === currentEmail);
+
+    // 1. If account is REVOKED or REJECTED: IMMEDIATELY TERMINATE SESSION
+    if (store.userProfile.status === 'REVOKED' || store.userProfile.status === 'REJECTED' || (account && (account.status === 'REVOKED' || account.status === 'REJECTED'))) {
+      setIsAuthenticated(false);
+      localStorage.setItem('rc_is_authenticated', 'false');
+      alert(`Access Revoked: Your access has been revoked by the Administrator.`);
+      return;
+    }
+
+    // 2. If account was DELETED: IMMEDIATELY REMOVE ACCESS
+    if (!account && !store.userProfile.isSuperAdmin && currentEmail !== 'admin@copilot.com') {
+      setIsAuthenticated(false);
+      localStorage.setItem('rc_is_authenticated', 'false');
+      alert(`Account Removed: Your user account was deleted by the Administrator.`);
+      return;
+    }
+
+    // 3. If user was DEMOTED from Admin to standard user: IMMEDIATELY REMOVE ADMIN PRIVILEGES
+    if (account && account.userType === 'USER' && store.userProfile.userType === 'ADMIN' && !store.userProfile.isSuperAdmin) {
+      store.updateUserProfile({
+        userType: 'USER',
+        isSuperAdmin: false,
+        role: account.role || 'Talent Acquisition Specialist'
+      });
+      if (currentTab === 'settings') {
+        setCurrentTab('dashboard');
+      }
+      alert(`Administrator Privileges Removed: Your admin rights were revoked by the Super-Admin.`);
+      return;
+    }
+
+    // 4. If user was MADE RECRUITER: IMMEDIATELY UPDATE ROLE TO RECRUITER
+    if (account && (account.role.toLowerCase().includes('recruiter') || account.role.toLowerCase().includes('talent acquisition')) && !store.userProfile.role.toLowerCase().includes('recruiter') && !store.userProfile.role.toLowerCase().includes('talent acquisition')) {
+      store.updateUserProfile({
+        role: account.role,
+        userType: account.userType
+      });
+      if (currentTab === 'candidate-portal') {
+        setCurrentTab('dashboard');
+      }
+    }
+  }, [store.userAccounts, store.userProfile, isAuthenticated, currentTab]);
 
   useEffect(() => {
     if (isCandidateUser && currentTab === 'dashboard') {
