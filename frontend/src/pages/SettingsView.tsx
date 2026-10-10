@@ -3,26 +3,21 @@ import type { UserProfile, UserAccount } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
 import { 
   Shield, 
-  ShieldOff, 
   Briefcase, 
   UserCheck, 
-  UserX, 
   Check, 
   X, 
   Ban, 
   Trash2, 
-  Settings, 
   Sun, 
   Moon, 
   Save, 
   Palette, 
   Download, 
   Clock, 
-  ChevronDown, 
   Target,
   Search,
   CheckCircle2,
-  AlertTriangle,
   Users,
   RefreshCw
 } from 'lucide-react';
@@ -992,31 +987,102 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       ) : (
         /* RECRUITER & ADMIN SPECIFIC SECTIONS: User Approvals & Candidate DB Reset */
         <div className="space-y-8">
-          {/* Administrator User Approvals Console */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="font-bold text-slate-900 text-base">User Accounts & Administrator Approval Queue</h3>
-                <p className="text-xs text-slate-500 mt-0.5">Manage user access rights. Only logged-in Administrators can grant, promote, or revoke user access.</p>
+          {/* IAM METRICS SUMMARY KPI CARDS */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+            {/* Total Accounts */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total IAM</span>
+                <Users className="w-4 h-4 text-slate-400" />
+              </div>
+              <div className="text-2xl font-black text-slate-900 tracking-tight">{userAccounts.length}</div>
+              <p className="text-[10px] text-slate-500 font-medium">Identities in Registry</p>
+            </div>
+
+            {/* Pending Approvals */}
+            <div className={`rounded-2xl p-4 shadow-xs space-y-1 border ${
+              userAccounts.filter(u => u.status === 'PENDING').length > 0
+                ? 'bg-amber-50/50 border-amber-300'
+                : 'bg-white border-slate-200'
+            }`}>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-700">Approval Queue</span>
+                <Clock className="w-4 h-4 text-amber-600" />
               </div>
               <div className="flex items-center gap-2">
-                {userProfile?.userType === 'ADMIN' && (
-                  <button
-                    onClick={() => {
-                      if (window.confirm("Are you sure you want to clear the User Accounts approval queue? This will reset user accounts to default Main Super Admin.")) {
-                        onClearAllUserAccounts && onClearAllUserAccounts();
-                        alert("User Accounts approval queue cleared successfully!");
-                      }
-                    }}
-                    className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-lg border border-rose-200 transition-colors"
-                    title="Clear all secondary/pending user accounts"
-                  >
-                    Clear User Accounts Queue
-                  </button>
-                )}
-                <span className="px-3 py-1 bg-slate-900 text-white rounded-md text-xs font-bold">
-                  {userAccounts.filter(u => u.status === 'PENDING').length} Pending Requests
+                <span className="text-2xl font-black text-amber-900 tracking-tight">
+                  {userAccounts.filter(u => u.status === 'PENDING').length}
                 </span>
+                {userAccounts.filter(u => u.status === 'PENDING').length > 0 && (
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                )}
+              </div>
+              <p className="text-[10px] text-amber-700 font-medium">Awaiting Action</p>
+            </div>
+
+            {/* Administrators */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-purple-700">Admins</span>
+                <Shield className="w-4 h-4 text-purple-600" />
+              </div>
+              <div className="text-2xl font-black text-purple-900 tracking-tight">
+                {userAccounts.filter(isAccountAdmin).length}
+              </div>
+              <p className="text-[10px] text-slate-500 font-medium">Full Governance</p>
+            </div>
+
+            {/* Recruiters */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-blue-700">Recruiters</span>
+                <Briefcase className="w-4 h-4 text-blue-600" />
+              </div>
+              <div className="text-2xl font-black text-blue-900 tracking-tight">
+                {userAccounts.filter(isAccountRecruiter).length}
+              </div>
+              <p className="text-[10px] text-slate-500 font-medium">Talent Operations</p>
+            </div>
+
+            {/* Candidates */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-1 col-span-2 sm:col-span-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700">Candidates</span>
+                <UserCheck className="w-4 h-4 text-emerald-600" />
+              </div>
+              <div className="text-2xl font-black text-emerald-900 tracking-tight">
+                {userAccounts.filter(isAccountCandidate).length}
+              </div>
+              <p className="text-[10px] text-slate-500 font-medium">Job Applicants</p>
+            </div>
+          </div>
+
+          {/* 1. DEDICATED ADMINISTRATOR APPROVAL QUEUE CARD */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                  userAccounts.filter(u => u.status === 'PENDING').length > 0 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'
+                }`}>
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-slate-900 text-base">
+                      Administrator Approval Queue
+                    </h3>
+                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${
+                      userAccounts.filter(u => u.status === 'PENDING').length > 0 
+                        ? 'bg-amber-100 text-amber-800 border border-amber-300 animate-pulse'
+                        : 'bg-emerald-100 text-emerald-800'
+                    }`}>
+                      {userAccounts.filter(u => u.status === 'PENDING').length} Pending
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Review incoming access requests and assign roles directly upon verification.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -1024,415 +1090,491 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl text-center space-y-2">
                 <span className="font-bold text-slate-900 text-xs block">Administrator Privileges Required</span>
                 <p className="text-xs text-slate-500 max-w-md mx-auto">
-                  You are currently logged in as a Standard Recruiter. Access control management and user approvals are restricted exclusively to system Administrators.
+                  You are logged in as a Recruiter. Approval queue decisions and role modifications are restricted to System Administrators.
+                </p>
+              </div>
+            ) : userAccounts.filter(u => u.status === 'PENDING').length === 0 ? (
+              <div className="p-6 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center gap-3.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-900">Approval Queue is All Clear</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    All incoming access requests have been processed. New applicant or recruiter registration requests will appear here for 1-click verification.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {userAccounts.filter(u => u.status === 'PENDING').map(req => (
+                  <div 
+                    key={req.id}
+                    className="p-4 bg-amber-50/50 border border-amber-200/90 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <UserAvatar name={req.name} avatar={req.avatar} size="md" />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-slate-900 text-sm truncate">{req.name}</span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-200">
+                            Requested: {req.role || 'Access Request'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-600 mt-0.5 truncate">{req.email}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Submitted: {req.createdAt || 'Recent'}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onMakeUserRecruiter && onMakeUserRecruiter(req.id);
+                          onApproveUser && onApproveUser(req.id);
+                          alert(`Approved "${req.name}" as Recruiter.`);
+                        }}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                        title="Approve request and assign Recruiter role"
+                      >
+                        <Briefcase className="w-3.5 h-3.5" />
+                        <span>Approve as Recruiter</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onMakeUserAdmin && onMakeUserAdmin(req.id);
+                          onApproveUser && onApproveUser(req.id);
+                          alert(`Approved "${req.name}" as Administrator.`);
+                        }}
+                        className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                        title="Approve request and grant Administrator rights"
+                      >
+                        <Shield className="w-3.5 h-3.5" />
+                        <span>Approve as Admin</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onMakeUserCandidate && onMakeUserCandidate(req.id);
+                          onApproveUser && onApproveUser(req.id);
+                          alert(`Approved "${req.name}" as Candidate.`);
+                        }}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                        title="Approve request as Candidate"
+                      >
+                        <UserCheck className="w-3.5 h-3.5" />
+                        <span>Approve as Candidate</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onRejectUser && onRejectUser(req.id);
+                          alert(`Access request rejected for "${req.name}".`);
+                        }}
+                        className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                        title="Decline request"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>Reject</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 2. ENTERPRISE USER ACCOUNTS DIRECTORY */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-extrabold text-slate-900 text-base">
+                  Enterprise User Directory & Role Governance
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Configure role assignments, grant administrator privileges, or revoke active sessions.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {userProfile?.userType === 'ADMIN' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm("Reset User Accounts queue back to default enterprise accounts?")) {
+                        onClearAllUserAccounts && onClearAllUserAccounts();
+                        alert("User accounts reset to default successfully.");
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all cursor-pointer flex items-center gap-1.5"
+                    title="Reset user accounts directory to default"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Reset Directory</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {userProfile?.userType !== 'ADMIN' ? (
+              <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl text-center space-y-2">
+                <span className="font-bold text-slate-900 text-xs block">Directory Administration Restricted</span>
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  Only System Administrators have authorization to modify roles, grant permissions, or revoke user accounts.
                 </p>
               </div>
             ) : (
               <div className="space-y-3">
-                {/* User Account Type / Status Filters */}
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setAccountFilter('ALL')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      accountFilter === 'ALL' ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                    }`}
-                  >
-                    All Accounts ({userAccounts.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAccountFilter('PENDING')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                      accountFilter === 'PENDING' ? 'bg-amber-600 text-white shadow-xs' : 'bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900'
-                    }`}
-                  >
-                    <Clock className="w-3.5 h-3.5 inline mr-1" /> Pending Requests ({userAccounts.filter(u => u.status === 'PENDING').length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAccountFilter('ADMIN')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      accountFilter === 'ADMIN' ? 'bg-purple-700 text-white shadow-xs' : 'bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-900'
-                    }`}
-                  >
-                    Admins ({userAccounts.filter(u => u.userType === 'ADMIN').length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAccountFilter('RECRUITER')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      accountFilter === 'RECRUITER' ? 'bg-blue-600 text-white shadow-xs' : 'bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900'
-                    }`}
-                  >
-                    Recruiters ({userAccounts.filter(u => u.role.toLowerCase().includes('recruiter') || (u.userType === 'USER' && !u.role.toLowerCase().includes('candidate'))).length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAccountFilter('CANDIDATE')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      accountFilter === 'CANDIDATE' ? 'bg-slate-700 text-white shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                    }`}
-                  >
-                    Candidates ({userAccounts.filter(u => u.role.toLowerCase().includes('candidate')).length})
-                  </button>
+                {/* Search & Segmented Filter Bar */}
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                    {/* Search Input */}
+                    <div className="relative flex-1">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={accountSearchQuery}
+                        onChange={e => setAccountSearchQuery(e.target.value)}
+                        placeholder="Search accounts by name, email, or role..."
+                        className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400"
+                      />
+                      {accountSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setAccountSearchQuery('')}
+                          className="w-4 h-4 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 absolute right-2.5 top-2.5 flex items-center justify-center text-xs font-bold leading-none cursor-pointer"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Counter */}
+                    <div className="text-xs text-slate-500 font-bold shrink-0 self-center">
+                      Showing {userAccounts.filter(u => {
+                        if (accountSearchQuery.trim()) {
+                          const q = accountSearchQuery.toLowerCase().trim();
+                          const match = u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.role.toLowerCase().includes(q);
+                          if (!match) return false;
+                        }
+                        if (accountFilter === 'PENDING') return u.status === 'PENDING';
+                        if (accountFilter === 'ADMIN') return isAccountAdmin(u);
+                        if (accountFilter === 'RECRUITER') return isAccountRecruiter(u);
+                        if (accountFilter === 'CANDIDATE') return isAccountCandidate(u);
+                        if (accountFilter === 'REVOKED') return u.status === 'REVOKED' || u.status === 'REJECTED';
+                        return true;
+                      }).length} of {userAccounts.length} accounts
+                    </div>
+                  </div>
+
+                  {/* Segmented Filter Tabs */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    {[
+                      { id: 'ALL', label: 'All Accounts', count: userAccounts.length },
+                      { id: 'ADMIN', label: 'Administrators', count: userAccounts.filter(isAccountAdmin).length },
+                      { id: 'RECRUITER', label: 'Recruiters', count: userAccounts.filter(isAccountRecruiter).length },
+                      { id: 'CANDIDATE', label: 'Candidates', count: userAccounts.filter(isAccountCandidate).length },
+                      { id: 'PENDING', label: 'Pending Review', count: userAccounts.filter(u => u.status === 'PENDING').length },
+                      { id: 'REVOKED', label: 'Revoked', count: userAccounts.filter(u => u.status === 'REVOKED' || u.status === 'REJECTED').length },
+                    ].map(tab => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setAccountFilter(tab.id as any)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                          accountFilter === tab.id
+                            ? 'bg-slate-900 text-white shadow-xs'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60'
+                        }`}
+                      >
+                        <span>{tab.label}</span>
+                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                          accountFilter === tab.id ? 'bg-slate-800 text-slate-200' : 'bg-slate-200/80 text-slate-600'
+                        }`}>
+                          {tab.count}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-xs min-h-[360px] pb-24">
-                  <table className="w-full min-w-[920px] text-left text-xs border-collapse">
+                {/* Directory Table */}
+                <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-2xs">
+                  <table className="w-full min-w-[960px] text-left text-xs border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-200 font-bold text-slate-500 bg-slate-50">
-                        <th className="py-2.5 px-3">User Name</th>
-                        <th className="py-2.5 px-3">Email Address</th>
-                        <th className="py-2.5 px-3">Role</th>
-                        <th className="py-2.5 px-3">Type</th>
-                        <th className="py-2.5 px-3">Status</th>
-                        <th className="py-2.5 px-3 text-right">Access Control Actions</th>
+                      <tr className="border-b border-slate-200 font-bold text-slate-500 bg-slate-50/80">
+                        <th className="py-3 px-3.5">User Identity</th>
+                        <th className="py-3 px-3.5">Contact Email</th>
+                        <th className="py-3 px-3.5">Current Role Tier</th>
+                        <th className="py-3 px-3.5">Access Status</th>
+                        <th className="py-3 px-3.5 text-center">Role Assignment</th>
+                        <th className="py-3 px-3.5 text-right">Security Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-medium">
                       {userAccounts
                         .filter(u => {
+                          if (accountSearchQuery.trim()) {
+                            const q = accountSearchQuery.toLowerCase().trim();
+                            const match = u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.role.toLowerCase().includes(q);
+                            if (!match) return false;
+                          }
                           if (accountFilter === 'PENDING') return u.status === 'PENDING';
-                          if (accountFilter === 'ADMIN') return u.userType === 'ADMIN';
-                          if (accountFilter === 'RECRUITER') return u.role.toLowerCase().includes('recruiter') || (u.userType === 'USER' && !u.role.toLowerCase().includes('candidate'));
-                          if (accountFilter === 'CANDIDATE') return u.role.toLowerCase().includes('candidate');
+                          if (accountFilter === 'ADMIN') return isAccountAdmin(u);
+                          if (accountFilter === 'RECRUITER') return isAccountRecruiter(u);
+                          if (accountFilter === 'CANDIDATE') return isAccountCandidate(u);
+                          if (accountFilter === 'REVOKED') return u.status === 'REVOKED' || u.status === 'REJECTED';
                           return true;
                         })
-                        .map((user) => (
-                        <tr key={user.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="py-3 px-3 font-bold text-slate-900">
-                            <div className="flex items-center gap-2">
-                              <UserAvatar 
-                                name={user.name} 
-                                avatar={user.avatar || localStorage.getItem(`rc_avatar_${user.email.toLowerCase()}`) || undefined} 
-                                size="xs" 
-                              />
-                              <span>{user.name}</span>
-                              {user.isSuperAdmin && (
-                                <span className="px-2 py-0.5 bg-blue-100 text-blue-900 text-[10px] font-black rounded border border-blue-200">
-                                  Main Super-Admin
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-3 px-3 text-slate-700">{user.email}</td>
-                          <td className="py-3 px-3 text-slate-600">{user.role}</td>
-                          <td className="py-3 px-3 font-semibold text-slate-800">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              user.userType === 'ADMIN' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'
-                            }`}>
-                              {user.userType}
-                            </span>
-                          </td>
-                          <td className="py-3 px-3">
-                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                              user.status === 'APPROVED' 
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : user.status === 'PENDING'
-                                ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                                : 'bg-rose-100 text-rose-800'
-                            }`}>
-                              {user.status}
-                            </span>
-                          </td>
-                          <td className="py-3 px-3 text-right">
-                            {user.isSuperAdmin ? (
-                              <span className="text-[11px] font-extrabold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 inline-block shadow-2xs">
-                                Main Super-Admin
-                              </span>
-                            ) : (() => {
-                              const isRecruiterRole = (user.role.toLowerCase().includes('recruiter') || user.role.toLowerCase().includes('talent')) && user.userType !== 'ADMIN';
-                              const isAdminRole = user.userType === 'ADMIN';
+                        .map(user => {
+                          const isCurrentUser = user.email.toLowerCase() === (userProfile?.email || '').toLowerCase();
+                          const isSuperAdminAccount = user.isSuperAdmin || user.email.toLowerCase() === 'admin@copilot.com';
+                          const userIsAdmin = isAccountAdmin(user);
+                          const userIsRecruiter = isAccountRecruiter(user);
+                          const userIsCandidate = isAccountCandidate(user);
 
-                              return (
-                                <div className="flex items-center justify-end gap-1.5 relative">
-                                  {/* Quick Primary Action Shortcut */}
-                                  {user.status === 'PENDING' ? (
-                                    <>
+                          return (
+                            <tr 
+                              key={user.id} 
+                              className={`transition-colors ${
+                                isCurrentUser 
+                                  ? 'bg-blue-50/50 hover:bg-blue-50/80' 
+                                  : 'hover:bg-slate-50/80'
+                              }`}
+                            >
+                              {/* 1. Identity */}
+                              <td className="py-3.5 px-3.5 font-bold text-slate-900">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="relative shrink-0">
+                                    <UserAvatar 
+                                      name={user.name} 
+                                      avatar={user.avatar || localStorage.getItem(`rc_avatar_${user.email.toLowerCase()}`) || undefined} 
+                                      size="sm" 
+                                    />
+                                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white ${
+                                      userIsAdmin ? 'bg-purple-500' : userIsRecruiter ? 'bg-blue-500' : 'bg-emerald-500'
+                                    }`} />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="truncate">{user.name}</span>
+                                      {isCurrentUser && (
+                                        <span className="px-1.5 py-0.2 rounded-md bg-blue-600 text-white text-[9px] font-black uppercase tracking-wider shadow-2xs">
+                                          You
+                                        </span>
+                                      )}
+                                      {isSuperAdminAccount && (
+                                        <span className="px-1.5 py-0.2 rounded-md bg-purple-100 text-purple-900 text-[9px] font-black border border-purple-200">
+                                          Super-Admin
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-[10px] text-slate-400 font-normal block">
+                                      Added {user.createdAt || 'Standard'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* 2. Email */}
+                              <td className="py-3.5 px-3.5 text-slate-600 font-mono text-[11px]">
+                                {user.email}
+                              </td>
+
+                              {/* 3. Role Tier Badge */}
+                              <td className="py-3.5 px-3.5">
+                                <div>
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wide border ${
+                                    userIsAdmin
+                                      ? 'bg-purple-50 text-purple-800 border-purple-200'
+                                      : userIsRecruiter
+                                      ? 'bg-blue-50 text-blue-800 border-blue-200'
+                                      : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                  }`}>
+                                    {userIsAdmin && <Shield className="w-2.5 h-2.5 text-purple-600" />}
+                                    {userIsRecruiter && <Briefcase className="w-2.5 h-2.5 text-blue-600" />}
+                                    {userIsCandidate && <UserCheck className="w-2.5 h-2.5 text-emerald-600" />}
+                                    <span>{userIsAdmin ? 'Admin' : userIsRecruiter ? 'Recruiter' : 'Candidate'}</span>
+                                  </span>
+                                  <p className="text-[10px] text-slate-500 mt-0.5 truncate max-w-[180px]">
+                                    {user.role}
+                                  </p>
+                                </div>
+                              </td>
+
+                              {/* 4. Access Status */}
+                              <td className="py-3.5 px-3.5">
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black ${
+                                  user.status === 'APPROVED' 
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                    : user.status === 'PENDING'
+                                    ? 'bg-amber-100 text-amber-800 border border-amber-300 animate-pulse'
+                                    : 'bg-rose-100 text-rose-800 border border-rose-200'
+                                }`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${
+                                    user.status === 'APPROVED' ? 'bg-emerald-500' : user.status === 'PENDING' ? 'bg-amber-500' : 'bg-rose-500'
+                                  }`} />
+                                  <span>{user.status}</span>
+                                </span>
+                              </td>
+
+                              {/* 5. Role Assignment (Segmented Controls) */}
+                              <td className="py-3.5 px-3.5 text-center">
+                                {isSuperAdminAccount ? (
+                                  <span className="text-[10px] font-extrabold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">
+                                    Root Super-Admin
+                                  </span>
+                                ) : (
+                                  <div className="inline-flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200">
+                                    {/* Make Admin Button */}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (!userIsAdmin) {
+                                          onMakeUserAdmin && onMakeUserAdmin(user.id);
+                                          alert(`Promoted "${user.name}" to Administrator.`);
+                                        }
+                                      }}
+                                      className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                                        userIsAdmin
+                                          ? 'bg-purple-700 text-white shadow-2xs'
+                                          : 'text-slate-600 hover:text-purple-700 hover:bg-slate-200/60'
+                                      }`}
+                                      title={userIsAdmin ? "Currently Administrator" : "Promote to Administrator"}
+                                    >
+                                      <Shield className="w-2.5 h-2.5" />
+                                      <span>Admin</span>
+                                    </button>
+
+                                    {/* Make Recruiter Button */}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (!userIsRecruiter) {
+                                          onMakeUserRecruiter && onMakeUserRecruiter(user.id);
+                                          alert(`Assigned Recruiter role to "${user.name}".`);
+                                        }
+                                      }}
+                                      className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                                        userIsRecruiter
+                                          ? 'bg-blue-600 text-white shadow-2xs'
+                                          : 'text-slate-600 hover:text-blue-700 hover:bg-slate-200/60'
+                                      }`}
+                                      title={userIsRecruiter ? "Currently Recruiter" : "Assign Recruiter role"}
+                                    >
+                                      <Briefcase className="w-2.5 h-2.5" />
+                                      <span>Recruiter</span>
+                                    </button>
+
+                                    {/* Make Candidate Button */}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (!userIsCandidate) {
+                                          onMakeUserCandidate && onMakeUserCandidate(user.id);
+                                          alert(`Assigned Candidate role to "${user.name}".`);
+                                        }
+                                      }}
+                                      className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                                        userIsCandidate
+                                          ? 'bg-emerald-600 text-white shadow-2xs'
+                                          : 'text-slate-600 hover:text-emerald-700 hover:bg-slate-200/60'
+                                      }`}
+                                      title={userIsCandidate ? "Currently Candidate" : "Assign Candidate role"}
+                                    >
+                                      <UserCheck className="w-2.5 h-2.5" />
+                                      <span>Candidate</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+
+                              {/* 6. Security Actions */}
+                              <td className="py-3.5 px-3.5 text-right">
+                                {isSuperAdminAccount ? (
+                                  <span className="text-[10px] font-extrabold text-blue-700 bg-blue-50 px-2 py-1 rounded-md border border-blue-200">
+                                    Protected
+                                  </span>
+                                ) : (
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    {user.status === 'PENDING' ? (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            onApproveUser && onApproveUser(user.id);
+                                            alert(`Access approved for "${user.name}".`);
+                                          }}
+                                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[11px] shadow-2xs transition-all cursor-pointer flex items-center gap-1"
+                                          title="Approve access"
+                                        >
+                                          <Check className="w-3 h-3" />
+                                          <span>Approve</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            onRejectUser && onRejectUser(user.id);
+                                            alert(`Access request rejected for "${user.name}".`);
+                                          }}
+                                          className="px-2 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold rounded-lg text-[11px] transition-all cursor-pointer flex items-center gap-1"
+                                          title="Reject request"
+                                        >
+                                          <X className="w-3 h-3" />
+                                          <span>Reject</span>
+                                        </button>
+                                      </>
+                                    ) : user.status === 'APPROVED' ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          onRevokeUserAccess && onRevokeUserAccess(user.id);
+                                          alert(`Access revoked for "${user.name}". Any active session has been terminated.`);
+                                        }}
+                                        className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 font-bold rounded-lg text-[11px] transition-all cursor-pointer flex items-center gap-1"
+                                        title="Revoke access (immediately blocks session)"
+                                      >
+                                        <Ban className="w-3 h-3 text-amber-700" />
+                                        <span>Revoke</span>
+                                      </button>
+                                    ) : (
                                       <button
                                         type="button"
                                         onClick={() => {
                                           onApproveUser && onApproveUser(user.id);
-                                          alert(`Access approved for "${user.name}".`);
+                                          alert(`Access re-approved for "${user.name}".`);
                                         }}
-                                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold rounded-lg text-[11px] shadow-xs transition-all cursor-pointer inline-flex items-center gap-1"
-                                        title="Quick Approve"
+                                        className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold rounded-lg text-[11px] transition-all cursor-pointer flex items-center gap-1"
+                                        title="Re-Approve access"
                                       >
-                                        <Check className="w-3 h-3 text-white inline mr-1" /> Approve
+                                        <Check className="w-3 h-3 text-emerald-700" />
+                                        <span>Re-Approve</span>
                                       </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          onRejectUser && onRejectUser(user.id);
-                                          alert(`Request rejected for "${user.name}". Access removed.`);
-                                        }}
-                                        className="px-2 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold rounded-lg text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
-                                        title="Quick Reject"
-                                      >
-                                        <X className="w-3 h-3 text-rose-600 inline mr-1" /> Reject
-                                      </button>
-                                    </>
-                                  ) : user.status === 'APPROVED' ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        onRevokeUserAccess && onRevokeUserAccess(user.id);
-                                        alert(`Access revoked for "${user.name}". Any active session for this user has been terminated.`);
-                                      }}
-                                      className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 font-bold rounded-lg text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
-                                      title="Revoke Access (Immediately removes access)"
-                                    >
-                                      <Ban className="w-3 h-3 text-amber-700 inline mr-1" /> Revoke
-                                    </button>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        onApproveUser && onApproveUser(user.id);
-                                        alert(`Access re-approved for "${user.name}".`);
-                                      }}
-                                      className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold rounded-lg text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
-                                      title="Re-Approve Access"
-                                    >
-                                      <Check className="w-3 h-3 text-emerald-700 inline mr-1" /> Re-Approve
-                                    </button>
-                                  )}
-
-                                  {/* Sleek Manage Dropdown Menu Button */}
-                                  <div className="relative">
-                                    <button
-                                      type="button"
-                                      onClick={() => setOpenMenuUserId(openMenuUserId === user.id ? null : user.id)}
-                                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs ${
-                                        openMenuUserId === user.id
-                                          ? 'bg-slate-900 text-white border-slate-900 ring-2 ring-slate-900/10'
-                                          : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
-                                      }`}
-                                      title="Manage Access & Permissions"
-                                    >
-                                      <Settings className="w-3 h-3 text-slate-600 inline mr-1" /><span>Manage</span>
-                                      <ChevronDown className="w-3 h-3 text-slate-400 inline" />
-                                    </button>
-
-                                    {/* Floating Popover Menu */}
-                                    {openMenuUserId === user.id && (
-                                      <>
-                                        <div 
-                                          className="fixed inset-0 z-40 bg-transparent" 
-                                          onClick={() => setOpenMenuUserId(null)} 
-                                        />
-                                        <div className="absolute right-0 top-full mt-1.5 w-60 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 p-2 space-y-1.5 text-left divide-y divide-slate-100">
-                                          {/* User Header */}
-                                          <div className="pb-1.5 px-2">
-                                            <div className="font-extrabold text-slate-900 text-xs truncate">{user.name}</div>
-                                            <div className="text-[10px] text-slate-400 truncate">{user.email}</div>
-                                            <div className="mt-1 flex items-center gap-1">
-                                              <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
-                                                user.userType === 'ADMIN' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'
-                                              }`}>
-                                                {user.userType === 'ADMIN' ? 'Admin' : 'User'}
-                                              </span>
-                                              <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
-                                                user.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                                              }`}>
-                                                {user.status}
-                                              </span>
-                                            </div>
-                                          </div>
-
-                                          {/* Section 1: Role Permissions */}
-                                          <div className="pt-1.5 space-y-0.5">
-                                            <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 px-2 mb-1">
-                                              Role Governance
-                                            </div>
-
-                                            {/* Promote to Admin */}
-                                            {!isAdminRole ? (
-                                              <button
-                                                type="button"
-                                                onClick={() => {
-                                                  onMakeUserAdmin && onMakeUserAdmin(user.id);
-                                                  alert(`Promoted "${user.name}" to Administrator.`);
-                                                  setOpenMenuUserId(null);
-                                                }}
-                                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-slate-900 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer text-left"
-                                              >
-                                                <Shield className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                                                <div>
-                                                  <div className="leading-tight">Make Admin</div>
-                                                  <div className="text-[9px] text-slate-400 font-medium">Grant administrator privileges</div>
-                                                </div>
-                                              </button>
-                                            ) : (
-                                              /* Remove Admin / Demote */
-                                              <button
-                                                type="button"
-                                                onClick={() => {
-                                                  onRemoveUserAdmin && onRemoveUserAdmin(user.id);
-                                                  alert(`Removed administrator rights for "${user.name}". Demoted to Recruiter.`);
-                                                  setOpenMenuUserId(null);
-                                                }}
-                                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-purple-900 hover:bg-purple-50 rounded-xl transition-colors cursor-pointer text-left"
-                                              >
-                                                <ShieldOff className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                                                <div>
-                                                  <div className="leading-tight">Remove Admin</div>
-                                                  <div className="text-[9px] text-purple-600 font-medium">Demote back to standard Recruiter</div>
-                                                </div>
-                                              </button>
-                                            )}
-
-                                            {/* Make Recruiter */}
-                                            {!isRecruiterRole && (
-                                              <button
-                                                type="button"
-                                                onClick={() => {
-                                                  onMakeUserRecruiter && onMakeUserRecruiter(user.id);
-                                                  alert(`Assigned Recruiter role to "${user.name}".`);
-                                                  setOpenMenuUserId(null);
-                                                }}
-                                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-blue-900 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer text-left"
-                                              >
-                                                <Briefcase className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                                                <div>
-                                                  <div className="leading-tight">Make Recruiter</div>
-                                                  <div className="text-[9px] text-blue-600 font-medium">Assign Recruiter role</div>
-                                                </div>
-                                              </button>
-                                            )}
-
-                                            {/* Remove Recruiter */}
-                                            {isRecruiterRole && (
-                                              <button
-                                                type="button"
-                                                onClick={() => {
-                                                  const fn = onMakeUserCandidate || onRemoveUserRecruiter;
-                                                  fn && fn(user.id);
-                                                  alert(`Removed Recruiter role for "${user.name}". Demoted to Candidate.`);
-                                                  setOpenMenuUserId(null);
-                                                }}
-                                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer text-left"
-                                              >
-                                                <UserX className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                                                <div>
-                                                  <div className="leading-tight">Remove Recruiter</div>
-                                                  <div className="text-[9px] text-slate-400 font-medium">Demote to Candidate Applicant</div>
-                                                </div>
-                                              </button>
-                                            )}
-
-                                            {/* Make Candidate */}
-                                            {(isRecruiterRole || isAdminRole) && (
-                                              <button
-                                                type="button"
-                                                onClick={() => {
-                                                  onMakeUserCandidate && onMakeUserCandidate(user.id);
-                                                  alert(`Assigned Candidate role to "${user.name}".`);
-                                                  setOpenMenuUserId(null);
-                                                }}
-                                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer text-left"
-                                              >
-                                                <UserCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                                                <div>
-                                                  <div className="leading-tight">Make Candidate</div>
-                                                  <div className="text-[9px] text-slate-400 font-medium">Assign Candidate Applicant access</div>
-                                                </div>
-                                              </button>
-                                            )}
-                                          </div>
-
-                                          {/* Section 2: Access Status */}
-                                          <div className="pt-1.5 space-y-0.5">
-                                            <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 px-2 mb-1">
-                                              Access Status
-                                            </div>
-
-                                            {user.status !== 'APPROVED' && (
-                                              <button
-                                                type="button"
-                                                onClick={() => {
-                                                  onApproveUser && onApproveUser(user.id);
-                                                  alert(`Approved access for "${user.name}".`);
-                                                  setOpenMenuUserId(null);
-                                                }}
-                                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-50 rounded-xl transition-colors cursor-pointer text-left"
-                                              >
-                                                <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                                <div>
-                                                  <div className="leading-tight">Approve Access</div>
-                                                  <div className="text-[9px] text-emerald-600 font-medium">Allow user to log in</div>
-                                                </div>
-                                              </button>
-                                            )}
-
-                                            {user.status === 'APPROVED' && (
-                                              <button
-                                                type="button"
-                                                onClick={() => {
-                                                  onRevokeUserAccess && onRevokeUserAccess(user.id);
-                                                  alert(`Revoked access for "${user.name}". Active session terminated.`);
-                                                  setOpenMenuUserId(null);
-                                                }}
-                                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-50 rounded-xl transition-colors cursor-pointer text-left"
-                                              >
-                                                <Ban className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                                <div>
-                                                  <div className="leading-tight">Revoke Access</div>
-                                                  <div className="text-[9px] text-amber-600 font-medium">Immediately block login & kick session</div>
-                                                </div>
-                                              </button>
-                                            )}
-
-                                            {user.status === 'PENDING' && (
-                                              <button
-                                                type="button"
-                                                onClick={() => {
-                                                  onRejectUser && onRejectUser(user.id);
-                                                  alert(`Rejected request for "${user.name}".`);
-                                                  setOpenMenuUserId(null);
-                                                }}
-                                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-rose-800 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer text-left"
-                                              >
-                                                <X className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                                                <div>
-                                                  <div className="leading-tight">Reject Request</div>
-                                                  <div className="text-[9px] text-rose-500 font-medium">Decline pending request</div>
-                                                </div>
-                                              </button>
-                                            )}
-                                          </div>
-
-                                          {/* Section 3: Permanent Deletion */}
-                                          <div className="pt-1.5">
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                if (window.confirm(`Permanently delete account for "${user.name}" (${user.email})? This action cannot be undone.`)) {
-                                                  onDeleteUserAccount && onDeleteUserAccount(user.id);
-                                                  alert(`Account for "${user.name}" has been permanently deleted.`);
-                                                  setOpenMenuUserId(null);
-                                                }
-                                              }}
-                                              className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer text-left"
-                                            >
-                                              <Trash2 className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                                              <div>
-                                                <div className="leading-tight">Delete Account</div>
-                                                <div className="text-[9px] text-rose-500 font-medium">Permanently delete from database</div>
-                                              </div>
-                                            </button>
-                                          </div>
-                                        </div>
-                                      </>
                                     )}
+
+                                    {/* Delete Account */}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (window.confirm(`Permanently delete account for "${user.name}" (${user.email})?`)) {
+                                          onDeleteUserAccount && onDeleteUserAccount(user.id);
+                                          alert(`Account for "${user.name}" deleted.`);
+                                        }
+                                      }}
+                                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                      title="Permanently Delete Account"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
                                   </div>
-                                </div>
-                              );
-                            })()}
-                          </td>
-                        </tr>
-                      ))}
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                     </tbody>
                   </table>
                 </div>
