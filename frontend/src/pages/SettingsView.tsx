@@ -158,6 +158,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [whatsappAlerts, setWhatsappAlerts] = useState(true);
   const [aiReportAlerts, setAiReportAlerts] = useState(true);
   const [accountFilter, setAccountFilter] = useState<'ALL' | 'PENDING' | 'ADMIN' | 'RECRUITER' | 'CANDIDATE'>('ALL');
+  const [openMenuUserId, setOpenMenuUserId] = useState<string | null>(null);
 
   const INDIAN_TECH_HUBS = [
     'Bengaluru',
@@ -970,7 +971,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   </button>
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-xs">
+                <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-xs min-h-[360px] pb-24">
                   <table className="w-full min-w-[920px] text-left text-xs border-collapse">
                     <thead>
                       <tr className="border-b border-slate-200 font-bold text-slate-500 bg-slate-50">
@@ -1030,95 +1031,259 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                           </td>
                           <td className="py-3 px-3 text-right">
                             {user.isSuperAdmin ? (
-                              <span className="text-[11px] font-extrabold text-blue-700 bg-blue-50 px-2.5 py-1 rounded border border-blue-200 inline-block">
-                                👑 Protected Main Admin
+                              <span className="text-[11px] font-extrabold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 inline-block shadow-2xs">
+                                👑 Main Super-Admin
                               </span>
-                            ) : (
-                              <div className="flex flex-wrap items-center justify-end gap-1.5">
-                                {/* 1. APPROVE */}
-                                {user.status !== 'APPROVED' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => onApproveUser && onApproveUser(user.id)}
-                                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold rounded text-[11px] transition-all cursor-pointer shadow-xs inline-flex items-center gap-1"
-                                    title="Approve user access"
-                                  >
-                                    <span>✓</span> Approve
-                                  </button>
-                                )}
+                            ) : (() => {
+                              const isRecruiterRole = (user.role.toLowerCase().includes('recruiter') || user.role.toLowerCase().includes('talent')) && user.userType !== 'ADMIN';
+                              const isAdminRole = user.userType === 'ADMIN';
 
-                                {/* 2. REVOKE */}
-                                {user.status === 'APPROVED' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => onRevokeUserAccess && onRevokeUserAccess(user.id)}
-                                    className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 font-bold rounded text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
-                                    title="Revoke active user access"
-                                  >
-                                    <span>⛔</span> Revoke
-                                  </button>
-                                )}
+                              return (
+                                <div className="flex items-center justify-end gap-1.5 relative">
+                                  {/* Quick Primary Action Shortcut */}
+                                  {user.status === 'PENDING' ? (
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          onApproveUser && onApproveUser(user.id);
+                                          alert(`Access approved for "${user.name}".`);
+                                        }}
+                                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold rounded-lg text-[11px] shadow-xs transition-all cursor-pointer inline-flex items-center gap-1"
+                                        title="Quick Approve"
+                                      >
+                                        <span>✓</span> Approve
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          onRejectUser && onRejectUser(user.id);
+                                          alert(`Request rejected for "${user.name}". Access removed.`);
+                                        }}
+                                        className="px-2 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold rounded-lg text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
+                                        title="Quick Reject"
+                                      >
+                                        <span>✕</span> Reject
+                                      </button>
+                                    </>
+                                  ) : user.status === 'APPROVED' ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        onRevokeUserAccess && onRevokeUserAccess(user.id);
+                                        alert(`Access revoked for "${user.name}". Any active session for this user has been terminated.`);
+                                      }}
+                                      className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 font-bold rounded-lg text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
+                                      title="Revoke Access (Immediately removes access)"
+                                    >
+                                      <span>⛔</span> Revoke
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        onApproveUser && onApproveUser(user.id);
+                                        alert(`Access re-approved for "${user.name}".`);
+                                      }}
+                                      className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold rounded-lg text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
+                                      title="Re-Approve Access"
+                                    >
+                                      <span>✓</span> Re-Approve
+                                    </button>
+                                  )}
 
-                                {/* 3. REJECT */}
-                                {user.status === 'PENDING' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => onRejectUser && onRejectUser(user.id)}
-                                    className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-700 font-bold rounded text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
-                                    title="Reject access request"
-                                  >
-                                    <span>✕</span> Reject
-                                  </button>
-                                )}
+                                  {/* Sleek Manage Dropdown Menu Button */}
+                                  <div className="relative">
+                                    <button
+                                      type="button"
+                                      onClick={() => setOpenMenuUserId(openMenuUserId === user.id ? null : user.id)}
+                                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs ${
+                                        openMenuUserId === user.id
+                                          ? 'bg-slate-900 text-white border-slate-900 ring-2 ring-slate-900/10'
+                                          : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                                      }`}
+                                      title="Manage Access & Permissions"
+                                    >
+                                      <span>⚙️ Manage</span>
+                                      <span className="text-[9px]">▾</span>
+                                    </button>
 
-                                {/* 4. MAKE ADMIN / 5. REMOVE ADMIN */}
-                                {user.userType !== 'ADMIN' ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => onMakeUserAdmin && onMakeUserAdmin(user.id)}
-                                    className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-bold rounded text-[11px] transition-all cursor-pointer shadow-xs inline-flex items-center gap-1"
-                                    title="Promote to Administrator"
-                                  >
-                                    <span>👑</span> Make Admin
-                                  </button>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => onRemoveUserAdmin && onRemoveUserAdmin(user.id)}
-                                    className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 border border-purple-300 text-purple-800 font-bold rounded text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
-                                    title="Remove Administrator privileges (demote to Recruiter)"
-                                  >
-                                    <span>🛡️</span> Remove Admin
-                                  </button>
-                                )}
+                                    {/* Floating Popover Menu */}
+                                    {openMenuUserId === user.id && (
+                                      <>
+                                        <div 
+                                          className="fixed inset-0 z-40 bg-transparent" 
+                                          onClick={() => setOpenMenuUserId(null)} 
+                                        />
+                                        <div className="absolute right-0 top-full mt-1.5 w-60 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 p-2 space-y-1.5 text-left divide-y divide-slate-100">
+                                          {/* User Header */}
+                                          <div className="pb-1.5 px-2">
+                                            <div className="font-extrabold text-slate-900 text-xs truncate">{user.name}</div>
+                                            <div className="text-[10px] text-slate-400 truncate">{user.email}</div>
+                                            <div className="mt-1 flex items-center gap-1">
+                                              <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                                                user.userType === 'ADMIN' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'
+                                              }`}>
+                                                {user.userType === 'ADMIN' ? '👑 Admin' : 'User'}
+                                              </span>
+                                              <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                                                user.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                                              }`}>
+                                                {user.status}
+                                              </span>
+                                            </div>
+                                          </div>
 
-                                {/* 6. MAKE RECRUITER */}
-                                {(user.userType === 'ADMIN' || !user.role.toLowerCase().includes('recruiter') || user.role.toLowerCase().includes('candidate')) && (
-                                  <button
-                                    type="button"
-                                    onClick={() => onMakeUserRecruiter && onMakeUserRecruiter(user.id)}
-                                    className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-700 font-bold rounded text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
-                                    title="Assign standard Recruiter role"
-                                  >
-                                    <span>💼</span> Make Recruiter
-                                  </button>
-                                )}
+                                          {/* Section 1: Role Permissions */}
+                                          <div className="pt-1.5 space-y-0.5">
+                                            <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 px-2 mb-1">
+                                              Role Governance
+                                            </div>
 
-                                {/* 7. DELETE */}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (window.confirm(`Permanently delete account for "${user.name}" (${user.email})? This action cannot be undone.`)) {
-                                      onDeleteUserAccount && onDeleteUserAccount(user.id);
-                                    }
-                                  }}
-                                  className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white font-bold rounded text-[11px] transition-all cursor-pointer shadow-xs inline-flex items-center gap-1"
-                                  title="Permanently delete user account"
-                                >
-                                  <span>🗑️</span> Delete
-                                </button>
-                              </div>
-                            )}
+                                            {/* Promote to Admin */}
+                                            {!isAdminRole ? (
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  onMakeUserAdmin && onMakeUserAdmin(user.id);
+                                                  alert(`Promoted "${user.name}" to Administrator.`);
+                                                  setOpenMenuUserId(null);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-slate-900 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer text-left"
+                                              >
+                                                <span className="text-sm">👑</span>
+                                                <div>
+                                                  <div className="leading-tight">Make Admin</div>
+                                                  <div className="text-[9px] text-slate-400 font-medium">Grant administrator privileges</div>
+                                                </div>
+                                              </button>
+                                            ) : (
+                                              /* Remove Admin / Demote */
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  onRemoveUserAdmin && onRemoveUserAdmin(user.id);
+                                                  alert(`Removed administrator rights for "${user.name}". Demoted to Recruiter.`);
+                                                  setOpenMenuUserId(null);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-purple-900 hover:bg-purple-50 rounded-xl transition-colors cursor-pointer text-left"
+                                              >
+                                                <span className="text-sm">🛡️</span>
+                                                <div>
+                                                  <div className="leading-tight">Remove Admin</div>
+                                                  <div className="text-[9px] text-purple-600 font-medium">Demote back to standard Recruiter</div>
+                                                </div>
+                                              </button>
+                                            )}
+
+                                            {/* Make Recruiter */}
+                                            {(!isRecruiterRole || isAdminRole) && (
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  onMakeUserRecruiter && onMakeUserRecruiter(user.id);
+                                                  alert(`Assigned Recruiter role to "${user.name}".`);
+                                                  setOpenMenuUserId(null);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-blue-900 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer text-left"
+                                              >
+                                                <span className="text-sm">💼</span>
+                                                <div>
+                                                  <div className="leading-tight">Make Recruiter</div>
+                                                  <div className="text-[9px] text-blue-600 font-medium">Set role to Talent Acquisition Specialist</div>
+                                                </div>
+                                              </button>
+                                            )}
+                                          </div>
+
+                                          {/* Section 2: Access Status */}
+                                          <div className="pt-1.5 space-y-0.5">
+                                            <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 px-2 mb-1">
+                                              Access Status
+                                            </div>
+
+                                            {user.status !== 'APPROVED' && (
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  onApproveUser && onApproveUser(user.id);
+                                                  alert(`Approved access for "${user.name}".`);
+                                                  setOpenMenuUserId(null);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-50 rounded-xl transition-colors cursor-pointer text-left"
+                                              >
+                                                <span className="text-sm">✓</span>
+                                                <div>
+                                                  <div className="leading-tight">Approve Access</div>
+                                                  <div className="text-[9px] text-emerald-600 font-medium">Allow user to log in</div>
+                                                </div>
+                                              </button>
+                                            )}
+
+                                            {user.status === 'APPROVED' && (
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  onRevokeUserAccess && onRevokeUserAccess(user.id);
+                                                  alert(`Revoked access for "${user.name}". Active session terminated.`);
+                                                  setOpenMenuUserId(null);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-50 rounded-xl transition-colors cursor-pointer text-left"
+                                              >
+                                                <span className="text-sm">⛔</span>
+                                                <div>
+                                                  <div className="leading-tight">Revoke Access</div>
+                                                  <div className="text-[9px] text-amber-600 font-medium">Immediately block login & kick session</div>
+                                                </div>
+                                              </button>
+                                            )}
+
+                                            {user.status === 'PENDING' && (
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  onRejectUser && onRejectUser(user.id);
+                                                  alert(`Rejected request for "${user.name}".`);
+                                                  setOpenMenuUserId(null);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-rose-800 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer text-left"
+                                              >
+                                                <span className="text-sm">✕</span>
+                                                <div>
+                                                  <div className="leading-tight">Reject Request</div>
+                                                  <div className="text-[9px] text-rose-500 font-medium">Decline pending request</div>
+                                                </div>
+                                              </button>
+                                            )}
+                                          </div>
+
+                                          {/* Section 3: Permanent Deletion */}
+                                          <div className="pt-1.5">
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                if (window.confirm(`Permanently delete account for "${user.name}" (${user.email})? This action cannot be undone.`)) {
+                                                  onDeleteUserAccount && onDeleteUserAccount(user.id);
+                                                  alert(`Account for "${user.name}" has been permanently deleted.`);
+                                                  setOpenMenuUserId(null);
+                                                }
+                                              }}
+                                              className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer text-left"
+                                            >
+                                              <span className="text-sm">🗑️</span>
+                                              <div>
+                                                <div className="leading-tight">Delete Account</div>
+                                                <div className="text-[9px] text-rose-500 font-medium">Permanently delete from database</div>
+                                              </div>
+                                            </button>
+                                          </div>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </td>
                         </tr>
                       ))}
