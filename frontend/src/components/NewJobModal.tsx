@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { X, Edit3, Zap, Sparkles, Trash2, Save, ArrowRight } from 'lucide-react';
 import type { Job } from '../types';
 
 interface NewJobModalProps {
@@ -96,7 +97,7 @@ export const NewJobModal: React.FC<NewJobModalProps> = ({
           if (j.min_salary) setMinSalary(j.min_salary);
           if (j.max_salary) setMaxSalary(j.max_salary);
           if (j.education_requirement) setEducationRequirement(j.education_requirement);
-          setAiGeneratedNotice('✨ Job description successfully generated with AI!');
+          setAiGeneratedNotice('Job description successfully generated with AI!');
           return;
         }
       }
@@ -125,7 +126,7 @@ export const NewJobModal: React.FC<NewJobModalProps> = ({
       );
       setMinSalary(minExperienceYears * 300000 + 800000);
       setMaxSalary(minExperienceYears * 300000 + 1500000);
-      setAiGeneratedNotice('✨ Job description generated using built-in AI synthesizer!');
+      setAiGeneratedNotice('Job description generated using built-in AI synthesizer!');
     } finally {
       setIsGenerating(false);
     }
@@ -207,7 +208,7 @@ export const NewJobModal: React.FC<NewJobModalProps> = ({
                 ? 'bg-gradient-to-tr from-amber-500 to-indigo-600 shadow-amber-500/20' 
                 : 'bg-gradient-to-tr from-blue-600 to-indigo-600 shadow-blue-500/20'
             }`}>
-              {initialJob ? '✏️' : '⚡'}
+              {initialJob ? <Edit3 className="w-5 h-5 text-white" /> : <Zap className="w-5 h-5 text-white" />}
             </div>
             <div>
               <h3 className="text-xl font-black text-slate-900">
@@ -224,7 +225,7 @@ export const NewJobModal: React.FC<NewJobModalProps> = ({
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center text-sm font-bold transition-all"
           >
-            ✕
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -232,7 +233,7 @@ export const NewJobModal: React.FC<NewJobModalProps> = ({
         {aiGeneratedNotice && (
           <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold px-4 py-2.5 rounded-xl flex items-center justify-between">
             <span>{aiGeneratedNotice}</span>
-            <button onClick={() => setAiGeneratedNotice(null)} className="text-emerald-600 hover:text-emerald-900 text-xs">✕</button>
+            <button onClick={() => setAiGeneratedNotice(null)} className="text-emerald-600 hover:text-emerald-900 text-xs"><X className="w-3.5 h-3.5" /></button>
           </div>
         )}
 
@@ -260,7 +261,7 @@ export const NewJobModal: React.FC<NewJobModalProps> = ({
                   </>
                 ) : (
                   <>
-                    <span>✨</span>
+                    <Sparkles className="w-3.5 h-3.5 text-white" />
                     <span>Auto-Write JD with AI</span>
                   </>
                 )}
@@ -386,7 +387,7 @@ export const NewJobModal: React.FC<NewJobModalProps> = ({
                     onClick={() => handleRemoveSkill(skill)}
                     className="hover:text-rose-600 text-[10px]"
                   >
-                    ✕
+                    <X className="w-3 h-3" />
                   </button>
                 </span>
               ))}
@@ -425,7 +426,7 @@ export const NewJobModal: React.FC<NewJobModalProps> = ({
                     onClick={() => handleRemovePreferred(skill)}
                     className="hover:text-rose-600 text-[10px]"
                   >
-                    ✕
+                    <X className="w-3 h-3" />
                   </button>
                 </span>
               ))}
@@ -489,7 +490,7 @@ export const NewJobModal: React.FC<NewJobModalProps> = ({
                   }}
                   className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
                 >
-                  🗑️ Delete Job
+                  <span className="flex items-center gap-1.5"><Trash2 className="w-3.5 h-3.5 text-rose-600" /> Delete Job</span>
                 </button>
               )}
             </div>
@@ -505,7 +506,7 @@ export const NewJobModal: React.FC<NewJobModalProps> = ({
                 type="submit"
                 className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-500/25 transition-all cursor-pointer"
               >
-                {initialJob ? '💾 Save Changes' : '🚀 Publish Job Opening'}
+                {initialJob ? <span className="flex items-center gap-1.5"><Save className="w-3.5 h-3.5 text-white" /> Save Changes</span> : <span className="flex items-center gap-1.5"><ArrowRight className="w-3.5 h-3.5 text-white" /> Publish Job Opening</span>}
               </button>
             </div>
           </div>
