@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Candidate, Job, CandidateInterviewResponse, ScheduledInterview } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
 import { InterviewSchedulingModule } from '../components/InterviewSchedulingModule';
+import { Bot, Calendar } from 'lucide-react';
 
 interface InterviewAssistantViewProps {
   candidates: Candidate[];
@@ -886,7 +887,7 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
         const aiFinal: ChatBubble = {
           id: `ai-final-${Date.now()}`,
           sender: 'ai',
-          text: `🎉 Congratulations ${activeCandidate.fullName}! You have completed Attempt #${currentAttemptNumber} (All 10 Questions Evaluated). Your score and detailed feedback have been recorded under Attempt #${currentAttemptNumber} below and synchronized with the ATS.`,
+          text: `Congratulations ${activeCandidate.fullName}! You have completed Attempt #${currentAttemptNumber} (All 10 Questions Evaluated). Your score and detailed feedback have been recorded under Attempt #${currentAttemptNumber} below and synchronized with the ATS.`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         setChatMessages(prev => [...prev, aiFinal]);
@@ -984,7 +985,7 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            <span>🤖</span>
+            <Bot className="w-4 h-4 text-blue-600" />
             <span>AI Simulation & Question Generator</span>
           </button>
 
@@ -996,7 +997,7 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            <span>📅</span>
+            <Calendar className="w-4 h-4" />
             <span>Interview Scheduling & Calendar</span>
             {scheduledInterviews.length > 0 && (
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
@@ -1013,7 +1014,7 @@ export const InterviewAssistantView: React.FC<InterviewAssistantViewProps> = ({
             onClick={() => setActiveSubTab('SCHEDULING')}
             className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition-all flex items-center gap-2 cursor-pointer shadow-xs w-fit"
           >
-            <span>📅 Schedule Interview</span>
+            <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> Schedule Interview</span>
             <span className="font-mono text-xs font-bold">→</span>
           </button>
         )}

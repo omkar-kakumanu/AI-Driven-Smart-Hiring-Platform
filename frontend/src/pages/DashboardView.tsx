@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import type { Candidate, Job } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
+import { RefreshCw, Edit3 } from 'lucide-react';
 
 interface DashboardViewProps {
   onNavigate: (tab: string) => void;
@@ -292,7 +293,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   title="Restore original 5 core jobs data"
                   className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1"
                 >
-                  <span>🔄</span>
+                  <RefreshCw className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Reset Defaults</span>
                 </button>
               )}
@@ -346,7 +347,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           title="Change Job Title, Requirements, Experience & Salary"
                           className="px-2.5 py-1 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-300 rounded text-[11px] font-bold shadow-xs transition-colors flex items-center gap-1 cursor-pointer"
                         >
-                          <span>✏️</span>
+                          <Edit3 className="w-3 h-3 text-slate-500" />
                           <span>Edit</span>
                         </button>
                       )}

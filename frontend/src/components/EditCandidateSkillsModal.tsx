@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { X, Sparkles, Check } from 'lucide-react';
 import type { Candidate } from '../types';
 
 interface EditCandidateSkillsModalProps {
@@ -91,7 +92,7 @@ export const EditCandidateSkillsModal: React.FC<EditCandidateSkillsModalProps> =
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white font-bold transition-colors cursor-pointer"
           >
-            ✕
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -190,7 +191,8 @@ export const EditCandidateSkillsModal: React.FC<EditCandidateSkillsModalProps> =
           {/* Qualification Benchmark Hint */}
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 space-y-1">
             <p className="font-bold flex items-center gap-1.5">
-              <span>💡 Recruiter Tip:</span>
+              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+              <span>Recruiter Tip:</span>
             </p>
             <p className="text-[11px] text-blue-800">
               Saving updates this candidate's profile and saves into MySQL tables (<code>candidates</code> and <code>candidate_skills</code>). Recruiter matching algorithms will recalculate automatically.
@@ -217,7 +219,7 @@ export const EditCandidateSkillsModal: React.FC<EditCandidateSkillsModalProps> =
             {isSaving ? (
               <span>Saving & Syncing to MySQL...</span>
             ) : saveSuccess ? (
-              <span>✓ Saved Successfully!</span>
+              <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5" /> Saved Successfully!</span>
             ) : (
               <span>Save Skills to Database →</span>
             )}

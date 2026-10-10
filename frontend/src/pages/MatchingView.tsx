@@ -16,6 +16,7 @@ import {
 import type { Candidate, Job } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
 import { INITIAL_JOBS } from '../services/mockData';
+import { Edit3 } from 'lucide-react';
 
 interface MatchingViewProps {
   candidates?: Candidate[];
@@ -271,7 +272,7 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
                 className="text-[11px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 hover:underline cursor-pointer"
                 title="Edit this role's title, required skills, and experience"
               >
-                <span>✏️</span>
+                <Edit3 className="w-3.5 h-3.5" />
                 <span>Change Title & Requirements</span>
               </button>
             )}

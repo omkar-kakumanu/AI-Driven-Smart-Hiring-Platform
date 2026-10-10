@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { Candidate } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
 import { EditCandidateSkillsModal } from '../components/EditCandidateSkillsModal';
+import { Edit3 } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
@@ -883,10 +884,11 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                                       </button>
                                       <button
                                         onClick={() => setEditingCandidate(cand)}
-                                        className="px-2 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-extrabold text-[10px] rounded transition-colors cursor-pointer"
+                                        className="px-2 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-extrabold text-[10px] rounded transition-colors cursor-pointer inline-flex items-center gap-1"
                                         title="Open full skills editor for this candidate"
                                       >
-                                        ✏️ Edit Skills
+                                        <Edit3 className="w-3 h-3" />
+                                        <span>Edit Skills</span>
                                       </button>
                                     </div>
                                   )

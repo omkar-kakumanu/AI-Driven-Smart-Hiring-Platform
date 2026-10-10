@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Candidate, Job, ScheduledInterview } from '../types';
 import { UserAvatar } from './UserAvatar';
+import { Calendar, Video, Check, X } from 'lucide-react';
 
 interface InterviewSchedulingModuleProps {
   candidates: Candidate[];
@@ -161,7 +162,7 @@ export const InterviewSchedulingModule: React.FC<InterviewSchedulingModuleProps>
             onClick={() => handleOpenScheduleModal()}
             className="px-5 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer whitespace-nowrap active:scale-95"
           >
-            <span className="text-sm">📅</span>
+            <Calendar className="w-4 h-4 text-white" />
             <span>Schedule New Interview</span>
           </button>
         )}
@@ -246,8 +247,8 @@ export const InterviewSchedulingModule: React.FC<InterviewSchedulingModuleProps>
       <div className="space-y-4">
         {visibleInterviews.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3">
-            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-xl">
-              📅
+            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-500">
+              <Calendar className="w-6 h-6" />
             </div>
             <h4 className="text-base font-extrabold text-slate-800">No scheduled interviews found</h4>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
@@ -317,7 +318,7 @@ export const InterviewSchedulingModule: React.FC<InterviewSchedulingModuleProps>
                       rel="noopener noreferrer"
                       className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black shadow-md shadow-blue-500/20 flex items-center gap-1.5 transition-all"
                     >
-                      <span>📹 Join Call</span>
+                      <span className="flex items-center gap-1.5"><Video className="w-3.5 h-3.5" /> Join Call</span>
                       <span className="text-[10px]">↗</span>
                     </a>
 
@@ -334,7 +335,7 @@ export const InterviewSchedulingModule: React.FC<InterviewSchedulingModuleProps>
                               title="Mark as Completed"
                               className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
                             >
-                              ✓ Complete
+                              <span className="flex items-center gap-1"><Check className="w-3 h-3" /> Complete</span>
                             </button>
                           )}
 
@@ -348,7 +349,7 @@ export const InterviewSchedulingModule: React.FC<InterviewSchedulingModuleProps>
                               title="Cancel Interview"
                               className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
                             >
-                              ✕ Cancel
+                              <span className="flex items-center gap-1"><X className="w-3 h-3" /> Cancel</span>
                             </button>
                           )}
                         </div>
@@ -376,7 +377,7 @@ export const InterviewSchedulingModule: React.FC<InterviewSchedulingModuleProps>
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black">
-                  📅
+                  <Calendar className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-xl font-black text-slate-900">Schedule Interview Slot</h3>
@@ -387,7 +388,7 @@ export const InterviewSchedulingModule: React.FC<InterviewSchedulingModuleProps>
                 onClick={() => setShowScheduleModal(false)}
                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center text-sm font-bold"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
