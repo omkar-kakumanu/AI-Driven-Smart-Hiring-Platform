@@ -1454,7 +1454,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                       type="button"
                                       onClick={() => {
                                         if (!userIsRecruiter) {
-                                          onMakeUserRecruiter && onMakeUserRecruiter(user.id);
+                                          if (userIsAdmin && onRemoveUserAdmin) {
+                                            onRemoveUserAdmin(user.id);
+                                          } else if (onMakeUserRecruiter) {
+                                            onMakeUserRecruiter(user.id);
+                                          }
                                           alert(`Assigned Recruiter role to "${user.name}".`);
                                         }
                                       }}
@@ -1474,7 +1478,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                       type="button"
                                       onClick={() => {
                                         if (!userIsCandidate) {
-                                          onMakeUserCandidate && onMakeUserCandidate(user.id);
+                                          if (userIsRecruiter && onRemoveUserRecruiter) {
+                                            onRemoveUserRecruiter(user.id);
+                                          } else if (onMakeUserCandidate) {
+                                            onMakeUserCandidate(user.id);
+                                          }
                                           alert(`Assigned Candidate role to "${user.name}".`);
                                         }
                                       }}
