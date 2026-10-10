@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { UserProfile, UserAccount } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
+import { Shield, ShieldOff, Briefcase, UserCheck, UserX, Check, X, Ban, Trash2, Settings, Sun, Moon, Building, Home, MapPin, Save, Palette, Globe, Bell, Download, RefreshCw, Clock, Sparkles, ChevronDown, Target } from 'lucide-react';
 
 interface SettingsViewProps {
   userProfile?: UserProfile;
@@ -16,6 +17,8 @@ interface SettingsViewProps {
   onMakeUserAdmin?: (userId: string) => void;
   onRemoveUserAdmin?: (userId: string) => void;
   onMakeUserRecruiter?: (userId: string) => void;
+  onMakeUserCandidate?: (userId: string) => void;
+  onRemoveUserRecruiter?: (userId: string) => void;
   onClearAllCandidates?: () => void;
   onClearAllUserAccounts?: () => void;
   onRestoreDefaultJobs?: () => void;
@@ -81,6 +84,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onMakeUserAdmin,
   onRemoveUserAdmin,
   onMakeUserRecruiter,
+  onMakeUserCandidate,
+  onRemoveUserRecruiter,
   onClearAllCandidates,
   onClearAllUserAccounts,
   onRestoreDefaultJobs
@@ -88,10 +93,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const isCandidate = isCandidateUser || Boolean(
     userProfile?.userType !== 'ADMIN' &&
     userProfile?.email?.toLowerCase() !== 'admin@copilot.com' &&
-    userProfile?.email?.toLowerCase() !== 'recruiter@copilot.com' && (
+    userProfile?.email?.toLowerCase() !== 'recruiter@copilot.com' &&
+    !userProfile?.role?.toLowerCase().includes('recruiter') &&
+    !userProfile?.role?.toLowerCase().includes('talent') && (
       userProfile?.role?.toLowerCase().includes('candidate') ||
-      userProfile?.email?.toLowerCase().includes('candidate') ||
-      userProfile?.email?.toLowerCase() === 'sarah.johnson@example.com'
+      userProfile?.email?.toLowerCase().includes('candidate')
     )
   );
 
@@ -317,7 +323,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* Floating Save Success Banner */}
       {savedSuccess && (
         <div className="fixed top-20 right-8 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-emerald-400">
-          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center font-black text-sm shrink-0">✓</div>
+          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center font-black text-sm shrink-0"><Check className="w-4 h-4 text-white" /></div>
           <div>
             <p className="font-extrabold text-xs">Profile & Preferences Saved!</p>
             <p className="text-[11px] text-emerald-100">All changes and candidate preferences updated successfully.</p>
@@ -352,7 +358,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
           {savedSuccess && (
             <span className="inline-flex items-center text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 animate-pulse">
-              ✓ Preferences Updated Successfully!
+              <Check className="w-3.5 h-3.5 text-emerald-600 inline mr-1" /> Preferences Updated Successfully!
             </span>
           )}
         </div>
@@ -484,12 +490,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               >
                 {savedSuccess ? (
                   <>
-                    <span className="text-sm font-black">✓</span>
+                    <Check className="w-4 h-4 text-white inline mr-1" />
                     <span>Saved Successfully!</span>
                   </>
                 ) : (
                   <>
-                    <span>💾 Save Profile & Preferences</span>
+                    <Save className="w-4 h-4 mr-1 inline" /><span>Save Profile & Preferences</span>
                   </>
                 )}
               </button>
@@ -508,11 +514,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div>
             <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-              <span>🎨 Interface Appearance & Theme</span>
+              <Palette className="w-4 h-4 text-blue-600 inline mr-1" /><span>Interface Appearance & Theme</span>
               <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-black ${
                 theme === 'dark' ? 'bg-indigo-900 text-indigo-200 border border-indigo-700' : 'bg-amber-100 text-amber-800'
               }`}>
-                {theme === 'dark' ? '🌙 Dark Mode Active' : '☀️ Light Mode Active'}
+                {theme === 'dark' ? 'Dark Mode Active' : 'Light Mode Active'}
               </span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -530,8 +536,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 : 'border-slate-200 hover:border-slate-300 bg-slate-50/50'
             }`}
           >
-            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 text-xl font-bold">
-              ☀️
+            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+              <Sun className="w-5 h-5 text-amber-600" />
             </div>
             <div className="flex-1">
               <div className="flex items-center justify-between">
@@ -556,8 +562,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 : 'border-slate-200 hover:border-slate-300 bg-slate-50/50'
             }`}
           >
-            <div className="w-10 h-10 rounded-xl bg-indigo-950 text-indigo-400 flex items-center justify-center shrink-0 text-xl font-bold">
-              🌙
+            <div className="w-10 h-10 rounded-xl bg-indigo-950 text-indigo-400 flex items-center justify-center shrink-0">
+              <Moon className="w-5 h-5 text-indigo-400" />
             </div>
             <div className="flex-1">
               <div className="flex items-center justify-between">
@@ -584,7 +590,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                  <span>🎯 Career & Job Market Preferences</span>
+                  <Target className="w-4 h-4 text-blue-600 inline mr-1" /><span>Career & Job Market Preferences</span>
                   <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-800">
                     Indian Tech Standards
                   </span>
@@ -603,9 +609,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   onChange={e => setSearchStatus(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800 focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="ACTIVELY_LOOKING">🟢 Actively Interviewing & Ready to Join</option>
-                  <option value="OPEN_TO_OFFERS">🟡 Open to Selective Opportunities</option>
-                  <option value="NOT_LOOKING">⚪ Casually Exploring / Not Actively Looking</option>
+                  <option value="ACTIVELY_LOOKING">Actively Interviewing & Ready to Join</option>
+                  <option value="OPEN_TO_OFFERS">Open to Selective Opportunities</option>
+                  <option value="NOT_LOOKING">Casually Exploring / Not Actively Looking</option>
                 </select>
               </div>
 
@@ -680,9 +686,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <label className="font-bold text-slate-700 text-xs block mb-1.5">Preferred Work Mode</label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 {[
-                  { id: 'HYBRID', title: '🏢 Hybrid (2-3 Days Office)', desc: 'Flexible in-office collaboration' },
-                  { id: 'REMOTE', title: '🏠 100% Remote / WFH', desc: 'Work from anywhere in India' },
-                  { id: 'ON_SITE', title: '📍 In-Office (Full-time)', desc: 'Direct corporate campus presence' }
+                  { id: 'HYBRID', title: 'Hybrid (2-3 Days Office)', desc: 'Flexible in-office collaboration' },
+                  { id: 'REMOTE', title: '100% Remote / WFH', desc: 'Work from anywhere in India' },
+                  { id: 'ON_SITE', title: 'In-Office (Full-time)', desc: 'Direct corporate campus presence' }
                 ].map(mode => (
                   <div
                     key={mode.id}
@@ -718,7 +724,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                           : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
                       }`}
                     >
-                      {isSelected ? `✓ ${loc}` : `+ ${loc}`}
+                      {isSelected ? `${loc}` : `+ ${loc}`}
                     </button>
                   );
                 })}
@@ -739,7 +745,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95'
                 }`}
               >
-                {savedSuccess ? '✓ Career Preferences Saved!' : '💾 Save Career Preferences'}
+                {savedSuccess ? 'Career Preferences Saved!' : 'Save Career Preferences'}
               </button>
             </div>
           </div>
@@ -747,7 +753,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           {/* Professional Portfolio & Social Profiles Card */}
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
             <div className="border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-900 text-base">🌐 Professional Profiles & Portfolio Links</h3>
+              <h3 className="font-bold text-slate-900 text-base">Professional Profiles & Portfolio Links</h3>
               <p className="text-xs text-slate-500 mt-0.5">Showcase your public code repositories and professional network</p>
             </div>
 
@@ -800,7 +806,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95'
                 }`}
               >
-                {savedSuccess ? '✓ Portfolio Links Saved!' : '💾 Save Portfolio Links'}
+                {savedSuccess ? 'Portfolio Links Saved!' : 'Save Portfolio Links'}
               </button>
             </div>
           </div>
@@ -808,7 +814,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           {/* Interview Notifications & Alerts */}
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
             <div className="border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-900 text-base">🔔 Interview Alerts & Communication Channels</h3>
+              <h3 className="font-bold text-slate-900 text-base">Interview Alerts & Communication Channels</h3>
               <p className="text-xs text-slate-500 mt-0.5">Control how and when you receive interview coordination updates</p>
             </div>
 
@@ -858,7 +864,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
-                <h3 className="font-bold text-slate-900 text-base">🛡️ Data Privacy & Candidate Rights</h3>
+                <h3 className="font-bold text-slate-900 text-base">Data Privacy & Candidate Rights</h3>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Compliant with India's Digital Personal Data Protection (DPDP) Act 2023
                 </p>
@@ -868,7 +874,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 onClick={handleDownloadMyData}
                 className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition-all flex items-center gap-2 cursor-pointer shadow-2xs self-start sm:self-auto"
               >
-                <span>📥 Export My Profile Data (JSON)</span>
+                <Download className="w-3.5 h-3.5 inline mr-1" /><span>Export My Profile Data (JSON)</span>
               </button>
             </div>
 
@@ -940,7 +946,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       accountFilter === 'PENDING' ? 'bg-amber-600 text-white shadow-xs' : 'bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900'
                     }`}
                   >
-                    <span>⏳</span> Pending Requests ({userAccounts.filter(u => u.status === 'PENDING').length})
+                    <Clock className="w-3.5 h-3.5 inline mr-1" /> Pending Requests ({userAccounts.filter(u => u.status === 'PENDING').length})
                   </button>
                   <button
                     type="button"
@@ -949,7 +955,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       accountFilter === 'ADMIN' ? 'bg-purple-700 text-white shadow-xs' : 'bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-900'
                     }`}
                   >
-                    👑 Admins ({userAccounts.filter(u => u.userType === 'ADMIN').length})
+                    Admins ({userAccounts.filter(u => u.userType === 'ADMIN').length})
                   </button>
                   <button
                     type="button"
@@ -958,7 +964,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       accountFilter === 'RECRUITER' ? 'bg-blue-600 text-white shadow-xs' : 'bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900'
                     }`}
                   >
-                    💼 Recruiters ({userAccounts.filter(u => u.role.toLowerCase().includes('recruiter') || (u.userType === 'USER' && !u.role.toLowerCase().includes('candidate'))).length})
+                    Recruiters ({userAccounts.filter(u => u.role.toLowerCase().includes('recruiter') || (u.userType === 'USER' && !u.role.toLowerCase().includes('candidate'))).length})
                   </button>
                   <button
                     type="button"
@@ -967,7 +973,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       accountFilter === 'CANDIDATE' ? 'bg-slate-700 text-white shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                     }`}
                   >
-                    🎯 Candidates ({userAccounts.filter(u => u.role.toLowerCase().includes('candidate')).length})
+                    Candidates ({userAccounts.filter(u => u.role.toLowerCase().includes('candidate')).length})
                   </button>
                 </div>
 
@@ -1032,7 +1038,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                           <td className="py-3 px-3 text-right">
                             {user.isSuperAdmin ? (
                               <span className="text-[11px] font-extrabold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 inline-block shadow-2xs">
-                                👑 Main Super-Admin
+                                Main Super-Admin
                               </span>
                             ) : (() => {
                               const isRecruiterRole = (user.role.toLowerCase().includes('recruiter') || user.role.toLowerCase().includes('talent')) && user.userType !== 'ADMIN';
@@ -1052,7 +1058,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                         className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold rounded-lg text-[11px] shadow-xs transition-all cursor-pointer inline-flex items-center gap-1"
                                         title="Quick Approve"
                                       >
-                                        <span>✓</span> Approve
+                                        <Check className="w-3 h-3 text-white inline mr-1" /> Approve
                                       </button>
                                       <button
                                         type="button"
@@ -1063,7 +1069,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                         className="px-2 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold rounded-lg text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
                                         title="Quick Reject"
                                       >
-                                        <span>✕</span> Reject
+                                        <X className="w-3 h-3 text-rose-600 inline mr-1" /> Reject
                                       </button>
                                     </>
                                   ) : user.status === 'APPROVED' ? (
@@ -1076,7 +1082,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                       className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 font-bold rounded-lg text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
                                       title="Revoke Access (Immediately removes access)"
                                     >
-                                      <span>⛔</span> Revoke
+                                      <Ban className="w-3 h-3 text-amber-700 inline mr-1" /> Revoke
                                     </button>
                                   ) : (
                                     <button
@@ -1088,7 +1094,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                       className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold rounded-lg text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
                                       title="Re-Approve Access"
                                     >
-                                      <span>✓</span> Re-Approve
+                                      <Check className="w-3 h-3 text-emerald-700 inline mr-1" /> Re-Approve
                                     </button>
                                   )}
 
@@ -1104,8 +1110,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                       }`}
                                       title="Manage Access & Permissions"
                                     >
-                                      <span>⚙️ Manage</span>
-                                      <span className="text-[9px]">▾</span>
+                                      <Settings className="w-3 h-3 text-slate-600 inline mr-1" /><span>Manage</span>
+                                      <ChevronDown className="w-3 h-3 text-slate-400 inline" />
                                     </button>
 
                                     {/* Floating Popover Menu */}
@@ -1124,7 +1130,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                               <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
                                                 user.userType === 'ADMIN' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'
                                               }`}>
-                                                {user.userType === 'ADMIN' ? '👑 Admin' : 'User'}
+                                                {user.userType === 'ADMIN' ? 'Admin' : 'User'}
                                               </span>
                                               <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
                                                 user.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
@@ -1151,7 +1157,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                                 }}
                                                 className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-slate-900 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer text-left"
                                               >
-                                                <span className="text-sm">👑</span>
+                                                <Shield className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                                                 <div>
                                                   <div className="leading-tight">Make Admin</div>
                                                   <div className="text-[9px] text-slate-400 font-medium">Grant administrator privileges</div>
@@ -1168,7 +1174,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                                 }}
                                                 className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-purple-900 hover:bg-purple-50 rounded-xl transition-colors cursor-pointer text-left"
                                               >
-                                                <span className="text-sm">🛡️</span>
+                                                <ShieldOff className="w-3.5 h-3.5 text-purple-600 shrink-0" />
                                                 <div>
                                                   <div className="leading-tight">Remove Admin</div>
                                                   <div className="text-[9px] text-purple-600 font-medium">Demote back to standard Recruiter</div>
@@ -1187,7 +1193,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                                 }}
                                                 className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-blue-900 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer text-left"
                                               >
-                                                <span className="text-sm">💼</span>
+                                                <Briefcase className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                                                 <div>
                                                   <div className="leading-tight">Make Recruiter</div>
                                                   <div className="text-[9px] text-blue-600 font-medium">Set role to Talent Acquisition Specialist</div>
@@ -1212,7 +1218,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                                 }}
                                                 className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-50 rounded-xl transition-colors cursor-pointer text-left"
                                               >
-                                                <span className="text-sm">✓</span>
+                                                <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                                                 <div>
                                                   <div className="leading-tight">Approve Access</div>
                                                   <div className="text-[9px] text-emerald-600 font-medium">Allow user to log in</div>
@@ -1230,7 +1236,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                                 }}
                                                 className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-50 rounded-xl transition-colors cursor-pointer text-left"
                                               >
-                                                <span className="text-sm">⛔</span>
+                                                <Ban className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                                 <div>
                                                   <div className="leading-tight">Revoke Access</div>
                                                   <div className="text-[9px] text-amber-600 font-medium">Immediately block login & kick session</div>
@@ -1248,7 +1254,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                                 }}
                                                 className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-rose-800 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer text-left"
                                               >
-                                                <span className="text-sm">✕</span>
+                                                <X className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                                                 <div>
                                                   <div className="leading-tight">Reject Request</div>
                                                   <div className="text-[9px] text-rose-500 font-medium">Decline pending request</div>
@@ -1270,7 +1276,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                               }}
                                               className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer text-left"
                                             >
-                                              <span className="text-sm">🗑️</span>
+                                              <Trash2 className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                                               <div>
                                                 <div className="leading-tight">Delete Account</div>
                                                 <div className="text-[9px] text-rose-500 font-medium">Permanently delete from database</div>
@@ -1331,7 +1337,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 }}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer"
               >
-                🔄 Restore Default Job Postings
+                Restore Default Job Postings
               </button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Candidate, Job, ScheduledInterview, CandidateNotification, UserProfile } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
+import { Target, Share2, Mic, Bot, Check, Briefcase, MapPin, Calendar, Video, Zap, Sparkles, Bell, ArrowRight } from 'lucide-react';
 
 interface CandidatePortalViewProps {
   candidates: Candidate[];
@@ -285,7 +286,7 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
                   Candidate Portal
                 </span>
                 <span className="px-3 py-0.5 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                  ● Status: {activeCandidate.status || 'Applied'}
+                  Status: {activeCandidate.status || 'Applied'}
                 </span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight">{activeCandidate.fullName}</h2>
@@ -309,7 +310,7 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
                     onClick={onNavigateToMatching}
                     className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
                   >
-                    <span>🎯 Skill Gap Analysis</span>
+                    <span className="flex items-center gap-1.5"><Target className="w-3.5 h-3.5" /> Skill Gap Analysis</span>
                     <span className="text-xs">→</span>
                   </button>
                 )}
@@ -318,7 +319,7 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
                     onClick={onNavigateToAts}
                     className="px-3.5 py-2 bg-white/15 hover:bg-white/25 text-white rounded-xl text-xs font-bold transition-all border border-white/20 flex items-center gap-1.5 cursor-pointer"
                   >
-                    <span>📊 ATS Status</span>
+                    <span className="flex items-center gap-1.5"><Share2 className="w-3.5 h-3.5" /> ATS Status</span>
                     <span className="text-xs">→</span>
                   </button>
                 )}
@@ -329,7 +330,7 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
                     onClick={onNavigateToVoiceScreening}
                     className="px-3.5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
                   >
-                    <span>🎙️ Voice Screening</span>
+                    <span className="flex items-center gap-1.5"><Mic className="w-3.5 h-3.5" /> Voice Screening</span>
                     <span className="text-xs">→</span>
                   </button>
                 )}
@@ -338,7 +339,7 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
                     onClick={onNavigateToInterviewPractice}
                     className="px-3.5 py-2 bg-white/15 hover:bg-white/25 text-white rounded-xl text-xs font-bold transition-all border border-white/20 flex items-center gap-1.5 cursor-pointer"
                   >
-                    <span>🤖 Practice Interview</span>
+                    <span className="flex items-center gap-1.5"><Bot className="w-3.5 h-3.5" /> Practice Interview</span>
                     <span className="text-xs">→</span>
                   </button>
                 )}
@@ -400,7 +401,7 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
                           : 'bg-slate-300 text-slate-600'
                       }`}
                     >
-                      {isPassed ? '✓' : idx + 1}
+                      {isPassed ? <Check className="w-3.5 h-3.5" /> : idx + 1}
                     </div>
                     <span
                       className={`text-xs font-black ${
@@ -412,8 +413,8 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
                   </div>
                   <p className="text-[11px] text-slate-500 font-medium">{stage.desc}</p>
                   <div className="mt-2 text-[10px] font-bold">
-                    {isCurrent && <span className="text-blue-600 uppercase tracking-wider">● In Progress</span>}
-                    {isPassed && <span className="text-emerald-600 uppercase tracking-wider">✓ Completed</span>}
+                    {isCurrent && <span className="text-blue-600 uppercase tracking-wider">In Progress</span>}
+                    {isPassed && <span className="text-emerald-600 uppercase tracking-wider">Completed</span>}
                     {isUpcoming && <span className="text-slate-400 uppercase tracking-wider">Pending</span>}
                   </div>
                 </div>
@@ -428,7 +429,7 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div>
             <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-              <span>💼 Active Job Openings & Instant Fit Match</span>
+              <span className="flex items-center gap-2"><Briefcase className="w-4 h-4 text-blue-600" /> Active Job Openings & Instant Fit Match</span>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-blue-100 text-blue-800">
                 {(jobs.length > 0 ? jobs : [targetJob]).length} Roles Available
               </span>
@@ -484,8 +485,8 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
                 </div>
 
                 <div className="text-xs text-slate-500 space-y-1">
-                  <p>📍 {formatIndianLocation(job.location)}</p>
-                  <p>💰 {formatIndianSalary(job.minSalary, job.maxSalary)}</p>
+                  <p className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" /> {formatIndianLocation(job.location)}</p>
+                  <p className="flex items-center gap-1.5 text-slate-700 font-semibold"><span className="text-slate-400 font-bold">₹</span> {formatIndianSalary(job.minSalary, job.maxSalary)}</p>
                   <p className="text-[11px] font-medium pt-1">
                     Matching Skills: <strong className="text-slate-800">{matched.length}</strong> / {reqSkills.length} required
                   </p>
@@ -517,7 +518,7 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-sm">
-                  📅
+                  <Calendar className="w-4 h-4" />
                 </div>
                 <div>
                   <h4 className="font-extrabold text-slate-900 text-base">My Scheduled Interviews</h4>
@@ -531,7 +532,7 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
 
             {myInterviews.length === 0 ? (
               <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-300 space-y-2">
-                <span className="text-2xl">🗓️</span>
+                <Calendar className="w-8 h-8 text-slate-400 mx-auto" />
                 <p className="text-xs font-bold text-slate-700">No interviews scheduled yet.</p>
                 <p className="text-[11px] text-slate-500">
                   When a recruiter coordinates your interview session, it will appear here with a direct video call link.
@@ -591,7 +592,7 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
                         rel="noopener noreferrer"
                         className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black shadow-md shadow-blue-500/20 flex items-center gap-1.5 transition-all"
                       >
-                        <span>📹 Join Meeting Room</span>
+                        <span className="flex items-center gap-1.5"><Video className="w-3.5 h-3.5" /> Join Meeting Room</span>
                         <span className="text-[10px]">↗</span>
                       </a>
                     </div>
@@ -605,7 +606,7 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
             <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
               <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-black text-sm">
-                ⚡
+                <Zap className="w-4 h-4" />
               </div>
               <div>
                 <h4 className="font-extrabold text-slate-900 text-base">AI Evaluation & Performance Scores</h4>
@@ -635,7 +636,7 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
 
             <div className="bg-purple-50/60 border border-purple-200/80 rounded-2xl p-4 text-xs space-y-2">
               <p className="font-black text-purple-900 flex items-center gap-1.5">
-                <span>💡</span> AI Interviewer Feedback Summary
+                <Sparkles className="w-4 h-4 text-purple-600" /> AI Interviewer Feedback Summary
               </p>
               <p className="text-purple-800 font-medium leading-relaxed">
                 Candidate presents structured reasoning and articulates system architecture tradeoffs clearly. 
@@ -653,7 +654,7 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-black text-sm">
-                  🔔
+                  <Bell className="w-4 h-4" />
                 </div>
                 <div>
                   <h4 className="font-extrabold text-slate-900 text-base">Notification Center</h4>
@@ -734,7 +735,7 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
                             onClick={() => onMarkNotificationRead(notif.id)}
                             className="text-[10px] font-bold text-slate-400 hover:text-slate-700"
                           >
-                            Mark Read ✓
+                            Mark Read
                           </button>
                         )}
                       </div>
