@@ -216,28 +216,38 @@ export default function App() {
       return;
     }
 
-    // 3. If user was DEMOTED from Admin to standard user: IMMEDIATELY REMOVE ADMIN PRIVILEGES
-    if (account && account.userType === 'USER' && store.userProfile.userType === 'ADMIN' && !store.userProfile.isSuperAdmin) {
-      store.updateUserProfile({
-        userType: 'USER',
-        isSuperAdmin: false,
-        role: account.role || 'Talent Acquisition Specialist'
-      });
-      if (currentTab === 'settings') {
-        setCurrentTab('dashboard');
-      }
-      alert(`Administrator Privileges Removed: Your admin rights were revoked by the Super-Admin.`);
-      return;
-    }
+    // 3. Dynamic Real-Time Role & Access Synchronization
+    if (account) {
+      const isAccountAdmin = Boolean(account.userType === 'ADMIN' || account.isSuperAdmin || account.email.toLowerCase() === 'admin@copilot.com');
+      const isAccountRecruiter = Boolean(!isAccountAdmin && (account.role.toLowerCase().includes('recruiter') || account.role.toLowerCase().includes('talent')));
+      const isAccountCandidate = Boolean(!isAccountAdmin && !isAccountRecruiter);
 
-    // 4. If user was MADE RECRUITER: IMMEDIATELY UPDATE ROLE TO RECRUITER
-    if (account && (account.role.toLowerCase().includes('recruiter') || account.role.toLowerCase().includes('talent acquisition')) && !store.userProfile.role.toLowerCase().includes('recruiter') && !store.userProfile.role.toLowerCase().includes('talent acquisition')) {
-      store.updateUserProfile({
-        role: account.role,
-        userType: account.userType
-      });
-      if (currentTab === 'candidate-portal') {
-        setCurrentTab('dashboard');
+      const isSessionAdmin = Boolean(store.userProfile.userType === 'ADMIN' || store.userProfile.isSuperAdmin || store.userProfile.email.toLowerCase() === 'admin@copilot.com');
+      const isSessionRecruiter = Boolean(!isSessionAdmin && (store.userProfile.role.toLowerCase().includes('recruiter') || store.userProfile.role.toLowerCase().includes('talent')));
+      const isSessionCandidate = Boolean(!isSessionAdmin && !isSessionRecruiter);
+
+      // Check if session role tier or attributes differ from account directory
+      if (
+        (isAccountAdmin !== isSessionAdmin) ||
+        (isAccountRecruiter !== isSessionRecruiter) ||
+        (isAccountCandidate !== isSessionCandidate) ||
+        (account.userType !== store.userProfile.userType) ||
+        (account.role !== store.userProfile.role)
+      ) {
+        store.updateUserProfile({
+          userType: account.userType,
+          role: account.role,
+          name: account.name,
+          isSuperAdmin: account.isSuperAdmin || false,
+          status: account.status
+        });
+
+        // Instant Tab routing adjustments based on demotion or promotion
+        if (isAccountCandidate && currentTab !== 'candidate-portal' && currentTab !== 'settings') {
+          setCurrentTab('candidate-portal');
+        } else if (!isAccountCandidate && currentTab === 'candidate-portal') {
+          setCurrentTab('dashboard');
+        }
       }
     }
   }, [store.userAccounts, store.userProfile, isAuthenticated, currentTab]);

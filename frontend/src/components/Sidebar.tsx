@@ -9,7 +9,10 @@ import {
   Compass, 
   Bot, 
   Share2, 
-  X 
+  X,
+  Shield,
+  Briefcase,
+  UserCheck
 } from 'lucide-react';
 import { UserAvatar } from './UserAvatar';
 import type { UserProfile } from '../types';
@@ -29,16 +32,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isMobileOpen = false,
   onCloseMobile
 }) => {
-  const isCandidateUser = Boolean(
-    userProfile?.userType !== 'ADMIN' &&
-    userProfile?.email?.toLowerCase() !== 'admin@copilot.com' &&
-    userProfile?.email?.toLowerCase() !== 'recruiter@copilot.com' &&
-    !userProfile?.role?.toLowerCase().includes('recruiter') &&
-    !userProfile?.role?.toLowerCase().includes('talent') && (
-      userProfile?.role?.toLowerCase().includes('candidate') ||
-      userProfile?.email?.toLowerCase().includes('candidate')
+  const isSuperAdmin = Boolean(
+    userProfile?.isSuperAdmin ||
+    userProfile?.email?.toLowerCase() === 'admin@copilot.com'
+  );
+
+  const isAdmin = Boolean(
+    userProfile?.userType === 'ADMIN' || isSuperAdmin
+  );
+
+  const isRecruiterUser = Boolean(
+    !isAdmin && (
+      userProfile?.role?.toLowerCase().includes('recruiter') ||
+      userProfile?.role?.toLowerCase().includes('talent') ||
+      userProfile?.email?.toLowerCase() === 'recruiter@copilot.com'
     )
   );
+
+  const isCandidateUser = Boolean(
+    !isAdmin && !isRecruiterUser
+  );
+
+  const roleLabel = isAdmin 
+    ? (isSuperAdmin ? 'Super-Admin' : 'Administrator') 
+    : isRecruiterUser 
+    ? 'Recruiter' 
+    : 'Candidate';
 
   const menuItems = isCandidateUser
     ? [
@@ -102,6 +121,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
 
+      {/* Active Session Tier Pill */}
+      <div className="mx-3.5 my-2.5 px-3 py-2 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-between">
+        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Current Session</span>
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+          isAdmin
+            ? 'bg-purple-950/80 text-purple-300 border border-purple-800'
+            : isRecruiterUser
+            ? 'bg-blue-950/80 text-blue-300 border border-blue-800'
+            : 'bg-emerald-950/80 text-emerald-300 border border-emerald-800'
+        }`}>
+          {isAdmin && <Shield className="w-2.5 h-2.5 text-purple-400" />}
+          {isRecruiterUser && <Briefcase className="w-2.5 h-2.5 text-blue-400" />}
+          {isCandidateUser && <UserCheck className="w-2.5 h-2.5 text-emerald-400" />}
+          <span>{roleLabel}</span>
+        </span>
+      </div>
+
       {/* Navigation Links */}
       <nav className="flex-1 p-3 sm:p-4 space-y-1 overflow-y-auto">
         <div className="text-[10px] font-bold tracking-wider text-slate-500 uppercase px-3 mb-2">Navigation</div>
@@ -128,20 +164,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* User Footer */}
       <div
         onClick={() => handleSelectTab('settings')}
-        className="p-3.5 sm:p-4 border-t border-slate-800 bg-slate-900/50 hover:bg-slate-800/80 cursor-pointer transition-all flex items-center gap-3 group"
-        title="Click to manage profile & settings"
+        className="p-3.5 sm:p-4 border-t border-slate-800 bg-slate-900/60 hover:bg-slate-800/80 cursor-pointer transition-all flex items-center gap-3 group"
+        title={`Signed in as ${userProfile?.name || 'User'} (${roleLabel}). Click to manage profile.`}
       >
-        <UserAvatar
-          name={userProfile?.name || 'Sarah Jenkins'}
-          avatar={userProfile?.avatar}
-          size="sm"
-          className="border border-slate-700 shrink-0"
-        />
+        <div className="relative shrink-0">
+          <UserAvatar
+            name={userProfile?.name || 'User'}
+            avatar={userProfile?.avatar}
+            size="sm"
+            className="border border-slate-700"
+          />
+          <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-slate-900 ${
+            isAdmin ? 'bg-purple-500' : isRecruiterUser ? 'bg-blue-500' : 'bg-emerald-500'
+          }`} />
+        </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-white truncate">
-            {userProfile?.name || 'Sarah Jenkins'}
+            {userProfile?.name || 'User'}
           </p>
-          <p className="text-xs text-slate-400 truncate">{userProfile?.role || 'Lead Recruiter'}</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+              isAdmin
+                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                : isRecruiterUser
+                ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+            }`}>
+              {isAdmin && <Shield className="w-2.5 h-2.5 text-purple-400" />}
+              {isRecruiterUser && <Briefcase className="w-2.5 h-2.5 text-blue-400" />}
+              {isCandidateUser && <UserCheck className="w-2.5 h-2.5 text-emerald-400" />}
+              <span>{roleLabel}</span>
+            </span>
+          </div>
         </div>
       </div>
     </div>
