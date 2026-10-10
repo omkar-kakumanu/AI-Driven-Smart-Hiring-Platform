@@ -479,6 +479,8 @@ export default function App() {
               onMakeUserAdmin={store.makeUserAdmin}
               onRemoveUserAdmin={store.removeUserAdmin}
               onMakeUserRecruiter={store.makeUserRecruiter}
+              onMakeUserCandidate={store.makeUserCandidate}
+              onRemoveUserRecruiter={store.removeUserRecruiter}
               onClearAllCandidates={store.clearAllCandidates}
               onClearAllUserAccounts={store.clearAllUserAccounts}
               onRestoreDefaultJobs={store.restoreDefaultJobs}

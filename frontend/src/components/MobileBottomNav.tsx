@@ -25,10 +25,11 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   const isCandidateUser = Boolean(
     userProfile?.userType !== 'ADMIN' &&
     userProfile?.email?.toLowerCase() !== 'admin@copilot.com' &&
-    userProfile?.email?.toLowerCase() !== 'recruiter@copilot.com' && (
+    userProfile?.email?.toLowerCase() !== 'recruiter@copilot.com' &&
+    !userProfile?.role?.toLowerCase().includes('recruiter') &&
+    !userProfile?.role?.toLowerCase().includes('talent') && (
       userProfile?.role?.toLowerCase().includes('candidate') ||
-      userProfile?.email?.toLowerCase().includes('candidate') ||
-      userProfile?.email?.toLowerCase() === 'sarah.johnson@example.com'
+      userProfile?.email?.toLowerCase().includes('candidate')
     )
   );
 
