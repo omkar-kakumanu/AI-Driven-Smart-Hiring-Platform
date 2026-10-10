@@ -1,7 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import type { UserProfile, UserAccount } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
-import { Shield, ShieldOff, Briefcase, UserCheck, UserX, Check, X, Ban, Trash2, Settings, Sun, Moon, Save, Palette, Download, Clock, ChevronDown, Target } from 'lucide-react';
+import { 
+  Shield, 
+  ShieldOff, 
+  Briefcase, 
+  UserCheck, 
+  UserX, 
+  Check, 
+  X, 
+  Ban, 
+  Trash2, 
+  Settings, 
+  Sun, 
+  Moon, 
+  Save, 
+  Palette, 
+  Download, 
+  Clock, 
+  ChevronDown, 
+  Target,
+  Search,
+  CheckCircle2,
+  AlertTriangle,
+  Users,
+  RefreshCw
+} from 'lucide-react';
 
 interface SettingsViewProps {
   userProfile?: UserProfile;
@@ -90,15 +114,48 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onClearAllUserAccounts,
   onRestoreDefaultJobs
 }) => {
-  const isCandidate = isCandidateUser || Boolean(
-    userProfile?.userType !== 'ADMIN' &&
-    userProfile?.email?.toLowerCase() !== 'admin@copilot.com' &&
-    userProfile?.email?.toLowerCase() !== 'recruiter@copilot.com' &&
-    !userProfile?.role?.toLowerCase().includes('recruiter') &&
-    !userProfile?.role?.toLowerCase().includes('talent') && (
-      userProfile?.role?.toLowerCase().includes('candidate') ||
-      userProfile?.email?.toLowerCase().includes('candidate')
+  const isSuperAdmin = Boolean(
+    userProfile?.isSuperAdmin ||
+    userProfile?.email?.toLowerCase() === 'admin@copilot.com'
+  );
+
+  const isAdmin = Boolean(
+    userProfile?.userType === 'ADMIN' || isSuperAdmin
+  );
+
+  const isRecruiterUser = Boolean(
+    !isAdmin && (
+      userProfile?.role?.toLowerCase().includes('recruiter') ||
+      userProfile?.role?.toLowerCase().includes('talent') ||
+      userProfile?.email?.toLowerCase() === 'recruiter@copilot.com'
     )
+  );
+
+  const isCandidate = isCandidateUser || Boolean(!isAdmin && !isRecruiterUser);
+
+  const activeRoleTier = isAdmin 
+    ? (isSuperAdmin ? 'Super-Admin' : 'Administrator') 
+    : isRecruiterUser 
+    ? 'Recruiter' 
+    : 'Candidate';
+
+  // Helper functions for directory account roles
+  const isAccountAdmin = (u: UserAccount) => Boolean(
+    u.userType === 'ADMIN' ||
+    u.isSuperAdmin ||
+    u.email.toLowerCase() === 'admin@copilot.com'
+  );
+
+  const isAccountRecruiter = (u: UserAccount) => Boolean(
+    !isAccountAdmin(u) && (
+      u.role.toLowerCase().includes('recruiter') ||
+      u.role.toLowerCase().includes('talent') ||
+      u.email.toLowerCase() === 'recruiter@copilot.com'
+    )
+  );
+
+  const isAccountCandidate = (u: UserAccount) => Boolean(
+    !isAccountAdmin(u) && !isAccountRecruiter(u)
   );
 
   // User Profile Form State with strict tenant privacy
@@ -163,8 +220,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [whatsappAlerts, setWhatsappAlerts] = useState(true);
   const [aiReportAlerts, setAiReportAlerts] = useState(true);
-  const [accountFilter, setAccountFilter] = useState<'ALL' | 'PENDING' | 'ADMIN' | 'RECRUITER' | 'CANDIDATE'>('ALL');
-  const [openMenuUserId, setOpenMenuUserId] = useState<string | null>(null);
+  const [accountFilter, setAccountFilter] = useState<'ALL' | 'PENDING' | 'ADMIN' | 'RECRUITER' | 'CANDIDATE' | 'REVOKED'>('ALL');
+  const [accountSearchQuery, setAccountSearchQuery] = useState('');
 
   const INDIAN_TECH_HUBS = [
     'Bengaluru',
@@ -348,6 +405,50 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             ? 'Manage your personal profile, compensation expectations, Indian tech job preferences, and data privacy'
             : 'Manage user access approvals, profile details, and system administration'}
         </p>
+      </div>
+
+      {/* Active Session Identity & Role Governance Card */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div className="relative shrink-0">
+            <UserAvatar name={name} avatar={avatar} size="md" />
+            <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
+              isAdmin ? 'bg-purple-500' : isRecruiterUser ? 'bg-blue-500' : 'bg-emerald-500'
+            }`} />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-extrabold text-slate-900 text-base truncate">{name}</span>
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wide border shadow-2xs ${
+                isAdmin 
+                  ? 'bg-purple-50 text-purple-700 border-purple-200'
+                  : isRecruiterUser
+                  ? 'bg-blue-50 text-blue-700 border-blue-200'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              }`}>
+                {isAdmin && <Shield className="w-3 h-3 text-purple-600" />}
+                {isRecruiterUser && <Briefcase className="w-3 h-3 text-blue-600" />}
+                {!isAdmin && !isRecruiterUser && <UserCheck className="w-3 h-3 text-emerald-600" />}
+                <span>Active Role: {activeRoleTier}</span>
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5 font-medium truncate">
+              Signed in as <span className="font-bold text-slate-700">{email}</span> • {role}
+            </p>
+          </div>
+        </div>
+        <div className="text-left sm:text-right text-xs text-slate-500 shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100 w-full sm:w-auto">
+          <span className="font-bold text-slate-800 block">
+            {isAdmin ? 'System Administrator Authority' : isRecruiterUser ? 'Talent Recruiter Access' : 'Candidate Portal Access'}
+          </span>
+          <span className="text-[11px] text-slate-400 mt-0.5 block">
+            {isAdmin 
+              ? 'User Approvals & Role Governance' 
+              : isRecruiterUser 
+              ? 'Candidate Pipeline & ATS Review' 
+              : 'Skill Assessment & Voice Screening'}
+          </span>
+        </div>
       </div>
 
       {/* User Profile Settings Section */}
