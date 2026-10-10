@@ -202,14 +202,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     // 2. GLOBAL PRIORITY CHECK: Default Recruiter
     if (emailClean === 'recruiter@copilot.com' && (password === 'recruiter123' || mode === 'RECRUITER')) {
       const stored = userAccounts.find(u => u.email.toLowerCase() === 'recruiter@copilot.com');
+      if (stored?.status === 'REVOKED' || stored?.status === 'REJECTED') {
+        setStatusNotice({ type: 'REVOKED', message: `Access Revoked: Account access for "${emailClean}" has been revoked by an Administrator.` });
+        return;
+      }
       const savedAvatar = getPersistedAvatar('recruiter@copilot.com', stored?.avatar);
       onLogin({
         name: getPersistedName('recruiter@copilot.com', stored?.name || 'Sarah Jenkins', userAccounts),
         role: stored?.role || 'Talent Acquisition Specialist',
         email: 'recruiter@copilot.com',
-        userType: 'USER',
-        status: 'APPROVED',
-        isSuperAdmin: false,
+        userType: stored?.userType || 'USER',
+        status: stored?.status || 'APPROVED',
+        isSuperAdmin: stored?.userType === 'ADMIN',
         avatar: savedAvatar
       });
       return;
@@ -219,15 +223,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     if ((emailClean === 'candidate@copilot.com' || emailClean === 'sarah.johnson@example.com') && (password === 'candidate123' || mode === 'CANDIDATE')) {
       const targetMail = 'sarah.johnson@example.com';
       const stored = userAccounts.find(u => u.email.toLowerCase() === targetMail || u.email.toLowerCase() === 'candidate@copilot.com');
+      if (stored?.status === 'REVOKED' || stored?.status === 'REJECTED') {
+        setStatusNotice({ type: 'REVOKED', message: `Access Revoked: Account access for "${emailClean}" has been revoked by an Administrator.` });
+        return;
+      }
       const savedAvatar = getPersistedAvatar(targetMail, stored?.avatar);
       const candidateName = getPersistedName(targetMail, stored?.name || 'Sarah Johnson', userAccounts);
       onLogin({
         name: candidateName,
-        role: 'Candidate Applicant',
+        role: stored?.role || 'Candidate Applicant',
         email: targetMail,
-        userType: 'USER',
-        status: 'APPROVED',
-        isSuperAdmin: false,
+        userType: stored?.userType || 'USER',
+        status: stored?.status || 'APPROVED',
+        isSuperAdmin: stored?.userType === 'ADMIN',
         avatar: savedAvatar
       });
       return;
