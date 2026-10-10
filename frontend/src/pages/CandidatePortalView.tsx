@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { Candidate, Job, ScheduledInterview, CandidateNotification, UserProfile } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
-import { Target, Share2, Mic, Bot, Check, Briefcase, MapPin, Calendar, Video, Zap, Sparkles, Bell, ArrowRight } from 'lucide-react';
+import { Target, Share2, Mic, Bot, Check, Briefcase, MapPin, Calendar, Video, Zap, Sparkles, Bell } from 'lucide-react';
 
 interface CandidatePortalViewProps {
   candidates: Candidate[];

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, AlertCircle, Eye, EyeOff, Sparkles, ArrowRight, X, Mail, Shield, Briefcase, User, Sun, Moon, Lock } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Eye, EyeOff, Sparkles, ArrowRight, X, Mail, Shield, Briefcase, User, Sun, Moon } from 'lucide-react';
 import type { UserProfile, UserAccount } from '../types';
 
 const GoogleIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
@@ -230,7 +230,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           role: 'System Administrator & Hiring Director',
           userType: 'ADMIN',
           status: 'APPROVED',
-          isSuperAdmin: true
+          isSuperAdmin: true,
+          createdAt: '2026-09-01'
         };
       } else if (emailClean === 'recruiter@copilot.com') {
         targetAccount = {
@@ -239,7 +240,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           email: 'recruiter@copilot.com',
           role: 'Talent Acquisition Specialist',
           userType: 'USER',
-          status: 'APPROVED'
+          status: 'APPROVED',
+          createdAt: '2026-09-01'
         };
       } else if (emailClean === 'candidate@copilot.com' || emailClean === 'sarah.johnson@example.com') {
         targetAccount = {
@@ -248,7 +250,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           email: 'sarah.johnson@example.com',
           role: 'Candidate Applicant',
           userType: 'USER',
-          status: 'APPROVED'
+          status: 'APPROVED',
+          createdAt: '2026-09-01'
         };
       }
     }

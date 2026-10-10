@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { UserProfile, UserAccount } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
-import { Shield, ShieldOff, Briefcase, UserCheck, UserX, Check, X, Ban, Trash2, Settings, Sun, Moon, Building, Home, MapPin, Save, Palette, Globe, Bell, Download, RefreshCw, Clock, Sparkles, ChevronDown, Target } from 'lucide-react';
+import { Shield, ShieldOff, Briefcase, UserCheck, UserX, Check, X, Ban, Trash2, Settings, Sun, Moon, Save, Palette, Download, Clock, ChevronDown, Target } from 'lucide-react';
 
 interface SettingsViewProps {
   userProfile?: UserProfile;
@@ -1183,7 +1183,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                             )}
 
                                             {/* Make Recruiter */}
-                                            {(!isRecruiterRole || isAdminRole) && (
+                                            {!isRecruiterRole && (
                                               <button
                                                 type="button"
                                                 onClick={() => {
@@ -1196,7 +1196,46 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                                 <Briefcase className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                                                 <div>
                                                   <div className="leading-tight">Make Recruiter</div>
-                                                  <div className="text-[9px] text-blue-600 font-medium">Set role to Talent Acquisition Specialist</div>
+                                                  <div className="text-[9px] text-blue-600 font-medium">Assign Recruiter role</div>
+                                                </div>
+                                              </button>
+                                            )}
+
+                                            {/* Remove Recruiter */}
+                                            {isRecruiterRole && (
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  const fn = onMakeUserCandidate || onRemoveUserRecruiter;
+                                                  fn && fn(user.id);
+                                                  alert(`Removed Recruiter role for "${user.name}". Demoted to Candidate.`);
+                                                  setOpenMenuUserId(null);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer text-left"
+                                              >
+                                                <UserX className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                                <div>
+                                                  <div className="leading-tight">Remove Recruiter</div>
+                                                  <div className="text-[9px] text-slate-400 font-medium">Demote to Candidate Applicant</div>
+                                                </div>
+                                              </button>
+                                            )}
+
+                                            {/* Make Candidate */}
+                                            {(isRecruiterRole || isAdminRole) && (
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  onMakeUserCandidate && onMakeUserCandidate(user.id);
+                                                  alert(`Assigned Candidate role to "${user.name}".`);
+                                                  setOpenMenuUserId(null);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer text-left"
+                                              >
+                                                <UserCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                                <div>
+                                                  <div className="leading-tight">Make Candidate</div>
+                                                  <div className="text-[9px] text-slate-400 font-medium">Assign Candidate Applicant access</div>
                                                 </div>
                                               </button>
                                             )}
