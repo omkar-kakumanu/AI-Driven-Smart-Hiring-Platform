@@ -721,7 +721,7 @@ export function useRecruitmentStore() {
   const approveUser = (userId: string) => {
     setUserAccounts(prev => prev.map(u => {
       if (u.id === userId) {
-        if (userProfile && (userProfile.email.toLowerCase() === u.email.toLowerCase() || userProfile.id === u.id)) {
+        if (userProfile && userProfile.email.toLowerCase() === u.email.toLowerCase()) {
           setUserProfile(p => ({ ...p, status: 'APPROVED' }));
         }
         return { ...u, status: 'APPROVED' as const };
@@ -733,7 +733,7 @@ export function useRecruitmentStore() {
   const rejectUser = (userId: string) => {
     setUserAccounts(prev => prev.map(u => {
       if (u.id === userId) {
-        if (userProfile && (userProfile.email.toLowerCase() === u.email.toLowerCase() || userProfile.id === u.id)) {
+        if (userProfile && userProfile.email.toLowerCase() === u.email.toLowerCase()) {
           setUserProfile(p => ({ ...p, status: 'REJECTED' }));
         }
         return { ...u, status: 'REJECTED' as const };
@@ -746,7 +746,7 @@ export function useRecruitmentStore() {
     setUserAccounts(prev => prev.map(u => {
       if (u.id === userId) {
         if (u.isSuperAdmin || u.email.toLowerCase() === 'admin@copilot.com') return u; // Single Main Admin protected
-        if (userProfile && (userProfile.email.toLowerCase() === u.email.toLowerCase() || userProfile.id === u.id)) {
+        if (userProfile && userProfile.email.toLowerCase() === u.email.toLowerCase()) {
           setUserProfile(p => ({ ...p, status: 'REVOKED' }));
         }
         return { ...u, status: 'REVOKED' as const };
@@ -757,7 +757,7 @@ export function useRecruitmentStore() {
 
   const deleteUserAccount = (userId: string) => {
     const target = userAccounts.find(u => u.id === userId);
-    if (target && userProfile && (userProfile.email.toLowerCase() === target.email.toLowerCase() || userProfile.id === userId)) {
+    if (target && userProfile && userProfile.email.toLowerCase() === target.email.toLowerCase()) {
       setUserProfile(p => ({ ...p, status: 'REVOKED' }));
     }
     setUserAccounts(prev => prev.filter(u => u.id !== userId && !u.isSuperAdmin && u.email.toLowerCase() !== 'admin@copilot.com'));
@@ -767,7 +767,7 @@ export function useRecruitmentStore() {
     setUserAccounts(prev => prev.map(u => {
       if (u.id === userId) {
         const cleanName = u.name.replace(/\s*\(Candidate\)\s*/gi, '').trim() || u.name;
-        if (userProfile && (userProfile.email.toLowerCase() === u.email.toLowerCase() || userProfile.id === u.id)) {
+        if (userProfile && userProfile.email.toLowerCase() === u.email.toLowerCase()) {
           setUserProfile(p => ({
             ...p,
             name: cleanName,
@@ -793,7 +793,7 @@ export function useRecruitmentStore() {
     setUserAccounts(prev => prev.map(u => {
       if (u.id === userId) {
         if (u.isSuperAdmin || u.email.toLowerCase() === 'admin@copilot.com') return u; // Main Super Admin protected
-        if (userProfile && (userProfile.email.toLowerCase() === u.email.toLowerCase() || userProfile.id === u.id)) {
+        if (userProfile && userProfile.email.toLowerCase() === u.email.toLowerCase()) {
           setUserProfile(p => ({
             ...p,
             userType: 'USER',
@@ -816,7 +816,7 @@ export function useRecruitmentStore() {
       if (u.id === userId) {
         if (u.isSuperAdmin || u.email.toLowerCase() === 'admin@copilot.com') return u; // Main Super Admin protected
         const cleanName = u.name.replace(/\s*\(Candidate\)\s*/gi, '').trim() || u.name;
-        if (userProfile && (userProfile.email.toLowerCase() === u.email.toLowerCase() || userProfile.id === u.id)) {
+        if (userProfile && userProfile.email.toLowerCase() === u.email.toLowerCase()) {
           setUserProfile(p => ({
             ...p,
             name: cleanName,
