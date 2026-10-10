@@ -719,17 +719,36 @@ export function useRecruitmentStore() {
   };
 
   const approveUser = (userId: string) => {
-    setUserAccounts(prev => prev.map(u => u.id === userId ? { ...u, status: 'APPROVED' as const } : u));
+    setUserAccounts(prev => prev.map(u => {
+      if (u.id === userId) {
+        if (userProfile && (userProfile.email.toLowerCase() === u.email.toLowerCase() || userProfile.id === u.id)) {
+          setUserProfile(p => ({ ...p, status: 'APPROVED' }));
+        }
+        return { ...u, status: 'APPROVED' as const };
+      }
+      return u;
+    }));
   };
 
   const rejectUser = (userId: string) => {
-    setUserAccounts(prev => prev.map(u => u.id === userId ? { ...u, status: 'REJECTED' as const } : u));
+    setUserAccounts(prev => prev.map(u => {
+      if (u.id === userId) {
+        if (userProfile && (userProfile.email.toLowerCase() === u.email.toLowerCase() || userProfile.id === u.id)) {
+          setUserProfile(p => ({ ...p, status: 'REJECTED' }));
+        }
+        return { ...u, status: 'REJECTED' as const };
+      }
+      return u;
+    }));
   };
 
   const revokeUserAccess = (userId: string) => {
     setUserAccounts(prev => prev.map(u => {
       if (u.id === userId) {
         if (u.isSuperAdmin || u.email.toLowerCase() === 'admin@copilot.com') return u; // Single Main Admin protected
+        if (userProfile && (userProfile.email.toLowerCase() === u.email.toLowerCase() || userProfile.id === u.id)) {
+          setUserProfile(p => ({ ...p, status: 'REVOKED' }));
+        }
         return { ...u, status: 'REVOKED' as const };
       }
       return u;
@@ -737,17 +756,33 @@ export function useRecruitmentStore() {
   };
 
   const deleteUserAccount = (userId: string) => {
+    const target = userAccounts.find(u => u.id === userId);
+    if (target && userProfile && (userProfile.email.toLowerCase() === target.email.toLowerCase() || userProfile.id === userId)) {
+      setUserProfile(p => ({ ...p, status: 'REVOKED' }));
+    }
     setUserAccounts(prev => prev.filter(u => u.id !== userId && !u.isSuperAdmin && u.email.toLowerCase() !== 'admin@copilot.com'));
   };
 
   const makeUserAdmin = (userId: string) => {
     setUserAccounts(prev => prev.map(u => {
       if (u.id === userId) {
+        const cleanName = u.name.replace(/\s*\(Candidate\)\s*/gi, '').trim() || u.name;
+        if (userProfile && (userProfile.email.toLowerCase() === u.email.toLowerCase() || userProfile.id === u.id)) {
+          setUserProfile(p => ({
+            ...p,
+            name: cleanName,
+            userType: 'ADMIN',
+            isSuperAdmin: true,
+            status: 'APPROVED',
+            role: 'Administrator'
+          }));
+        }
         return {
           ...u,
+          name: cleanName,
           userType: 'ADMIN' as const,
           status: 'APPROVED' as const,
-          role: u.role.toLowerCase().includes('candidate') ? 'Administrator' : u.role
+          role: 'Administrator'
         };
       }
       return u;
@@ -758,10 +793,18 @@ export function useRecruitmentStore() {
     setUserAccounts(prev => prev.map(u => {
       if (u.id === userId) {
         if (u.isSuperAdmin || u.email.toLowerCase() === 'admin@copilot.com') return u; // Main Super Admin protected
+        if (userProfile && (userProfile.email.toLowerCase() === u.email.toLowerCase() || userProfile.id === u.id)) {
+          setUserProfile(p => ({
+            ...p,
+            userType: 'USER',
+            isSuperAdmin: false,
+            role: 'Talent Acquisition Specialist'
+          }));
+        }
         return {
           ...u,
           userType: 'USER' as const,
-          role: u.role.toLowerCase().includes('admin') ? 'Talent Acquisition Specialist' : u.role
+          role: 'Talent Acquisition Specialist'
         };
       }
       return u;
@@ -772,8 +815,20 @@ export function useRecruitmentStore() {
     setUserAccounts(prev => prev.map(u => {
       if (u.id === userId) {
         if (u.isSuperAdmin || u.email.toLowerCase() === 'admin@copilot.com') return u; // Main Super Admin protected
+        const cleanName = u.name.replace(/\s*\(Candidate\)\s*/gi, '').trim() || u.name;
+        if (userProfile && (userProfile.email.toLowerCase() === u.email.toLowerCase() || userProfile.id === u.id)) {
+          setUserProfile(p => ({
+            ...p,
+            name: cleanName,
+            userType: 'USER',
+            isSuperAdmin: false,
+            role: 'Talent Acquisition Specialist',
+            status: 'APPROVED'
+          }));
+        }
         return {
           ...u,
+          name: cleanName,
           userType: 'USER' as const,
           role: 'Talent Acquisition Specialist',
           status: 'APPROVED' as const
