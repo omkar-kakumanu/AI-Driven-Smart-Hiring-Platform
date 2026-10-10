@@ -838,6 +838,34 @@ export function useRecruitmentStore() {
     }));
   };
 
+  const makeUserCandidate = (userId: string) => {
+    setUserAccounts(prev => prev.map(u => {
+      if (u.id === userId) {
+        if (u.isSuperAdmin || u.email.toLowerCase() === 'admin@copilot.com') return u; // Main Super Admin protected
+        if (userProfile && userProfile.email.toLowerCase() === u.email.toLowerCase()) {
+          setUserProfile(p => ({
+            ...p,
+            userType: 'USER',
+            isSuperAdmin: false,
+            role: 'Candidate Applicant',
+            status: 'APPROVED'
+          }));
+        }
+        return {
+          ...u,
+          userType: 'USER' as const,
+          role: 'Candidate Applicant',
+          status: 'APPROVED' as const
+        };
+      }
+      return u;
+    }));
+  };
+
+  const removeUserRecruiter = (userId: string) => {
+    makeUserCandidate(userId);
+  };
+
   const clearAllCandidates = () => {
     setCandidates(INITIAL_CANDIDATES);
     setActiveCandidateId(INITIAL_CANDIDATES[0]?.id || '');
@@ -1182,6 +1210,8 @@ export function useRecruitmentStore() {
     makeUserAdmin,
     removeUserAdmin,
     makeUserRecruiter,
+    makeUserCandidate,
+    removeUserRecruiter,
     registerUser,
     clearAllCandidates,
     clearAllUserAccounts,
