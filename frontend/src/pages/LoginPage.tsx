@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, AlertCircle, Eye, EyeOff, Sparkles, ArrowRight, X, Mail, Shield, Briefcase, User, Sun, Moon } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Eye, EyeOff, Sparkles, ArrowRight, X, Mail } from 'lucide-react';
 import type { UserProfile, UserAccount } from '../types';
 
 const GoogleIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
@@ -65,20 +65,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   theme = 'light',
   onToggleTheme
 }) => {
-  // Enterprise Tabs: 'SIGN_IN' | 'REQUEST_ACCESS'
-  const [tab, setTab] = useState<'SIGN_IN' | 'REQUEST_ACCESS'>('SIGN_IN');
+  // Modes: 'RECRUITER' | 'CANDIDATE' | 'ADMIN' | 'SIGN_UP'
+  const [mode, setMode] = useState<'RECRUITER' | 'CANDIDATE' | 'ADMIN' | 'SIGN_UP'>('RECRUITER');
 
   // Form Input States
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('recruiter@copilot.com');
   const [password, setPassword] = useState('recruiter123');
   const [showPassword, setShowPassword] = useState(false);
-  const [desiredRole, setDesiredRole] = useState('Talent Acquisition Specialist');
+  const [role, setRole] = useState('Talent Acquisition Specialist');
 
-  // Google OAuth Modal state & Universal SSO
+  // Google OAuth Modal state
   const [showGoogleModal, setShowGoogleModal] = useState(false);
   const [customGmail, setCustomGmail] = useState('');
-  const [googleLoginRole, setGoogleLoginRole] = useState<'CANDIDATE' | 'RECRUITER' | 'ADMIN'>('CANDIDATE');
 
   // Active step state for Hero column
   const [activeStep, setActiveStep] = useState<number>(1);
@@ -86,40 +86,34 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   // Status Alerts
   const [statusNotice, setStatusNotice] = useState<{ type: 'PENDING' | 'REVOKED' | 'ERROR' | 'SUCCESS'; message: string } | null>(null);
 
-  // Handle Quick Demo Fill
-  const handleQuickFill = (demoType: 'ADMIN' | 'RECRUITER' | 'CANDIDATE') => {
-    setStatusNotice(null);
-    if (demoType === 'ADMIN') {
-      setEmail('admin@copilot.com');
-      setPassword('admin123');
-    } else if (demoType === 'RECRUITER') {
-      setEmail('recruiter@copilot.com');
-      setPassword('recruiter123');
-    } else {
-      setEmail('sarah.johnson@example.com');
-      setPassword('candidate123');
-    }
-  };
-
-  // Universal Google SSO Login Handler (Instant access for any Gmail on this device)
+  // Google SSO Login Handler (Enforces Administrator Approval & Account Registration)
   const handleGoogleSelect = (selectedEmail: string, selectedName: string, userRole: string, isAdmin = false) => {
     const cleanMail = selectedEmail.trim().toLowerCase();
+    const isPreApprovedDemo =
+      cleanMail === 'admin@copilot.com' ||
+      cleanMail === 'recruiter@copilot.com' ||
+      cleanMail === 'candidate@copilot.com' ||
+      cleanMail === 'sarah.johnson@example.com' ||
+      cleanMail === 'sarah.jenkins@gmail.com' ||
+      cleanMail === 'j.manju.raghvin@gmail.com' ||
+      cleanMail === 'omkar.kakumanu17@gmail.com' ||
+      cleanMail === 'sailathakakumanu@gmail.com';
 
-    const stored = userAccounts.find(u => 
-      u.email.toLowerCase() === cleanMail ||
-      (cleanMail === 'sarah.jenkins@gmail.com' && u.email.toLowerCase() === 'recruiter@copilot.com') ||
-      (cleanMail === 'recruiter@copilot.com' && u.email.toLowerCase() === 'sarah.jenkins@gmail.com') ||
-      (cleanMail === 'sarah.johnson@example.com' && u.email.toLowerCase() === 'candidate@copilot.com') ||
-      (cleanMail === 'candidate@copilot.com' && u.email.toLowerCase() === 'sarah.johnson@example.com') ||
-      (cleanMail === 'j.manju.raghvin@gmail.com' && u.email.toLowerCase() === 'admin@copilot.com') ||
-      (cleanMail === 'admin@copilot.com' && u.email.toLowerCase() === 'j.manju.raghvin@gmail.com')
-    );
+    const stored = userAccounts.find(u => u.email.toLowerCase() === cleanMail);
 
     if (stored) {
+      if (stored.status === 'PENDING') {
+        setStatusNotice({
+          type: 'PENDING',
+          message: `Access Pending Approval: Your account for "${cleanMail}" has been submitted and is awaiting Administrator review. Please wait for an Admin to approve your access.`
+        });
+        setShowGoogleModal(false);
+        return;
+      }
       if (stored.status === 'REVOKED' || stored.status === 'REJECTED') {
         setStatusNotice({
           type: 'REVOKED',
-          message: `Access Denied: Account access for "${cleanMail}" has been revoked or rejected by a System Administrator.`
+          message: `Access Denied: Account access for "${cleanMail}" has been rejected or revoked by a System Administrator.`
         });
         setShowGoogleModal(false);
         return;
@@ -130,7 +124,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       onLogin({
         name: finalName,
         role: stored.role || userRole,
-        email: cleanMail,
+        email: stored.email,
         userType: stored.userType || (isAdmin ? 'ADMIN' : 'USER'),
         status: 'APPROVED',
         isSuperAdmin: stored.isSuperAdmin || isAdmin,
@@ -140,35 +134,28 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       return;
     }
 
-    // New Google / Device Gmail account: INSTANT UNIVERSAL PROVISIONING & LOGIN
-    const effectiveIsAdmin = isAdmin || cleanMail === 'admin@copilot.com' || cleanMail === 'j.manju.raghvin@gmail.com' || googleLoginRole === 'ADMIN';
-    const effectiveIsRecruiter = !effectiveIsAdmin && (
-      userRole.toLowerCase().includes('recruiter') || 
-      userRole.toLowerCase().includes('talent') || 
-      cleanMail === 'recruiter@copilot.com' || 
-      cleanMail === 'sarah.jenkins@gmail.com' || 
-      googleLoginRole === 'RECRUITER'
-    );
+    if (isPreApprovedDemo) {
+      const savedAvatar = getPersistedAvatar(cleanMail, undefined);
+      const finalName = getPersistedName(cleanMail, selectedName, userAccounts);
+      onLogin({
+        name: finalName,
+        role: userRole,
+        email: selectedEmail,
+        userType: isAdmin ? 'ADMIN' : 'USER',
+        status: 'APPROVED',
+        isSuperAdmin: isAdmin,
+        avatar: savedAvatar
+      });
+      setShowGoogleModal(false);
+      return;
+    }
 
-    const resolvedRole = effectiveIsAdmin
-      ? 'System Administrator & Hiring Director'
-      : effectiveIsRecruiter
-        ? 'Talent Acquisition Specialist'
-        : 'Candidate Applicant';
-
-    const savedAvatar = getPersistedAvatar(cleanMail, undefined);
-    const finalName = getPersistedName(cleanMail, selectedName, userAccounts);
-
-    onRegister(finalName, cleanMail, resolvedRole, 'google_sso_verified');
-
-    onLogin({
-      name: finalName,
-      role: resolvedRole,
-      email: cleanMail,
-      userType: effectiveIsAdmin ? 'ADMIN' : 'USER',
-      status: 'APPROVED',
-      isSuperAdmin: effectiveIsAdmin,
-      avatar: savedAvatar
+    // New unknown user attempting Google / Gmail sign in:
+    // DO NOT allow direct access! Create an access request with status PENDING!
+    const newAcc = onRegister(selectedName, cleanMail, userRole, 'google_sso_verified');
+    setStatusNotice({
+      type: 'PENDING',
+      message: `Access Request Submitted Successfully! Account for "${newAcc.email}" is in PENDING status. An Administrator must approve your access request in Settings before you can log in.`
     });
     setShowGoogleModal(false);
   };
@@ -185,126 +172,188 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       .split(' ')
       .map(part => part.charAt(0).toUpperCase() + part.slice(1))
       .join(' ') || 'Applicant';
-
-    const roleTitle = googleLoginRole === 'ADMIN'
-      ? 'System Administrator & Hiring Director'
-      : googleLoginRole === 'RECRUITER'
-        ? 'Talent Acquisition Specialist'
-        : 'Candidate Applicant';
-
-    handleGoogleSelect(clean, formattedName, roleTitle, googleLoginRole === 'ADMIN');
+    handleGoogleSelect(clean, formattedName, 'Candidate Applicant', false);
   };
 
-  // Unified Enterprise Authentication Submit Handler
+  // Standard Form Submit Handler
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setStatusNotice(null);
 
     const emailClean = email.trim().toLowerCase();
 
-    if (tab === 'REQUEST_ACCESS') {
-      if (!fullName.trim() || !emailClean || !password) {
-        setStatusNotice({ type: 'ERROR', message: 'Please provide all required account details.' });
+    // 1. GLOBAL PRIORITY CHECK: Default Super-Admin ALWAYS logs in as Administrator
+    if (emailClean === 'admin@copilot.com' && (password === 'admin123' || mode === 'ADMIN')) {
+      const storedAdmin = userAccounts.find(u => u.email.toLowerCase() === 'admin@copilot.com');
+      const savedAvatar = getPersistedAvatar('admin@copilot.com', storedAdmin?.avatar);
+      const adminFallback = (storedAdmin?.name && !storedAdmin.name.includes('Alex Vance')) ? storedAdmin.name : 'J Manju Raghvin (Main Super-Admin)';
+      onLogin({
+        name: getPersistedName('admin@copilot.com', adminFallback, userAccounts),
+        role: storedAdmin?.role || 'System Administrator & Hiring Director',
+        email: 'admin@copilot.com',
+        userType: 'ADMIN',
+        status: 'APPROVED',
+        isSuperAdmin: true,
+        avatar: savedAvatar
+      });
+      return;
+    }
+
+    // 2. GLOBAL PRIORITY CHECK: Default Recruiter
+    if (emailClean === 'recruiter@copilot.com' && (password === 'recruiter123' || mode === 'RECRUITER')) {
+      const stored = userAccounts.find(u => u.email.toLowerCase() === 'recruiter@copilot.com');
+      if (stored?.status === 'REVOKED' || stored?.status === 'REJECTED') {
+        setStatusNotice({ type: 'REVOKED', message: `Access Revoked: Account access for "${emailClean}" has been revoked by an Administrator.` });
         return;
       }
-      const newAcc = onRegister(fullName.trim(), emailClean, desiredRole, password);
+      const savedAvatar = getPersistedAvatar('recruiter@copilot.com', stored?.avatar);
+      onLogin({
+        name: getPersistedName('recruiter@copilot.com', stored?.name || 'Sarah Jenkins', userAccounts),
+        role: stored?.role || 'Talent Acquisition Specialist',
+        email: 'recruiter@copilot.com',
+        userType: stored?.userType || 'USER',
+        status: stored?.status || 'APPROVED',
+        isSuperAdmin: stored?.userType === 'ADMIN',
+        avatar: savedAvatar
+      });
+      return;
+    }
+
+    // 3. GLOBAL PRIORITY CHECK: Default Candidate
+    if ((emailClean === 'candidate@copilot.com' || emailClean === 'sarah.johnson@example.com') && (password === 'candidate123' || mode === 'CANDIDATE')) {
+      const targetMail = 'sarah.johnson@example.com';
+      const stored = userAccounts.find(u => u.email.toLowerCase() === targetMail || u.email.toLowerCase() === 'candidate@copilot.com');
+      if (stored?.status === 'REVOKED' || stored?.status === 'REJECTED') {
+        setStatusNotice({ type: 'REVOKED', message: `Access Revoked: Account access for "${emailClean}" has been revoked by an Administrator.` });
+        return;
+      }
+      const savedAvatar = getPersistedAvatar(targetMail, stored?.avatar);
+      const candidateName = getPersistedName(targetMail, stored?.name || 'Sarah Johnson', userAccounts);
+      onLogin({
+        name: candidateName,
+        role: stored?.role || 'Candidate Applicant',
+        email: targetMail,
+        userType: stored?.userType || 'USER',
+        status: stored?.status || 'APPROVED',
+        isSuperAdmin: stored?.userType === 'ADMIN',
+        avatar: savedAvatar
+      });
+      return;
+    }
+
+    if (mode === 'SIGN_UP') {
+      const fullName = `${firstName} ${lastName}`.trim() || 'New User';
+      if (!emailClean || !password) {
+        setStatusNotice({ type: 'ERROR', message: 'Please enter all required registration details.' });
+        return;
+      }
+      const newAcc = onRegister(fullName, emailClean, role, password);
       setStatusNotice({
         type: 'SUCCESS',
-        message: `Enterprise Access Request Submitted for "${newAcc.email}". Your application is currently awaiting Administrator review.`
+        message: `Access Request Submitted Successfully! Account for "${newAcc.email}" is in PENDING status. An Administrator must approve your access before logging in.`
       });
-      setTab('SIGN_IN');
-      return;
-    }
+      setActiveStep(3);
+    } else if (mode === 'CANDIDATE') {
+      const isDemo = emailClean === 'candidate@copilot.com' || emailClean === 'sarah.johnson@example.com';
+      const found = userAccounts.find(u => u.email.toLowerCase() === emailClean);
 
-    // Dynamic Account Lookup (Respects role assignments made in Settings!)
-    let targetAccount = userAccounts.find(u => u.email.toLowerCase() === emailClean);
-
-    // Fallback for candidate aliases
-    if (!targetAccount && (emailClean === 'candidate@copilot.com' || emailClean === 'sarah.johnson@example.com')) {
-      targetAccount = userAccounts.find(u =>
-        u.email.toLowerCase() === 'candidate@copilot.com' ||
-        u.email.toLowerCase() === 'sarah.johnson@example.com'
-      );
-    }
-
-    // Fallback for built-in initial accounts if not yet in state
-    if (!targetAccount) {
-      if (emailClean === 'admin@copilot.com') {
-        targetAccount = {
-          id: 'usr-admin-1',
-          name: 'J Manju Raghvin (Main Super-Admin)',
-          email: 'admin@copilot.com',
-          role: 'System Administrator & Hiring Director',
-          userType: 'ADMIN',
-          status: 'APPROVED',
-          isSuperAdmin: true,
-          createdAt: '2026-09-01'
-        };
-      } else if (emailClean === 'recruiter@copilot.com') {
-        targetAccount = {
-          id: 'usr-recruiter-1',
-          name: 'Sarah Jenkins',
-          email: 'recruiter@copilot.com',
-          role: 'Talent Acquisition Specialist',
+      if (found) {
+        if (found.status === 'PENDING') {
+          setStatusNotice({
+            type: 'PENDING',
+            message: `Access Pending Approval: Candidate account for "${found.email}" is pending Administrator review.`
+          });
+          return;
+        }
+        if (found.status === 'REVOKED' || found.status === 'REJECTED') {
+          setStatusNotice({
+            type: 'REVOKED',
+            message: `Access Revoked: Candidate access for "${found.email}" has been rejected or revoked by an Administrator.`
+          });
+          return;
+        }
+        const savedAvatar = getPersistedAvatar(emailClean, found.avatar);
+        const resolvedName = getPersistedName(emailClean, found.name, userAccounts);
+        onLogin({
+          name: resolvedName,
+          role: found.role || 'Candidate Applicant',
+          email: found.email,
           userType: 'USER',
           status: 'APPROVED',
-          createdAt: '2026-09-01'
-        };
-      } else if (emailClean === 'candidate@copilot.com' || emailClean === 'sarah.johnson@example.com') {
-        targetAccount = {
-          id: 'usr-cand-1',
-          name: 'Sarah Johnson',
-          email: 'sarah.johnson@example.com',
-          role: 'Candidate Applicant',
-          userType: 'USER',
-          status: 'APPROVED',
-          createdAt: '2026-09-01'
-        };
+          isSuperAdmin: false,
+          avatar: savedAvatar
+        });
+        return;
       }
-    }
 
-    if (!targetAccount) {
-      setStatusNotice({
-        type: 'ERROR',
-        message: `No active account found for "${emailClean}". Please submit an Access Request or verify your credentials.`
-      });
-      return;
-    }
+      if (isDemo) {
+        const targetMail = 'sarah.johnson@example.com';
+        const savedAvatar = getPersistedAvatar(targetMail, undefined);
+        const candidateName = getPersistedName(targetMail, 'Sarah Johnson', userAccounts);
+        onLogin({
+          name: candidateName,
+          role: 'Candidate Applicant',
+          email: targetMail,
+          userType: 'USER',
+          status: 'APPROVED',
+          isSuperAdmin: false,
+          avatar: savedAvatar
+        });
+        return;
+      }
 
-    // Access Governance Status Validation
-    if (targetAccount.status === 'PENDING') {
+      // If not registered in userAccounts, submit an access request
+      const candidateName = emailClean.split('@')[0].replace(/[._-]/g, ' ');
+      const formattedName = candidateName.charAt(0).toUpperCase() + candidateName.slice(1);
+      const newAcc = onRegister(formattedName, emailClean, 'Candidate Applicant', password || 'candidate123');
       setStatusNotice({
         type: 'PENDING',
-        message: `Access Pending Approval: Your account for "${targetAccount.email}" is pending review by a System Administrator.`
+        message: `Access Request Submitted Successfully! Candidate account "${newAcc.email}" is in PENDING status. An Administrator must approve your access before logging in.`
       });
       return;
-    }
-
-    if (targetAccount.status === 'REVOKED' || targetAccount.status === 'REJECTED') {
-      setStatusNotice({
-        type: 'REVOKED',
-        message: `Access Denied: Account access for "${targetAccount.email}" has been revoked or rejected by a System Administrator.`
+    } else if (mode === 'RECRUITER') {
+      const found = userAccounts.find(u => u.email.toLowerCase() === emailClean);
+      if (!found) {
+        setStatusNotice({ type: 'ERROR', message: `No account registered for "${email}". Please submit a New Access Request or Sign in with Google.` });
+        return;
+      }
+      if (found.status === 'PENDING') {
+        setStatusNotice({ type: 'PENDING', message: `Access Pending Approval: Account for "${found.email}" is pending Administrator review.` });
+        return;
+      }
+      if (found.status === 'REVOKED' || found.status === 'REJECTED') {
+        setStatusNotice({ type: 'REVOKED', message: `Access Revoked: Account access for "${found.email}" has been revoked by an Administrator.` });
+        return;
+      }
+      const savedAvatar = getPersistedAvatar(emailClean, found.avatar);
+      const resolvedName = getPersistedName(emailClean, found.name, userAccounts);
+      onLogin({
+        name: resolvedName,
+        role: found.role,
+        email: found.email,
+        userType: found.userType === 'ADMIN' ? 'ADMIN' : 'USER',
+        status: 'APPROVED',
+        isSuperAdmin: found.userType === 'ADMIN',
+        avatar: savedAvatar
       });
-      return;
+    } else if (mode === 'ADMIN') {
+      const foundAdmin = userAccounts.find(u => u.email.toLowerCase() === emailClean && u.userType === 'ADMIN');
+      if (!foundAdmin) {
+        setStatusNotice({ type: 'ERROR', message: `No Administrator account registered for "${email}". Use admin@copilot.com with admin123.` });
+        return;
+      }
+      const savedAvatar = localStorage.getItem(`rc_avatar_${emailClean}`) || foundAdmin.avatar || undefined;
+      const resolvedName = getPersistedName(emailClean, foundAdmin.name, userAccounts);
+      onLogin({
+        name: resolvedName,
+        role: foundAdmin.role,
+        email: foundAdmin.email,
+        userType: 'ADMIN',
+        status: 'APPROVED',
+        isSuperAdmin: true,
+        avatar: savedAvatar
+      });
     }
-
-    // Dynamic Role-based Authentication
-    const isAdmin = targetAccount.userType === 'ADMIN' || targetAccount.isSuperAdmin === true || targetAccount.email.toLowerCase() === 'admin@copilot.com';
-    const savedAvatar = getPersistedAvatar(targetAccount.email, targetAccount.avatar);
-    const resolvedName = getPersistedName(targetAccount.email, targetAccount.name, userAccounts);
-    const finalEmail = (emailClean === 'sarah.johnson@example.com' || emailClean === 'candidate@copilot.com')
-      ? emailClean
-      : targetAccount.email;
-
-    onLogin({
-      name: resolvedName,
-      role: targetAccount.role || (isAdmin ? 'System Administrator' : 'Talent Acquisition Specialist'),
-      email: finalEmail,
-      userType: isAdmin ? 'ADMIN' : 'USER',
-      status: 'APPROVED',
-      isSuperAdmin: isAdmin,
-      avatar: savedAvatar
-    });
   };
 
   // Motion variants for left column staggered entry
@@ -408,7 +457,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           <motion.div variants={itemVariants} className="w-full space-y-2 text-left pt-1">
             <StepItem
               number={1}
-              text="Identity Verification & Portal Access"
+              text="Identity Verification & Portal Login"
               subtext="Role-based access security & DPDP compliance"
               active={activeStep === 1}
               onClick={() => setActiveStep(1)}
@@ -431,7 +480,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         </motion.div>
       </div>
 
-      {/* RIGHT COLUMN: PROFESSIONAL ENTERPRISE FORM */}
+      {/* RIGHT COLUMN: GMAIL & RECRUITER FORM */}
       <div className="flex-1 w-full h-full min-h-0 overflow-y-auto flex flex-col items-center justify-start lg:justify-center py-6 sm:py-8 lg:py-10 px-3 sm:px-8 lg:px-12 xl:px-16 bg-slate-50">
         <motion.div
           initial={{ opacity: 0 }}
@@ -439,41 +488,58 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="w-full max-w-lg bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-8 lg:p-9 shadow-sm space-y-4 sm:space-y-5 my-auto shrink-0"
         >
-          {/* Top Bar: Clean Enterprise Tabs & Theme Toggle */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100 gap-2">
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+          {/* Top Bar: Portal Selector Pills & Theme Toggle */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-slate-100 p-1 rounded-xl flex-1">
               <button
                 type="button"
-                onClick={() => { setTab('SIGN_IN'); setStatusNotice(null); }}
-                className={`py-1.5 px-3.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  tab === 'SIGN_IN'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+                onClick={() => { setMode('RECRUITER'); setEmail('recruiter@copilot.com'); setPassword('recruiter123'); setStatusNotice(null); }}
+                className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all text-center truncate ${mode === 'RECRUITER'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+                  }`}
               >
-                Sign In
+                1. Recruiter
               </button>
               <button
                 type="button"
-                onClick={() => { setTab('REQUEST_ACCESS'); setStatusNotice(null); }}
-                className={`py-1.5 px-3.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  tab === 'REQUEST_ACCESS'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+                onClick={() => { setMode('CANDIDATE'); setEmail('candidate@copilot.com'); setPassword('candidate123'); setStatusNotice(null); }}
+                className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all text-center truncate ${mode === 'CANDIDATE'
+                  ? 'bg-purple-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+                  }`}
               >
-                Request Access
+                2. Candidate
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMode('ADMIN'); setEmail('admin@copilot.com'); setPassword('admin123'); setStatusNotice(null); }}
+                className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all text-center truncate ${mode === 'ADMIN'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+                  }`}
+              >
+                3. Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMode('SIGN_UP'); setEmail(''); setPassword(''); setStatusNotice(null); }}
+                className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all text-center truncate ${mode === 'SIGN_UP'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+                  }`}
+              >
+                4. Request
               </button>
             </div>
-
             {onToggleTheme && (
               <button
                 type="button"
                 onClick={onToggleTheme}
-                className="p-2 rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all cursor-pointer shrink-0"
+                className="self-end sm:self-auto px-2.5 py-1.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all cursor-pointer shrink-0 font-bold text-xs"
                 title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
               >
-                {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-slate-600" />}
+                {theme === 'dark' ? '☀️' : '🌙'}
               </button>
             )}
           </div>
@@ -481,82 +547,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           {/* Form Header */}
           <div className="space-y-1">
             <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">
-              {tab === 'SIGN_IN' ? 'Welcome Back' : 'Request Platform Access'}
+              {mode === 'RECRUITER'
+                ? 'Recruiter Gateway'
+                : mode === 'CANDIDATE'
+                  ? 'Candidate Applicant Portal'
+                  : mode === 'ADMIN'
+                    ? 'Administrator Governance'
+                    : 'Request Enterprise Access'}
             </h2>
             <p className="text-slate-500 text-xs font-medium">
-              {tab === 'SIGN_IN'
-                ? 'Sign in to access your recruitment copilot workspace.'
-                : 'Submit your credentials for Administrator review and approval.'}
+              {mode === 'RECRUITER'
+                ? 'Sign in with your approved recruiter credentials or Google SSO.'
+                : mode === 'CANDIDATE'
+                  ? 'Sign in to view your candidate resume, application status, and match reports.'
+                  : mode === 'ADMIN'
+                    ? 'System administrator access & access control management.'
+                    : 'Submit your enterprise details for Administrator approval.'}
             </p>
           </div>
-
-          {/* Quick Demo Evaluation Credentials Bar */}
-          {tab === 'SIGN_IN' && (
-            <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-2.5 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Default System Credentials
-                </span>
-                <span className="text-[10px] text-slate-400 font-medium">Click to populate</span>
-              </div>
-              <div className="grid grid-cols-3 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill('ADMIN')}
-                  className={`flex flex-col items-center justify-center py-2 px-1.5 rounded-xl text-center border transition-all cursor-pointer ${
-                    email === 'admin@copilot.com'
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                  }`}
-                  title="J Manju Raghvin (admin@copilot.com | admin123)"
-                >
-                  <div className="flex items-center gap-1">
-                    <Shield className="w-3 h-3 text-blue-500 shrink-0" />
-                    <span className="text-[11px] font-bold">Admin</span>
-                  </div>
-                  <span className={`text-[9.5px] truncate max-w-full font-medium ${email === 'admin@copilot.com' ? 'text-slate-300' : 'text-slate-500'}`}>
-                    J Manju Raghvin
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill('RECRUITER')}
-                  className={`flex flex-col items-center justify-center py-2 px-1.5 rounded-xl text-center border transition-all cursor-pointer ${
-                    email === 'recruiter@copilot.com'
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                  }`}
-                  title="Sarah Jenkins (recruiter@copilot.com | recruiter123)"
-                >
-                  <div className="flex items-center gap-1">
-                    <Briefcase className="w-3 h-3 text-blue-400 shrink-0" />
-                    <span className="text-[11px] font-bold">Recruiter</span>
-                  </div>
-                  <span className={`text-[9.5px] truncate max-w-full font-medium ${email === 'recruiter@copilot.com' ? 'text-blue-100' : 'text-slate-500'}`}>
-                    Sarah Jenkins
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill('CANDIDATE')}
-                  className={`flex flex-col items-center justify-center py-2 px-1.5 rounded-xl text-center border transition-all cursor-pointer ${
-                    email === 'sarah.johnson@example.com' || email === 'candidate@copilot.com'
-                      ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
-                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                  }`}
-                  title="Sarah Johnson (sarah.johnson@example.com | candidate123)"
-                >
-                  <div className="flex items-center gap-1">
-                    <User className="w-3 h-3 text-purple-400 shrink-0" />
-                    <span className="text-[11px] font-bold">Candidate</span>
-                  </div>
-                  <span className={`text-[9.5px] truncate max-w-full font-medium ${email === 'sarah.johnson@example.com' || email === 'candidate@copilot.com' ? 'text-purple-100' : 'text-slate-500'}`}>
-                    Sarah Johnson
-                  </span>
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Status Notice Alert */}
           {statusNotice && (
@@ -589,61 +597,67 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           )}
 
           {/* Single Google / Gmail Primary Login Button */}
-          {tab === 'SIGN_IN' && (
-            <>
-              <button
-                type="button"
-                onClick={() => setShowGoogleModal(true)}
-                className="flex items-center justify-center gap-3 w-full h-11 bg-white border border-slate-300 hover:border-slate-400 hover:bg-slate-50 active:scale-[0.98] rounded-xl text-xs font-bold text-slate-800 shadow-xs transition-all cursor-pointer group"
-              >
-                <GoogleIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span>Sign in with Google</span>
-              </button>
+          <button
+            type="button"
+            onClick={() => setShowGoogleModal(true)}
+            className="flex items-center justify-center gap-3 w-full h-12 bg-white border border-slate-300 hover:border-slate-400 hover:bg-slate-50 active:scale-[0.98] rounded-xl text-xs font-extrabold text-slate-800 shadow-sm transition-all cursor-pointer group"
+          >
+            <GoogleIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span>Sign in with Google / Gmail</span>
+          </button>
 
-              {/* Divider */}
-              <div className="relative flex items-center justify-center">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-200" />
-                </div>
-                <div className="relative bg-white px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  Or Work Credentials
-                </div>
-              </div>
-            </>
-          )}
+          {/* Divider */}
+          <div className="relative flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200" />
+            </div>
+            <div className="relative bg-white px-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+              Or Work Credentials
+            </div>
+          </div>
 
           {/* Form Fields */}
           <form onSubmit={handleSubmit} className="space-y-3.5">
-            {tab === 'REQUEST_ACCESS' && (
+            {mode === 'SIGN_UP' && (
               <>
-                <InputGroup
-                  label="Full Name"
-                  placeholder="e.g. David Miller"
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                />
-
-                <div className="space-y-1 w-full text-left">
-                  <label className="text-xs font-bold text-slate-700 block">Requested Role</label>
-                  <select
-                    value={desiredRole}
-                    onChange={(e) => setDesiredRole(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl h-10 px-3 text-xs font-medium text-slate-900 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
-                  >
-                    <option value="Talent Acquisition Specialist">Talent Acquisition Specialist (Recruiter)</option>
-                    <option value="Technical Recruiter">Technical Recruiter</option>
-                    <option value="Candidate Applicant">Candidate Applicant</option>
-                    <option value="Hiring Manager">Hiring Manager</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-3">
+                  <InputGroup
+                    label="First Name"
+                    placeholder="David"
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
+                  <InputGroup
+                    label="Last Name"
+                    placeholder="Miller"
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                  />
                 </div>
+
+                <InputGroup
+                  label="Role / Department"
+                  placeholder="e.g. Technical Recruiter"
+                  type="text"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                />
               </>
             )}
 
             <InputGroup
               label="Work Email Address"
-              placeholder="name@company.com"
+              placeholder={
+                mode === 'ADMIN'
+                  ? 'admin@copilot.com'
+                  : mode === 'RECRUITER'
+                    ? 'recruiter@copilot.com'
+                    : 'david.miller@company.com'
+              }
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -657,7 +671,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              helperText={tab === 'REQUEST_ACCESS' ? 'Minimum 8 characters.' : undefined}
+              helperText={mode === 'SIGN_UP' ? 'Must be at least 8 characters with numbers.' : undefined}
               rightElement={
                 <button
                   type="button"
@@ -673,36 +687,40 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             {/* Submit Button */}
             <button
               type="submit"
-              className={`w-full h-11 text-white font-bold rounded-xl text-xs shadow-md transition-all mt-2 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] ${
-                tab === 'REQUEST_ACCESS'
-                  ? 'bg-slate-900 hover:bg-slate-800 shadow-slate-900/20'
+              className={`w-full h-11 text-white font-bold rounded-xl text-xs shadow-md transition-all mt-2 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] ${mode === 'ADMIN'
+                ? 'bg-slate-900 hover:bg-slate-800 shadow-slate-900/20'
+                : mode === 'SIGN_UP'
+                  ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20'
                   : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'
-              }`}
+                }`}
             >
-              <span>{tab === 'REQUEST_ACCESS' ? 'Submit Access Request' : 'Sign In'}</span>
-              <ArrowRight className="w-4 h-4" />
+              {mode === 'SIGN_UP'
+                ? 'Submit Access Request →'
+                : mode === 'RECRUITER'
+                  ? 'Log In to Recruiter Platform →'
+                  : 'Log In to Admin Console →'}
             </button>
           </form>
 
           {/* Footer Link */}
-          <div className="text-center pt-2 border-t border-slate-100">
-            {tab === 'REQUEST_ACCESS' ? (
+          <div className="text-center pt-1 border-t border-slate-100">
+            {mode === 'SIGN_UP' ? (
               <p className="text-xs text-slate-500 font-medium">
-                Already have an approved account?{' '}
+                Already registered?{' '}
                 <button
                   type="button"
-                  onClick={() => { setTab('SIGN_IN'); setStatusNotice(null); }}
+                  onClick={() => { setMode('RECRUITER'); setEmail('recruiter@copilot.com'); setPassword('recruiter123'); setStatusNotice(null); }}
                   className="text-blue-600 font-bold hover:underline cursor-pointer"
                 >
-                  Sign in here
+                  Log in here
                 </button>
               </p>
             ) : (
               <p className="text-xs text-slate-500 font-medium">
-                Need enterprise access?{' '}
+                Need an account?{' '}
                 <button
                   type="button"
-                  onClick={() => { setTab('REQUEST_ACCESS'); setStatusNotice(null); }}
+                  onClick={() => { setMode('SIGN_UP'); setEmail(''); setPassword(''); setStatusNotice(null); }}
                   className="text-blue-600 font-bold hover:underline cursor-pointer"
                 >
                   Submit Access Request
@@ -740,73 +758,25 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               </p>
             </div>
 
-            {/* Role Preference Selector for Universal SSO */}
-            <div className="bg-slate-50 p-2.5 rounded-2xl border border-slate-200 space-y-1.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block text-center">
-                Sign-In Role for Google Account
-              </span>
-              <div className="grid grid-cols-3 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setGoogleLoginRole('CANDIDATE')}
-                  className={`py-1.5 text-center text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
-                    googleLoginRole === 'CANDIDATE'
-                      ? 'bg-purple-600 text-white shadow-xs'
-                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                  }`}
-                >
-                  Candidate
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGoogleLoginRole('RECRUITER')}
-                  className={`py-1.5 text-center text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
-                    googleLoginRole === 'RECRUITER'
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                  }`}
-                >
-                  Recruiter
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGoogleLoginRole('ADMIN')}
-                  className={`py-1.5 text-center text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
-                    googleLoginRole === 'ADMIN'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                  }`}
-                >
-                  Admin
-                </button>
-              </div>
-            </div>
-
-            {/* Recognized Device Accounts */}
-            <div className="space-y-2 pt-1 max-h-56 overflow-y-auto pr-1">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                Recognized Device Accounts
-              </p>
-
-              {/* Recruiter Sarah Jenkins */}
+            {/* Predefined Approved Account Chooser */}
+            <div className="space-y-2 pt-1">
               <button
                 type="button"
-                onClick={() => handleGoogleSelect('recruiter@copilot.com', 'Sarah Jenkins', 'Talent Acquisition Specialist', false)}
-                className="w-full flex items-center justify-between p-2.5 border border-slate-200 rounded-2xl hover:border-blue-500 hover:bg-blue-50/50 transition-all text-left cursor-pointer group"
+                onClick={() => handleGoogleSelect('sarah.jenkins@gmail.com', 'Sarah Jenkins', 'Talent Acquisition Lead', false)}
+                className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-2xl hover:border-blue-500 hover:bg-blue-50/50 transition-all text-left cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center">
                     SJ
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-900 block group-hover:text-blue-600">Sarah Jenkins (Recruiter)</span>
-                    <span className="text-[10px] text-slate-500 font-medium">recruiter@copilot.com • sarah.jenkins@gmail.com</span>
+                    <span className="text-[10px] text-slate-500 font-medium">sarah.jenkins@gmail.com</span>
                   </div>
                 </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0" />
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
               </button>
 
-              {/* Candidate Sarah Johnson */}
               {(() => {
                 const candName = getPersistedName('sarah.johnson@example.com', 'Sarah Johnson', userAccounts);
                 const candInitials = candName.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'SJ';
@@ -814,56 +784,37 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   <button
                     type="button"
                     onClick={() => handleGoogleSelect('sarah.johnson@example.com', candName, 'Candidate Applicant', false)}
-                    className="w-full flex items-center justify-between p-2.5 border border-slate-200 rounded-2xl hover:border-purple-500 hover:bg-purple-50/50 transition-all text-left cursor-pointer group"
+                    className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-2xl hover:border-purple-500 hover:bg-purple-50/50 transition-all text-left cursor-pointer group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-purple-600 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-purple-600 text-white font-extrabold text-xs flex items-center justify-center">
                         {candInitials}
                       </div>
                       <div>
                         <span className="text-xs font-bold text-slate-900 block group-hover:text-purple-600">{candName} (Candidate)</span>
-                        <span className="text-[10px] text-slate-500 font-medium">sarah.johnson@example.com • candidate@copilot.com</span>
+                        <span className="text-[10px] text-slate-500 font-medium">sarah.johnson@example.com</span>
                       </div>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all shrink-0" />
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
                   </button>
                 );
               })()}
 
-              {/* Admin J Manju Raghvin */}
               <button
                 type="button"
-                onClick={() => handleGoogleSelect('admin@copilot.com', 'J Manju Raghvin', 'System Administrator & Hiring Director', true)}
-                className="w-full flex items-center justify-between p-2.5 border border-slate-200 rounded-2xl hover:border-slate-900 hover:bg-slate-50 transition-all text-left cursor-pointer group"
+                onClick={() => handleGoogleSelect('j.manju.raghvin@gmail.com', 'J Manju Raghvin', 'System Administrator & Hiring Director', true)}
+                className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-2xl hover:border-slate-900 hover:bg-slate-50 transition-all text-left cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center">
                     JM
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-slate-900 block group-hover:text-slate-900">J Manju Raghvin (Main Super-Admin)</span>
-                    <span className="text-[10px] text-slate-500 font-medium">admin@copilot.com • j.manju.raghvin@gmail.com</span>
+                    <span className="text-xs font-bold text-slate-900 block group-hover:text-slate-900">J Manju Raghvin (Admin)</span>
+                    <span className="text-[10px] text-slate-500 font-medium">j.manju.raghvin@gmail.com</span>
                   </div>
                 </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all shrink-0" />
-              </button>
-
-              {/* Candidate Omkar Kakumanu */}
-              <button
-                type="button"
-                onClick={() => handleGoogleSelect('omkar.kakumanu17@gmail.com', 'Omkar Kakumanu', 'Software Engineer / Developer', false)}
-                className="w-full flex items-center justify-between p-2.5 border border-slate-200 rounded-2xl hover:border-emerald-500 hover:bg-emerald-50/50 transition-all text-left cursor-pointer group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
-                    OK
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 block group-hover:text-emerald-600">Omkar Kakumanu (Candidate)</span>
-                    <span className="text-[10px] text-slate-500 font-medium">omkar.kakumanu17@gmail.com</span>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all shrink-0" />
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />
               </button>
             </div>
 
@@ -872,39 +823,32 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 <div className="w-full border-t border-slate-200" />
               </div>
               <div className="relative bg-white px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                Or Use Any Device Gmail
+                Or Use Another Gmail Account
               </div>
             </div>
 
             {/* Custom Gmail Input Form */}
             <form onSubmit={handleCustomGmailSubmit} className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  Universal Google Sign-In (Any Gmail on this device)
-                </label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Enter Gmail Address</label>
                 <div className="relative flex items-center">
                   <input
                     type="email"
                     value={customGmail}
                     onChange={(e) => setCustomGmail(e.target.value)}
-                    placeholder="Enter any Gmail from this device..."
+                    placeholder="your.name@gmail.com"
                     required
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl h-11 px-3.5 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
                   />
                   <Mail className="absolute right-3.5 w-4 h-4 text-slate-400" />
                 </div>
-                <span className="text-[10px] text-slate-500 mt-1 block">
-                  Will sign in as <strong className="text-indigo-600">{googleLoginRole}</strong> with full instant access.
-                </span>
               </div>
 
               <button
                 type="submit"
-                className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <GoogleIcon className="w-4 h-4" />
-                <span>Instant Sign In with Google</span>
-                <ArrowRight className="w-4 h-4" />
+                Continue with Gmail →
               </button>
             </form>
           </motion.div>
@@ -914,7 +858,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   );
 };
 
-// Reusable Components
+// Reusable Components requested in prompt
 interface StepItemProps {
   number: number;
   text: string;
