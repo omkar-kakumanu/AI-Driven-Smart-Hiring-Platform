@@ -36,6 +36,15 @@ export interface CandidateInterviewResponse {
 }
 
 
+export interface CandidateResumeDocument {
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  dataUrl?: string; // base64 Data URL for instant in-browser viewing / preview / download
+  extractedText?: string; // Full extracted text of the resume for fast keyword search & lie detection
+  uploadedAt: string;
+}
+
 export interface Candidate {
   id: string;
   fullName: string;
@@ -55,6 +64,7 @@ export interface Candidate {
   matchScore?: number;
   avatar?: string;
   interviewResponses?: CandidateInterviewResponse[];
+  resumeDocument?: CandidateResumeDocument;
 }
 
 export interface SkillGapItem {
@@ -170,4 +180,21 @@ export interface CandidateNotification {
   timestamp: string;
   isRead: boolean;
   actionUrl?: string;
+}
+
+export interface SkillAdditionRequest {
+  id: string;
+  candidateId: string;
+  candidateName: string;
+  candidateEmail: string;
+  skillName: string;
+  category?: string;
+  proficiency?: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert';
+  reasonNote: string;
+  resumeFileName?: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  requestedAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  reviewNote?: string;
 }

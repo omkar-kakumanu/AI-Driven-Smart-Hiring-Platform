@@ -163,7 +163,15 @@ export const INITIAL_CANDIDATES: Candidate[] = [
     institution: "Stanford University",
     status: "Applied",
     matchScore: 92,
-    interviewResponses: []
+    interviewResponses: [],
+    resumeDocument: {
+      fileName: "Sarah_Johnson_ML_Engineer_Resume.pdf",
+      fileType: "application/pdf",
+      fileSize: 148520,
+      dataUrl: "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXrp/Og0MTGCjEgMCBvYmoKPDwvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFI+PgplbmRvYmoK",
+      extractedText: "SARAH JOHNSON\nEmail: sarah.johnson@example.com | Phone: +1 (555) 019-2831 | Location: San Francisco, CA\nLinkedIn: linkedin.com/in/sarah-johnson-ml | GitHub: github.com/sarah-johnson\n\nPROFESSIONAL SUMMARY\nSenior Machine Learning Engineer with 5+ years experience building production ML pipelines, deep learning architectures, and distributed model serving on cloud platforms.\n\nEDUCATION\n- Master of Science (MS) in Computer Science — Stanford University (2020)\n- Bachelor of Science (BS) in Computer Engineering — UC Berkeley (2018)\n\nTECHNICAL SKILLS\n- Programming Languages: Python, SQL, C++, Bash\n- Machine Learning & AI: TensorFlow, PyTorch, Scikit-Learn, MLOps, HuggingFace Transformers, NLP, Deep Learning\n- Cloud & DevOps: AWS SageMaker, Docker, Kubernetes, CI/CD, Linux, Git\n- Data & Databases: PostgreSQL, MySQL, Redis, Pandas, NumPy, Data Analysis\n\nWORK EXPERIENCE\nSenior Machine Learning Engineer | NovaScale AI, San Francisco, CA (2022 – Present)\n- Designed and deployed end-to-end ML prediction services handling over 12M daily requests using PyTorch and FastAPI.\n- Managed Kubernetes clusters and Docker containers for distributed training and low-latency inference on AWS SageMaker.\n- Spearheaded data analysis and automated MLOps pipelines reducing retraining latency by 42%.\n\nMachine Learning Engineer | Apex Data Labs, Palo Alto, CA (2020 – 2022)\n- Built deep neural networks using TensorFlow and Python for computer vision and anomaly detection.\n- Implemented robust SQL queries and data pipelines for high-throughput feature stores in PostgreSQL.",
+      uploadedAt: "2026-09-15"
+    }
   },
   {
     "fullName": "Omkar Kakumanu",
