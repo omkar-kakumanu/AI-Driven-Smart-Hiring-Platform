@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Job, Candidate, InterviewQuestion, ATSProvider, UserProfile, UserAccount, CandidateInterviewResponse, ScheduledInterview, CandidateNotification } from '../types';
+import type { Job, Candidate, InterviewQuestion, ATSProvider, UserProfile, UserAccount, CandidateInterviewResponse, ScheduledInterview, CandidateNotification, SkillAdditionRequest, CandidateResumeDocument } from '../types';
 
 import { INITIAL_JOBS, INITIAL_CANDIDATES, INITIAL_QUESTIONS, INITIAL_ATS_PROVIDERS, DEFAULT_AVATARS } from '../services/mockData';
 
@@ -306,9 +306,32 @@ export function useRecruitmentStore() {
       avatar: DEFAULT_AVATARS.admin
     },
     {
+      id: 'usr-admin-2',
+      name: 'J Manju Raghvin (Main Super-Admin)',
+      email: 'j.manju.raghvin@gmail.com',
+      role: 'System Administrator & Hiring Director',
+      userType: 'ADMIN',
+      status: 'APPROVED',
+      createdAt: '2026-01-10',
+      password: 'admin123',
+      isSuperAdmin: true,
+      avatar: DEFAULT_AVATARS.admin
+    },
+    {
       id: 'usr-recruiter-1',
       name: 'Sarah Jenkins (Recruiter)',
       email: 'recruiter@copilot.com',
+      role: 'Talent Acquisition Specialist',
+      userType: 'USER',
+      status: 'APPROVED',
+      createdAt: '2026-01-12',
+      password: 'recruiter123',
+      avatar: DEFAULT_AVATARS.recruiter
+    },
+    {
+      id: 'usr-recruiter-2',
+      name: 'Sarah Jenkins (Recruiter)',
+      email: 'sarah.jenkins@gmail.com',
       role: 'Talent Acquisition Specialist',
       userType: 'USER',
       status: 'APPROVED',
@@ -331,6 +354,17 @@ export function useRecruitmentStore() {
       id: 'usr-cand-alias',
       name: 'Sarah Johnson (Candidate)',
       email: 'candidate@copilot.com',
+      role: 'Candidate Applicant',
+      userType: 'USER',
+      status: 'APPROVED',
+      createdAt: '2026-02-15',
+      password: 'candidate123',
+      avatar: DEFAULT_AVATARS.candidate
+    },
+    {
+      id: 'usr-cand-alias-gmail',
+      name: 'Sarah Johnson (Candidate)',
+      email: 'sarah.johnson@gmail.com',
       role: 'Candidate Applicant',
       userType: 'USER',
       status: 'APPROVED',
@@ -375,77 +409,25 @@ export function useRecruitmentStore() {
       }
     }
 
-    // 1. Always guarantee Super Admin account admin@copilot.com exists with J Manju Raghvin
-    const adminIndex = accounts.findIndex(u => u.id === 'usr-admin-1' || u.email.toLowerCase() === 'admin@copilot.com');
-    if (adminIndex >= 0) {
-      const curName = accounts[adminIndex].name;
-      const finalName = (!curName || curName.includes('Alex Vance')) ? 'J Manju Raghvin (Main Super-Admin)' : curName;
-      accounts[adminIndex] = {
-        ...accounts[adminIndex],
-        id: 'usr-admin-1',
-        name: finalName,
-        email: 'admin@copilot.com',
-        userType: 'ADMIN',
-        status: 'APPROVED',
-        isSuperAdmin: true,
-        password: accounts[adminIndex].password || 'admin123',
-        avatar: accounts[adminIndex].avatar || DEFAULT_AVATARS.admin
-      };
-    } else {
-      accounts.unshift(INITIAL_USERS[0]);
-    }
-
-    // 2. Always guarantee Default Recruiter recruiter@copilot.com exists with Sarah Jenkins
-    const recruiterIndex = accounts.findIndex(u => u.email.toLowerCase() === 'recruiter@copilot.com');
-    if (recruiterIndex >= 0) {
-      accounts[recruiterIndex] = {
-        ...accounts[recruiterIndex],
-        id: accounts[recruiterIndex].id || 'usr-recruiter-1',
-        name: accounts[recruiterIndex].name || 'Sarah Jenkins (Recruiter)',
-        email: 'recruiter@copilot.com',
-        role: accounts[recruiterIndex].role || 'Talent Acquisition Specialist',
-        status: 'APPROVED',
-        password: accounts[recruiterIndex].password || 'recruiter123',
-        avatar: accounts[recruiterIndex].avatar || DEFAULT_AVATARS.recruiter
-      };
-    } else {
-      accounts.splice(1, 0, INITIAL_USERS[1]);
-    }
-
-    // 3. Always guarantee Default Candidate sarah.johnson@example.com exists with Sarah Johnson
-    const cand1Index = accounts.findIndex(u => u.email.toLowerCase() === 'sarah.johnson@example.com');
-    if (cand1Index >= 0) {
-      const curCandName = accounts[cand1Index].name;
-      const cleanCandName = (!curCandName || curCandName.toLowerCase().includes('sample')) ? 'Sarah Johnson (Candidate)' : curCandName;
-      accounts[cand1Index] = {
-        ...accounts[cand1Index],
-        id: accounts[cand1Index].id || 'usr-cand-1',
-        name: cleanCandName,
-        email: 'sarah.johnson@example.com',
-        role: accounts[cand1Index].role || 'Candidate Applicant',
-        status: 'APPROVED',
-        password: accounts[cand1Index].password || 'candidate123',
-        avatar: accounts[cand1Index].avatar || DEFAULT_AVATARS.candidate
-      };
-    } else {
-      accounts.splice(2, 0, INITIAL_USERS[2]);
-    }
-
-    // 4. Always guarantee candidate@copilot.com alias exists with Sarah Johnson
-    const candAliasIndex = accounts.findIndex(u => u.email.toLowerCase() === 'candidate@copilot.com');
-    if (candAliasIndex >= 0) {
-      accounts[candAliasIndex] = {
-        ...accounts[candAliasIndex],
-        id: accounts[candAliasIndex].id || 'usr-cand-alias',
-        name: accounts[candAliasIndex].name || 'Sarah Johnson (Candidate)',
-        email: 'candidate@copilot.com',
-        role: accounts[candAliasIndex].role || 'Candidate Applicant',
-        status: 'APPROVED',
-        password: accounts[candAliasIndex].password || 'candidate123',
-        avatar: accounts[candAliasIndex].avatar || DEFAULT_AVATARS.candidate
-      };
-    } else {
-      accounts.splice(3, 0, INITIAL_USERS[3]);
+    // Ensure every default account exists and has status APPROVED
+    for (const initUser of INITIAL_USERS) {
+      const idx = accounts.findIndex(u => u.email.toLowerCase() === initUser.email.toLowerCase());
+      if (idx >= 0) {
+        accounts[idx] = {
+          ...accounts[idx],
+          id: accounts[idx].id || initUser.id,
+          name: accounts[idx].name || initUser.name,
+          email: initUser.email,
+          role: accounts[idx].role || initUser.role,
+          userType: accounts[idx].userType || initUser.userType,
+          status: 'APPROVED',
+          isSuperAdmin: initUser.isSuperAdmin ? true : accounts[idx].isSuperAdmin,
+          password: accounts[idx].password || initUser.password,
+          avatar: accounts[idx].avatar || initUser.avatar
+        };
+      } else {
+        accounts.push(initUser);
+      }
     }
 
     // Ensure each account has its own isolated avatar and persisted custom name
@@ -602,6 +584,46 @@ export function useRecruitmentStore() {
     return DEFAULT_NOTIFICATIONS;
   });
 
+  const DEFAULT_SKILL_REQUESTS: SkillAdditionRequest[] = [
+    {
+      id: 'skr-1',
+      candidateId: 'cand-1',
+      candidateName: 'Sarah Johnson',
+      candidateEmail: 'sarah.johnson@example.com',
+      skillName: 'Kubernetes',
+      category: 'Cloud & DevOps',
+      proficiency: 'Advanced',
+      reasonNote: 'Managed Kubernetes clusters and model serving at NovaScale AI as documented in my uploaded resume under Work Experience.',
+      resumeFileName: 'Sarah_Johnson_ML_Engineer_Resume.pdf',
+      status: 'PENDING',
+      requestedAt: '2026-10-12T10:15:00.000Z'
+    },
+    {
+      id: 'skr-2',
+      candidateId: 'cand-1',
+      candidateName: 'Sarah Johnson',
+      candidateEmail: 'sarah.johnson@example.com',
+      skillName: 'FastAPI',
+      category: 'Backend & APIs',
+      proficiency: 'Advanced',
+      reasonNote: 'Deployed high-throughput prediction APIs serving 12M daily requests using FastAPI as stated in my resume.',
+      resumeFileName: 'Sarah_Johnson_ML_Engineer_Resume.pdf',
+      status: 'PENDING',
+      requestedAt: '2026-10-12T11:30:00.000Z'
+    }
+  ];
+
+  const [skillRequests, setSkillRequests] = useState<SkillAdditionRequest[]>(() => {
+    const saved = localStorage.getItem('rc_skill_requests');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return DEFAULT_SKILL_REQUESTS;
+  });
+
   useEffect(() => {
     localStorage.setItem('rc_scheduled_interviews', JSON.stringify(scheduledInterviews));
   }, [scheduledInterviews]);
@@ -609,6 +631,10 @@ export function useRecruitmentStore() {
   useEffect(() => {
     localStorage.setItem('rc_candidate_notifications', JSON.stringify(candidateNotifications));
   }, [candidateNotifications]);
+
+  useEffect(() => {
+    safeStorageSet('rc_skill_requests', JSON.stringify(skillRequests));
+  }, [skillRequests]);
 
   useEffect(() => {
     localStorage.setItem('rc_jobs', JSON.stringify(jobs));
@@ -1331,12 +1357,97 @@ export function useRecruitmentStore() {
     setCandidateNotifications(prev => [newNotif, ...prev]);
   };
 
+  const addUserAccount = (newAccount: UserAccount) => {
+    setUserAccounts(prev => {
+      const existsIdx = prev.findIndex(u => u.email.toLowerCase() === newAccount.email.toLowerCase());
+      if (existsIdx >= 0) {
+        const updated = [...prev];
+        updated[existsIdx] = { ...updated[existsIdx], ...newAccount, status: 'APPROVED' };
+        return updated;
+      }
+      return [...prev, newAccount];
+    });
+  };
+
+  const updateCandidateResumeDocument = (candidateId: string, doc: CandidateResumeDocument) => {
+    setCandidates(prev => prev.map(c => {
+      if (c.id === candidateId || (c.email && c.email.toLowerCase() === candidateId.toLowerCase())) {
+        return {
+          ...c,
+          resumeDocument: doc
+        };
+      }
+      return c;
+    }));
+  };
+
+  const requestSkillAddition = (req: Omit<SkillAdditionRequest, 'id' | 'status' | 'requestedAt'>) => {
+    const newReq: SkillAdditionRequest = {
+      ...req,
+      id: `skr-${Date.now()}`,
+      status: 'PENDING',
+      requestedAt: new Date().toISOString()
+    };
+    setSkillRequests(prev => [newReq, ...prev]);
+    addCandidateNotification({
+      candidateEmail: req.candidateEmail,
+      title: `Skill Addition Request: ${req.skillName}`,
+      message: `Your request to add "${req.skillName}" has been submitted for Administrator/Recruiter review against your uploaded resume.`,
+      type: 'GENERAL'
+    });
+    return newReq;
+  };
+
+  const approveSkillRequest = (requestId: string, reviewerName: string, reviewNote?: string) => {
+    setSkillRequests(prev => prev.map(r => {
+      if (r.id === requestId) {
+        addSkillToCandidate(r.candidateId, r.skillName);
+        addCandidateNotification({
+          candidateEmail: r.candidateEmail,
+          title: `Skill Approved: ${r.skillName} Added!`,
+          message: `${reviewerName} verified your resume and approved "${r.skillName}". It is now added to your profile!`,
+          type: 'STATUS_UPDATE'
+        });
+        return {
+          ...r,
+          status: 'APPROVED' as const,
+          reviewedAt: new Date().toISOString(),
+          reviewedBy: reviewerName,
+          reviewNote: reviewNote || 'Verified against candidate uploaded resume.'
+        };
+      }
+      return r;
+    }));
+  };
+
+  const rejectSkillRequest = (requestId: string, reviewerName: string, reason?: string) => {
+    setSkillRequests(prev => prev.map(r => {
+      if (r.id === requestId) {
+        addCandidateNotification({
+          candidateEmail: r.candidateEmail,
+          title: `Skill Request Declined: ${r.skillName}`,
+          message: `Your request for "${r.skillName}" was declined by ${reviewerName}. Reason: ${reason || 'Skill could not be found or verified in uploaded resume.'}`,
+          type: 'STATUS_UPDATE'
+        });
+        return {
+          ...r,
+          status: 'REJECTED' as const,
+          reviewedAt: new Date().toISOString(),
+          reviewedBy: reviewerName,
+          reviewNote: reason || 'Not verified in uploaded resume document.'
+        };
+      }
+      return r;
+    }));
+  };
+
   return {
     jobs,
     candidates,
     userProfile,
     updateUserProfile,
     userAccounts,
+    addUserAccount,
     approveUser,
     rejectUser,
     revokeUserAccess,
@@ -1373,6 +1484,12 @@ export function useRecruitmentStore() {
     updateCandidateRoleAndExperience,
     setUserProfileExplicit,
     updateCandidateAvatar,
+    updateCandidateResumeDocument,
+
+    skillRequests,
+    requestSkillAddition,
+    approveSkillRequest,
+    rejectSkillRequest,
 
     scheduledInterviews,
     scheduleInterview,

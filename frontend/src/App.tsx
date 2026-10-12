@@ -157,9 +157,9 @@ export default function App() {
     : filteredCandidates.filter(c => !isStaffOrAdminEmailOrRole(c.email, c.fullName, c.currentRole, undefined, store.userAccounts));
 
   const handleLogin = (profile: UserProfile & { userType: 'ADMIN' | 'USER'; status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'REVOKED'; isSuperAdmin?: boolean }) => {
-    const isAdminAccount = profile.userType === 'ADMIN' || profile.email.toLowerCase() === 'admin@copilot.com';
+    const isAdminAccount = profile.userType === 'ADMIN' || profile.email.toLowerCase() === 'admin@copilot.com' || profile.email.toLowerCase() === 'j.manju.raghvin@gmail.com';
     const targetEmail = profile.email.toLowerCase();
-    const isCandidateEmail = targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com';
+    const isCandidateEmail = targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com' || targetEmail === 'sarah.johnson@gmail.com';
     const existingAccount = store.userAccounts.find(u => u.email.toLowerCase() === targetEmail);
     const isolatedAvatar = profile.avatar !== undefined 
       ? profile.avatar 
@@ -172,6 +172,21 @@ export default function App() {
         ? (localStorage.getItem('rc_name_candidate@copilot.com') || localStorage.getItem('rc_name_sarah.johnson@example.com'))
         : null);
     const finalName = (persistedName && persistedName.trim()) ? persistedName.trim() : (existingAccount?.name || profile.name);
+
+    // Ensure account exists in store directory to guarantee session stability
+    if (!existingAccount) {
+      store.addUserAccount({
+        id: `usr-${Date.now()}`,
+        name: finalName,
+        email: profile.email,
+        role: profile.role || (isAdminAccount ? 'System Administrator' : 'Candidate Applicant'),
+        userType: isAdminAccount ? 'ADMIN' : profile.userType,
+        status: 'APPROVED',
+        isSuperAdmin: isAdminAccount,
+        createdAt: new Date().toISOString().split('T')[0],
+        avatar: isolatedAvatar
+      });
+    }
 
     store.setUserProfileExplicit({
       name: finalName,
@@ -197,14 +212,18 @@ export default function App() {
   useEffect(() => {
     if (!isAuthenticated || !store.userProfile?.email) return;
 
-    const currentEmail = store.userProfile.email.toLowerCase();
+    const currentEmail = store.userProfile.email.toLowerCase().trim();
     const account = store.userAccounts.find(u => 
       u.email.toLowerCase() === currentEmail ||
       (currentEmail === 'sarah.johnson@example.com' && u.email.toLowerCase() === 'candidate@copilot.com') ||
-      (currentEmail === 'candidate@copilot.com' && u.email.toLowerCase() === 'sarah.johnson@example.com')
+      (currentEmail === 'candidate@copilot.com' && u.email.toLowerCase() === 'sarah.johnson@example.com') ||
+      (currentEmail === 'sarah.jenkins@gmail.com' && u.email.toLowerCase() === 'recruiter@copilot.com') ||
+      (currentEmail === 'recruiter@copilot.com' && u.email.toLowerCase() === 'sarah.jenkins@gmail.com') ||
+      (currentEmail === 'j.manju.raghvin@gmail.com' && u.email.toLowerCase() === 'admin@copilot.com') ||
+      (currentEmail === 'admin@copilot.com' && u.email.toLowerCase() === 'j.manju.raghvin@gmail.com')
     );
 
-    // 1. If account is REVOKED or REJECTED: IMMEDIATELY TERMINATE SESSION
+    // 1. If account is explicitly REVOKED or REJECTED: IMMEDIATELY TERMINATE SESSION
     if (store.userProfile.status === 'REVOKED' || store.userProfile.status === 'REJECTED' || (account && (account.status === 'REVOKED' || account.status === 'REJECTED'))) {
       setIsAuthenticated(false);
       localStorage.setItem('rc_is_authenticated', 'false');
@@ -212,17 +231,31 @@ export default function App() {
       return;
     }
 
-    // 2. If account was DELETED: IMMEDIATELY REMOVE ACCESS (Protect default system accounts)
+    // 2. Protect default system accounts & registered sessions
     const isDefaultSystemEmail = 
       currentEmail === 'admin@copilot.com' || 
+      currentEmail === 'j.manju.raghvin@gmail.com' ||
       currentEmail === 'recruiter@copilot.com' || 
+      currentEmail === 'sarah.jenkins@gmail.com' ||
       currentEmail === 'sarah.johnson@example.com' || 
-      currentEmail === 'candidate@copilot.com';
+      currentEmail === 'candidate@copilot.com' ||
+      currentEmail === 'sarah.johnson@gmail.com' ||
+      currentEmail === 'abhishek@gmail.com' ||
+      currentEmail === 'omkar.kakumanu17@gmail.com';
 
     if (!account && !store.userProfile.isSuperAdmin && !isDefaultSystemEmail) {
-      setIsAuthenticated(false);
-      localStorage.setItem('rc_is_authenticated', 'false');
-      alert(`Account Removed: Your user account was deleted by the Administrator.`);
+      // Auto-heal session into userAccounts instead of prematurely kicking the active user
+      store.addUserAccount({
+        id: `usr-${Date.now()}`,
+        name: store.userProfile.name,
+        email: store.userProfile.email,
+        role: store.userProfile.role,
+        userType: store.userProfile.userType || 'USER',
+        status: 'APPROVED',
+        isSuperAdmin: false,
+        createdAt: new Date().toISOString().split('T')[0],
+        avatar: store.userProfile.avatar
+      });
       return;
     }
 
@@ -479,6 +512,9 @@ export default function App() {
               onNavigateToMatching={() => setCurrentTab('matching')}
               onNavigateToAts={() => setCurrentTab('ats-integration')}
               onCancelInterview={store.cancelInterview}
+              skillRequests={store.skillRequests}
+              onRequestSkillAddition={store.requestSkillAddition}
+              onUpdateResumeDocument={store.updateCandidateResumeDocument}
               onUpdateAvatar={(newAvatar) => {
                 store.updateUserProfile({ avatar: newAvatar });
               }}
@@ -492,6 +528,10 @@ export default function App() {
               onToggleTheme={toggleTheme}
               onUpdateUserProfile={store.updateUserProfile}
               userAccounts={store.userAccounts}
+              candidates={store.candidates}
+              skillRequests={store.skillRequests}
+              onApproveSkillRequest={store.approveSkillRequest}
+              onRejectSkillRequest={store.rejectSkillRequest}
               onApproveUser={store.approveUser}
               onRejectUser={store.rejectUser}
               onRevokeUserAccess={store.revokeUserAccess}

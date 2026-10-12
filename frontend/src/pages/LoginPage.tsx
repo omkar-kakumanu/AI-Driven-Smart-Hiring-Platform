@@ -78,6 +78,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   // Google OAuth Modal state
   const [showGoogleModal, setShowGoogleModal] = useState(false);
   const [customGmail, setCustomGmail] = useState('');
+  const [googleLoginRole, setGoogleLoginRole] = useState<'CANDIDATE' | 'RECRUITER' | 'ADMIN'>('CANDIDATE');
 
   // Active step state for Hero column
   const [activeStep, setActiveStep] = useState<number>(1);
@@ -100,30 +101,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     }
   };
 
-  // Google SSO Login Handler (Enforces Administrator Approval & Account Registration)
+  // Universal Google SSO Login Handler (Instant access for any Gmail on this device)
   const handleGoogleSelect = (selectedEmail: string, selectedName: string, userRole: string, isAdmin = false) => {
     const cleanMail = selectedEmail.trim().toLowerCase();
-    const isPreApprovedDemo =
-      cleanMail === 'admin@copilot.com' ||
-      cleanMail === 'recruiter@copilot.com' ||
-      cleanMail === 'candidate@copilot.com' ||
-      cleanMail === 'sarah.johnson@example.com' ||
-      cleanMail === 'sarah.jenkins@gmail.com' ||
-      cleanMail === 'j.manju.raghvin@gmail.com' ||
-      cleanMail === 'omkar.kakumanu17@gmail.com' ||
-      cleanMail === 'sailathakakumanu@gmail.com';
-
-    const stored = userAccounts.find(u => u.email.toLowerCase() === cleanMail);
+    const stored = userAccounts.find(u => 
+      u.email.toLowerCase() === cleanMail ||
+      (cleanMail === 'sarah.jenkins@gmail.com' && u.email.toLowerCase() === 'recruiter@copilot.com') ||
+      (cleanMail === 'recruiter@copilot.com' && u.email.toLowerCase() === 'sarah.jenkins@gmail.com') ||
+      (cleanMail === 'sarah.johnson@example.com' && u.email.toLowerCase() === 'candidate@copilot.com') ||
+      (cleanMail === 'candidate@copilot.com' && u.email.toLowerCase() === 'sarah.johnson@example.com') ||
+      (cleanMail === 'j.manju.raghvin@gmail.com' && u.email.toLowerCase() === 'admin@copilot.com') ||
+      (cleanMail === 'admin@copilot.com' && u.email.toLowerCase() === 'j.manju.raghvin@gmail.com')
+    );
 
     if (stored) {
-      if (stored.status === 'PENDING') {
-        setStatusNotice({
-          type: 'PENDING',
-          message: `Access Pending Approval: Your account for "${cleanMail}" is awaiting Administrator review.`
-        });
-        setShowGoogleModal(false);
-        return;
-      }
       if (stored.status === 'REVOKED' || stored.status === 'REJECTED') {
         setStatusNotice({
           type: 'REVOKED',
@@ -138,7 +129,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       onLogin({
         name: finalName,
         role: stored.role || userRole,
-        email: stored.email,
+        email: cleanMail,
         userType: stored.userType || (isAdmin ? 'ADMIN' : 'USER'),
         status: 'APPROVED',
         isSuperAdmin: stored.isSuperAdmin || isAdmin,
@@ -148,27 +139,35 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       return;
     }
 
-    if (isPreApprovedDemo) {
-      const savedAvatar = getPersistedAvatar(cleanMail, undefined);
-      const finalName = getPersistedName(cleanMail, selectedName, userAccounts);
-      onLogin({
-        name: finalName,
-        role: userRole,
-        email: selectedEmail,
-        userType: isAdmin ? 'ADMIN' : 'USER',
-        status: 'APPROVED',
-        isSuperAdmin: isAdmin,
-        avatar: savedAvatar
-      });
-      setShowGoogleModal(false);
-      return;
-    }
+    // New Google / Device Gmail account: INSTANT UNIVERSAL PROVISIONING & LOGIN
+    const effectiveIsAdmin = isAdmin || cleanMail === 'admin@copilot.com' || cleanMail === 'j.manju.raghvin@gmail.com' || googleLoginRole === 'ADMIN';
+    const effectiveIsRecruiter = !effectiveIsAdmin && (
+      userRole.toLowerCase().includes('recruiter') || 
+      userRole.toLowerCase().includes('talent') || 
+      cleanMail === 'recruiter@copilot.com' || 
+      cleanMail === 'sarah.jenkins@gmail.com' || 
+      googleLoginRole === 'RECRUITER'
+    );
 
-    // New unknown user attempting Google / Gmail sign in:
-    const newAcc = onRegister(selectedName, cleanMail, userRole, 'google_sso_verified');
-    setStatusNotice({
-      type: 'PENDING',
-      message: `Access Request Submitted Successfully! Account for "${newAcc.email}" is in PENDING status. An Administrator must approve your access request in Settings before you can log in.`
+    const resolvedRole = effectiveIsAdmin
+      ? 'System Administrator & Hiring Director'
+      : effectiveIsRecruiter
+        ? 'Talent Acquisition Specialist'
+        : 'Candidate Applicant';
+
+    const savedAvatar = getPersistedAvatar(cleanMail, undefined);
+    const finalName = getPersistedName(cleanMail, selectedName, userAccounts);
+
+    onRegister(finalName, cleanMail, resolvedRole, 'google_sso_verified');
+
+    onLogin({
+      name: finalName,
+      role: resolvedRole,
+      email: cleanMail,
+      userType: effectiveIsAdmin ? 'ADMIN' : 'USER',
+      status: 'APPROVED',
+      isSuperAdmin: effectiveIsAdmin,
+      avatar: savedAvatar
     });
     setShowGoogleModal(false);
   };
@@ -185,7 +184,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       .split(' ')
       .map(part => part.charAt(0).toUpperCase() + part.slice(1))
       .join(' ') || 'Applicant';
-    handleGoogleSelect(clean, formattedName, 'Candidate Applicant', false);
+
+    const roleTitle = googleLoginRole === 'ADMIN'
+      ? 'System Administrator & Hiring Director'
+      : googleLoginRole === 'RECRUITER'
+        ? 'Talent Acquisition Specialist'
+        : 'Candidate Applicant';
+
+    handleGoogleSelect(clean, formattedName, roleTitle, googleLoginRole === 'ADMIN');
   };
 
   // Unified Enterprise Authentication Submit Handler
@@ -733,25 +739,73 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               </p>
             </div>
 
-            {/* Predefined Approved Account Chooser */}
-            <div className="space-y-2 pt-1">
+            {/* Role Preference Selector for Universal SSO */}
+            <div className="bg-slate-50 p-2.5 rounded-2xl border border-slate-200 space-y-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block text-center">
+                Sign-In Role for Google Account
+              </span>
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setGoogleLoginRole('CANDIDATE')}
+                  className={`py-1.5 text-center text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
+                    googleLoginRole === 'CANDIDATE'
+                      ? 'bg-purple-600 text-white shadow-xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  Candidate
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGoogleLoginRole('RECRUITER')}
+                  className={`py-1.5 text-center text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
+                    googleLoginRole === 'RECRUITER'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  Recruiter
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGoogleLoginRole('ADMIN')}
+                  className={`py-1.5 text-center text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
+                    googleLoginRole === 'ADMIN'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  Admin
+                </button>
+              </div>
+            </div>
+
+            {/* Recognized Device Accounts */}
+            <div className="space-y-2 pt-1 max-h-56 overflow-y-auto pr-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                Recognized Device Accounts
+              </p>
+
+              {/* Recruiter Sarah Jenkins */}
               <button
                 type="button"
-                onClick={() => handleGoogleSelect('sarah.jenkins@gmail.com', 'Sarah Jenkins', 'Talent Acquisition Lead', false)}
-                className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-2xl hover:border-blue-500 hover:bg-blue-50/50 transition-all text-left cursor-pointer group"
+                onClick={() => handleGoogleSelect('recruiter@copilot.com', 'Sarah Jenkins', 'Talent Acquisition Specialist', false)}
+                className="w-full flex items-center justify-between p-2.5 border border-slate-200 rounded-2xl hover:border-blue-500 hover:bg-blue-50/50 transition-all text-left cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
                     SJ
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-900 block group-hover:text-blue-600">Sarah Jenkins (Recruiter)</span>
-                    <span className="text-[10px] text-slate-500 font-medium">sarah.jenkins@gmail.com</span>
+                    <span className="text-[10px] text-slate-500 font-medium">recruiter@copilot.com • sarah.jenkins@gmail.com</span>
                   </div>
                 </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0" />
               </button>
 
+              {/* Candidate Sarah Johnson */}
               {(() => {
                 const candName = getPersistedName('sarah.johnson@example.com', 'Sarah Johnson', userAccounts);
                 const candInitials = candName.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'SJ';
@@ -759,37 +813,56 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   <button
                     type="button"
                     onClick={() => handleGoogleSelect('sarah.johnson@example.com', candName, 'Candidate Applicant', false)}
-                    className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-2xl hover:border-purple-500 hover:bg-purple-50/50 transition-all text-left cursor-pointer group"
+                    className="w-full flex items-center justify-between p-2.5 border border-slate-200 rounded-2xl hover:border-purple-500 hover:bg-purple-50/50 transition-all text-left cursor-pointer group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-purple-600 text-white font-extrabold text-xs flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-full bg-purple-600 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
                         {candInitials}
                       </div>
                       <div>
                         <span className="text-xs font-bold text-slate-900 block group-hover:text-purple-600">{candName} (Candidate)</span>
-                        <span className="text-[10px] text-slate-500 font-medium">sarah.johnson@example.com</span>
+                        <span className="text-[10px] text-slate-500 font-medium">sarah.johnson@example.com • candidate@copilot.com</span>
                       </div>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all shrink-0" />
                   </button>
                 );
               })()}
 
+              {/* Admin J Manju Raghvin */}
               <button
                 type="button"
-                onClick={() => handleGoogleSelect('j.manju.raghvin@gmail.com', 'J Manju Raghvin', 'System Administrator & Hiring Director', true)}
-                className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-2xl hover:border-slate-900 hover:bg-slate-50 transition-all text-left cursor-pointer group"
+                onClick={() => handleGoogleSelect('admin@copilot.com', 'J Manju Raghvin', 'System Administrator & Hiring Director', true)}
+                className="w-full flex items-center justify-between p-2.5 border border-slate-200 rounded-2xl hover:border-slate-900 hover:bg-slate-50 transition-all text-left cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
                     JM
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-slate-900 block group-hover:text-slate-900">J Manju Raghvin (Admin)</span>
-                    <span className="text-[10px] text-slate-500 font-medium">j.manju.raghvin@gmail.com</span>
+                    <span className="text-xs font-bold text-slate-900 block group-hover:text-slate-900">J Manju Raghvin (Main Super-Admin)</span>
+                    <span className="text-[10px] text-slate-500 font-medium">admin@copilot.com • j.manju.raghvin@gmail.com</span>
                   </div>
                 </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all shrink-0" />
+              </button>
+
+              {/* Candidate Omkar Kakumanu */}
+              <button
+                type="button"
+                onClick={() => handleGoogleSelect('omkar.kakumanu17@gmail.com', 'Omkar Kakumanu', 'Software Engineer / Developer', false)}
+                className="w-full flex items-center justify-between p-2.5 border border-slate-200 rounded-2xl hover:border-emerald-500 hover:bg-emerald-50/50 transition-all text-left cursor-pointer group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
+                    OK
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block group-hover:text-emerald-600">Omkar Kakumanu (Candidate)</span>
+                    <span className="text-[10px] text-slate-500 font-medium">omkar.kakumanu17@gmail.com</span>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all shrink-0" />
               </button>
             </div>
 
@@ -798,32 +871,38 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 <div className="w-full border-t border-slate-200" />
               </div>
               <div className="relative bg-white px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                Or Use Another Gmail Account
+                Or Use Any Device Gmail
               </div>
             </div>
 
             {/* Custom Gmail Input Form */}
             <form onSubmit={handleCustomGmailSubmit} className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Enter Gmail Address</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Universal Google Sign-In (Any Gmail on this device)
+                </label>
                 <div className="relative flex items-center">
                   <input
                     type="email"
                     value={customGmail}
                     onChange={(e) => setCustomGmail(e.target.value)}
-                    placeholder="your.name@gmail.com"
+                    placeholder="Enter any Gmail from this device..."
                     required
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl h-11 px-3.5 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
                   />
                   <Mail className="absolute right-3.5 w-4 h-4 text-slate-400" />
                 </div>
+                <span className="text-[10px] text-slate-500 mt-1 block">
+                  Will sign in as <strong className="text-indigo-600">{googleLoginRole}</strong> with full instant access.
+                </span>
               </div>
 
               <button
                 type="submit"
-                className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>Continue with Gmail</span>
+                <GoogleIcon className="w-4 h-4" />
+                <span>Instant Sign In with Google</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
