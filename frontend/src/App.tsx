@@ -77,16 +77,7 @@ export default function App() {
   );
 
   // A user is a Candidate ONLY if they are NOT an Admin AND NOT a Recruiter!
-  const isCandidateUser = Boolean(
-    !isMainAdmin &&
-    !isRecruiterUser &&
-    store.userProfile?.userType !== 'ADMIN' &&
-    store.userProfile?.email?.toLowerCase() !== 'admin@copilot.com' &&
-    store.userProfile?.email?.toLowerCase() !== 'recruiter@copilot.com' && (
-      store.userProfile?.role?.toLowerCase().includes('candidate') ||
-      store.userProfile?.email?.toLowerCase().includes('candidate')
-    )
-  );
+  const isCandidateUser = Boolean(!isMainAdmin && !isRecruiterUser);
 
   // Filter candidates based on Header Search Query
   const filteredCandidates = store.candidates.filter(c => {
@@ -160,7 +151,11 @@ export default function App() {
     const isAdminAccount = profile.userType === 'ADMIN' || profile.email.toLowerCase() === 'admin@copilot.com';
     const targetEmail = profile.email.toLowerCase();
     const isCandidateEmail = targetEmail === 'candidate@copilot.com' || targetEmail === 'sarah.johnson@example.com';
-    const existingAccount = store.userAccounts.find(u => u.email.toLowerCase() === targetEmail);
+    const existingAccount = store.userAccounts.find(u => 
+      u.email.toLowerCase() === targetEmail ||
+      (targetEmail === 'sarah.johnson@example.com' && u.email.toLowerCase() === 'candidate@copilot.com') ||
+      (targetEmail === 'candidate@copilot.com' && u.email.toLowerCase() === 'sarah.johnson@example.com')
+    );
     const isolatedAvatar = profile.avatar !== undefined 
       ? profile.avatar 
       : (localStorage.getItem(`rc_avatar_${targetEmail}`) || 
@@ -184,12 +179,17 @@ export default function App() {
     });
     setIsAuthenticated(true);
     localStorage.setItem('rc_is_authenticated', 'true');
-    if (isAdminAccount || profile.role?.toLowerCase().includes('recruiter') || profile.role?.toLowerCase().includes('talent')) {
+    
+    const isRecruiterRole = !isAdminAccount && (
+      profile.role?.toLowerCase().includes('recruiter') || 
+      profile.role?.toLowerCase().includes('talent') ||
+      targetEmail === 'recruiter@copilot.com'
+    );
+
+    if (isAdminAccount || isRecruiterRole) {
       setCurrentTab('dashboard');
-    } else if (profile.role?.toLowerCase().includes('candidate') || profile.email?.toLowerCase().includes('candidate')) {
-      setCurrentTab('candidate-portal');
     } else {
-      setCurrentTab('dashboard');
+      setCurrentTab('candidate-portal');
     }
   };
 
@@ -198,7 +198,11 @@ export default function App() {
     if (!isAuthenticated || !store.userProfile?.email) return;
 
     const currentEmail = store.userProfile.email.toLowerCase();
-    const account = store.userAccounts.find(u => u.email.toLowerCase() === currentEmail);
+    const account = store.userAccounts.find(u => 
+      u.email.toLowerCase() === currentEmail ||
+      (currentEmail === 'sarah.johnson@example.com' && u.email.toLowerCase() === 'candidate@copilot.com') ||
+      (currentEmail === 'candidate@copilot.com' && u.email.toLowerCase() === 'sarah.johnson@example.com')
+    );
 
     // 1. If account is REVOKED or REJECTED: IMMEDIATELY TERMINATE SESSION
     if (store.userProfile.status === 'REVOKED' || store.userProfile.status === 'REJECTED' || (account && (account.status === 'REVOKED' || account.status === 'REJECTED'))) {
@@ -208,8 +212,14 @@ export default function App() {
       return;
     }
 
-    // 2. If account was DELETED: IMMEDIATELY REMOVE ACCESS
-    if (!account && !store.userProfile.isSuperAdmin && currentEmail !== 'admin@copilot.com') {
+    // 2. If account was DELETED: IMMEDIATELY REMOVE ACCESS (Protect default system accounts)
+    const isDefaultSystemEmail = 
+      currentEmail === 'admin@copilot.com' || 
+      currentEmail === 'recruiter@copilot.com' || 
+      currentEmail === 'sarah.johnson@example.com' || 
+      currentEmail === 'candidate@copilot.com';
+
+    if (!account && !store.userProfile.isSuperAdmin && !isDefaultSystemEmail) {
       setIsAuthenticated(false);
       localStorage.setItem('rc_is_authenticated', 'false');
       alert(`Account Removed: Your user account was deleted by the Administrator.`);

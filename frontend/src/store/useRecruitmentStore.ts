@@ -25,6 +25,24 @@ const ensureDefaultPreferences = () => {
       localStorage.setItem('rc_avatar_recruiter@copilot.com', DEFAULT_AVATARS.recruiter);
     }
 
+    const defaultNames: Record<string, string> = {
+      'rc_name_admin@copilot.com': 'J Manju Raghvin (Main Super-Admin)',
+      'rc_name_j.manju.raghvin@gmail.com': 'J Manju Raghvin (Main Super-Admin)',
+      'rc_name_recruiter@copilot.com': 'Sarah Jenkins',
+      'rc_name_sarah.jenkins@gmail.com': 'Sarah Jenkins',
+      'rc_name_sarah.johnson@example.com': 'Sarah Johnson',
+      'rc_name_candidate@copilot.com': 'Sarah Johnson',
+      'rc_name_cand-1': 'Sarah Johnson',
+      'rc_name_abhishek@gmail.com': 'Abhishek',
+      'rc_name_omkar.kakumanu17@gmail.com': 'Omkar Kakumanu'
+    };
+    for (const [k, v] of Object.entries(defaultNames)) {
+      const existing = localStorage.getItem(k);
+      if (!existing || existing.toLowerCase().includes('sample') || existing.toLowerCase().includes('alex vance')) {
+        localStorage.setItem(k, v);
+      }
+    }
+
     const defaultPrefs: Record<string, string> = {
       'rc_candidate_prefs_omkar.kakumanu17@gmail.com_status': 'ACTIVELY_LOOKING',
       'rc_candidate_prefs_omkar.kakumanu17@gmail.com_locations': JSON.stringify(["Bengaluru", "Hyderabad"]),
@@ -223,7 +241,7 @@ export function useRecruitmentStore() {
       cand1CustomName = 'Abhishek';
     }
 
-    const sanitized = cands.map(c => {
+    let sanitized = cands.map(c => {
       const cMail = (c.email || '').toLowerCase();
       const orig = initialMap.get(c.id);
       const isCand1 = c.id === 'cand-1' || cMail === 'candidate@copilot.com' || cMail === 'sarah.johnson@example.com';
@@ -232,17 +250,19 @@ export function useRecruitmentStore() {
         return {
           ...c,
           id: 'cand-1',
-          fullName: (cand1CustomName && cand1CustomName.trim()) ? cand1CustomName.trim() : (c.fullName && c.fullName !== 'Candidate' ? c.fullName : 'Sarah Johnson'),
-          email: c.email || 'sarah.johnson@example.com',
-          avatar: cand1CustomAvatar || c.avatar
+          fullName: (cand1CustomName && cand1CustomName.trim() && !cand1CustomName.toLowerCase().includes('sample'))
+            ? cand1CustomName.trim()
+            : (c.fullName && c.fullName !== 'Candidate' && !c.fullName.toLowerCase().includes('sample') ? c.fullName : 'Sarah Johnson'),
+          email: 'sarah.johnson@example.com',
+          avatar: cand1CustomAvatar || c.avatar || DEFAULT_AVATARS.candidate
         };
       }
 
       if (orig) {
         const specificCustomName = localStorage.getItem(`rc_name_${cMail}`) || localStorage.getItem(`rc_name_${c.id}`);
-        const cleanName = (specificCustomName && specificCustomName.trim())
+        const cleanName = (specificCustomName && specificCustomName.trim() && !specificCustomName.toLowerCase().includes('sample'))
           ? specificCustomName.trim()
-          : (c.fullName || orig.fullName);
+          : (orig.fullName && !orig.fullName.toLowerCase().includes('sample') ? orig.fullName : (c.fullName || 'Candidate'));
 
         const savedSpecificAvatar = localStorage.getItem(`rc_avatar_${cMail}`) || localStorage.getItem(`rc_avatar_${c.id}`);
 
@@ -260,6 +280,28 @@ export function useRecruitmentStore() {
       // User-uploaded candidate (e.g. cand-1727...)
       return c;
     });
+
+    // Guarantee that Sarah Johnson (cand-1) is always present in candidate database
+    const hasCand1 = sanitized.some(c => c.id === 'cand-1' || (c.email || '').toLowerCase() === 'sarah.johnson@example.com');
+    if (!hasCand1) {
+      const defaultSarah: Candidate = {
+        id: 'cand-1',
+        fullName: 'Sarah Johnson',
+        email: 'sarah.johnson@example.com',
+        phone: '+1 (555) 019-2831',
+        location: 'San Francisco, CA',
+        currentRole: 'Senior Machine Learning Engineer',
+        totalExperienceYears: 5,
+        headline: 'Senior ML Engineer with 5 years experience in Python, TensorFlow, PyTorch',
+        skills: ['Python', 'Machine Learning', 'TensorFlow', 'PyTorch', 'SQL', 'Data Analysis', 'AWS SageMaker', 'Docker'],
+        degree: 'MS Computer Science',
+        institution: 'Stanford University',
+        status: 'Interview in progress',
+        matchScore: 92,
+        interviewResponses: []
+      };
+      sanitized = [defaultSarah, ...sanitized];
+    }
 
     localStorage.setItem('rc_candidates', JSON.stringify(sanitized));
     return sanitized;
@@ -295,7 +337,18 @@ export function useRecruitmentStore() {
     },
     {
       id: 'usr-cand-1',
-      name: 'Sarah Johnson (Candidate)',
+      name: 'Sarah Johnson',
+      email: 'sarah.johnson@example.com',
+      role: 'Candidate Applicant',
+      userType: 'USER',
+      status: 'APPROVED',
+      createdAt: '2026-02-15',
+      password: 'candidate123',
+      avatar: DEFAULT_AVATARS.candidate
+    },
+    {
+      id: 'usr-cand-alias',
+      name: 'Sarah Johnson',
       email: 'candidate@copilot.com',
       role: 'Candidate Applicant',
       userType: 'USER',
@@ -306,7 +359,7 @@ export function useRecruitmentStore() {
     },
     {
       id: 'usr-cand-2',
-      name: 'Abhishek (Candidate)',
+      name: 'Abhishek',
       email: 'abhishek@gmail.com',
       role: 'AI/ML Engineering Student & Full Stack Developer',
       userType: 'USER',
@@ -316,7 +369,7 @@ export function useRecruitmentStore() {
     },
     {
       id: 'usr-cand-3',
-      name: 'Omkar Kakumanu (Candidate)',
+      name: 'Omkar Kakumanu',
       email: 'omkar.kakumanu17@gmail.com',
       role: 'Software Engineer / Developer',
       userType: 'USER',
@@ -341,7 +394,7 @@ export function useRecruitmentStore() {
       }
     }
 
-    // Always guarantee Super Admin account admin@copilot.com exists with J Manju Raghvin
+    // 1. Always guarantee Super Admin account admin@copilot.com exists with J Manju Raghvin
     const adminIndex = accounts.findIndex(u => u.id === 'usr-admin-1' || u.email.toLowerCase() === 'admin@copilot.com');
     if (adminIndex >= 0) {
       const curName = accounts[adminIndex].name;
@@ -354,13 +407,66 @@ export function useRecruitmentStore() {
         userType: 'ADMIN',
         status: 'APPROVED',
         isSuperAdmin: true,
-        password: 'admin123'
+        password: 'admin123',
+        avatar: accounts[adminIndex].avatar || DEFAULT_AVATARS.admin
       };
     } else {
       accounts.unshift(INITIAL_USERS[0]);
     }
 
-    // Ensure each account has its own isolated avatar and persisted custom name
+    // 2. Always guarantee Default Recruiter recruiter@copilot.com exists with Sarah Jenkins
+    const recruiterIndex = accounts.findIndex(u => u.email.toLowerCase() === 'recruiter@copilot.com');
+    if (recruiterIndex >= 0) {
+      accounts[recruiterIndex] = {
+        ...accounts[recruiterIndex],
+        id: 'usr-recruiter-1',
+        name: accounts[recruiterIndex].name || 'Sarah Jenkins',
+        email: 'recruiter@copilot.com',
+        role: accounts[recruiterIndex].role || 'Talent Acquisition Specialist',
+        status: 'APPROVED',
+        password: 'recruiter123',
+        avatar: accounts[recruiterIndex].avatar || DEFAULT_AVATARS.recruiter
+      };
+    } else {
+      accounts.splice(1, 0, INITIAL_USERS[1]);
+    }
+
+    // 3. Always guarantee Default Candidate sarah.johnson@example.com exists with Sarah Johnson
+    const cand1Index = accounts.findIndex(u => u.email.toLowerCase() === 'sarah.johnson@example.com');
+    if (cand1Index >= 0) {
+      const curCandName = accounts[cand1Index].name;
+      const cleanCandName = (!curCandName || curCandName.toLowerCase().includes('sample')) ? 'Sarah Johnson' : curCandName;
+      accounts[cand1Index] = {
+        ...accounts[cand1Index],
+        id: 'usr-cand-1',
+        name: cleanCandName,
+        email: 'sarah.johnson@example.com',
+        role: accounts[cand1Index].role || 'Candidate Applicant',
+        status: 'APPROVED',
+        password: 'candidate123',
+        avatar: accounts[cand1Index].avatar || DEFAULT_AVATARS.candidate
+      };
+    } else {
+      accounts.splice(2, 0, INITIAL_USERS[2]);
+    }
+
+    // 4. Always guarantee candidate@copilot.com alias exists with Sarah Johnson
+    const candAliasIndex = accounts.findIndex(u => u.email.toLowerCase() === 'candidate@copilot.com');
+    if (candAliasIndex >= 0) {
+      accounts[candAliasIndex] = {
+        ...accounts[candAliasIndex],
+        name: 'Sarah Johnson',
+        email: 'candidate@copilot.com',
+        role: accounts[candAliasIndex].role || 'Candidate Applicant',
+        status: 'APPROVED',
+        password: 'candidate123',
+        avatar: accounts[candAliasIndex].avatar || DEFAULT_AVATARS.candidate
+      };
+    } else {
+      accounts.splice(3, 0, INITIAL_USERS[3]);
+    }
+
+    // Ensure custom persisted names and avatars are applied
     accounts = accounts.map(u => {
       const uMail = u.email.toLowerCase();
       const savedName = localStorage.getItem(`rc_name_${uMail}`) ||
@@ -369,11 +475,12 @@ export function useRecruitmentStore() {
           : null);
       return {
         ...u,
-        name: (savedName && savedName.trim()) ? savedName.trim() : u.name,
+        name: (savedName && savedName.trim() && !savedName.toLowerCase().includes('sample')) ? savedName.trim() : u.name,
         avatar: u.avatar || localStorage.getItem(`rc_avatar_${uMail}`) || undefined
       };
     });
 
+    safeStorageSet('rc_user_accounts', JSON.stringify(accounts));
     return accounts;
   });
 
@@ -867,12 +974,19 @@ export function useRecruitmentStore() {
   };
 
   const clearAllCandidates = () => {
+    localStorage.setItem('rc_name_sarah.johnson@example.com', 'Sarah Johnson');
+    localStorage.setItem('rc_name_candidate@copilot.com', 'Sarah Johnson');
+    localStorage.setItem('rc_name_cand-1', 'Sarah Johnson');
     setCandidates(INITIAL_CANDIDATES);
     setActiveCandidateId(INITIAL_CANDIDATES[0]?.id || '');
     localStorage.setItem('rc_candidates', JSON.stringify(INITIAL_CANDIDATES));
   };
 
   const clearAllUserAccounts = () => {
+    localStorage.setItem('rc_name_admin@copilot.com', 'J Manju Raghvin (Main Super-Admin)');
+    localStorage.setItem('rc_name_recruiter@copilot.com', 'Sarah Jenkins');
+    localStorage.setItem('rc_name_sarah.johnson@example.com', 'Sarah Johnson');
+    localStorage.setItem('rc_name_candidate@copilot.com', 'Sarah Johnson');
     setUserAccounts(INITIAL_USERS);
     localStorage.setItem('rc_user_accounts', JSON.stringify(INITIAL_USERS));
   };
