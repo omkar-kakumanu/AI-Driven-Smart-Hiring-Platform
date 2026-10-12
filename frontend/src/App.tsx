@@ -198,7 +198,11 @@ export default function App() {
     if (!isAuthenticated || !store.userProfile?.email) return;
 
     const currentEmail = store.userProfile.email.toLowerCase();
-    const account = store.userAccounts.find(u => u.email.toLowerCase() === currentEmail);
+    const account = store.userAccounts.find(u => 
+      u.email.toLowerCase() === currentEmail ||
+      (currentEmail === 'sarah.johnson@example.com' && u.email.toLowerCase() === 'candidate@copilot.com') ||
+      (currentEmail === 'candidate@copilot.com' && u.email.toLowerCase() === 'sarah.johnson@example.com')
+    );
 
     // 1. If account is REVOKED or REJECTED: IMMEDIATELY TERMINATE SESSION
     if (store.userProfile.status === 'REVOKED' || store.userProfile.status === 'REJECTED' || (account && (account.status === 'REVOKED' || account.status === 'REJECTED'))) {
@@ -208,8 +212,14 @@ export default function App() {
       return;
     }
 
-    // 2. If account was DELETED: IMMEDIATELY REMOVE ACCESS
-    if (!account && !store.userProfile.isSuperAdmin && currentEmail !== 'admin@copilot.com') {
+    // 2. If account was DELETED: IMMEDIATELY REMOVE ACCESS (Protect default system accounts)
+    const isDefaultSystemEmail = 
+      currentEmail === 'admin@copilot.com' || 
+      currentEmail === 'recruiter@copilot.com' || 
+      currentEmail === 'sarah.johnson@example.com' || 
+      currentEmail === 'candidate@copilot.com';
+
+    if (!account && !store.userProfile.isSuperAdmin && !isDefaultSystemEmail) {
       setIsAuthenticated(false);
       localStorage.setItem('rc_is_authenticated', 'false');
       alert(`Account Removed: Your user account was deleted by the Administrator.`);
@@ -491,6 +501,7 @@ export default function App() {
               onMakeUserRecruiter={store.makeUserRecruiter}
               onMakeUserCandidate={store.makeUserCandidate}
               onRemoveUserRecruiter={store.removeUserRecruiter}
+              onUpdateUserRole={store.updateUserRole}
               onClearAllCandidates={store.clearAllCandidates}
               onClearAllUserAccounts={store.clearAllUserAccounts}
               onRestoreDefaultJobs={store.restoreDefaultJobs}

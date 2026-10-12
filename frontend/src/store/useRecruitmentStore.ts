@@ -261,6 +261,29 @@ export function useRecruitmentStore() {
       return c;
     });
 
+    // Guarantee that Sarah Johnson (cand-1) is always present in candidate database
+    const hasCand1 = sanitized.some(c => c.id === 'cand-1' || (c.email || '').toLowerCase() === 'sarah.johnson@example.com' || (c.email || '').toLowerCase() === 'candidate@copilot.com');
+    if (!hasCand1) {
+      const defaultSarah: Candidate = {
+        id: 'cand-1',
+        fullName: (cand1CustomName && cand1CustomName.trim()) ? cand1CustomName.trim() : 'Sarah Johnson',
+        email: 'sarah.johnson@example.com',
+        phone: '+1 (555) 019-2831',
+        location: 'San Francisco, CA',
+        currentRole: 'Senior Machine Learning Engineer',
+        totalExperienceYears: 5,
+        headline: 'Senior ML Engineer with 5 years experience in Python, TensorFlow, PyTorch, MLOps',
+        skills: ['Python', 'Machine Learning', 'TensorFlow', 'PyTorch', 'SQL', 'Data Analysis', 'AWS SageMaker', 'Docker'],
+        degree: 'MS Computer Science',
+        institution: 'Stanford University',
+        status: 'Applied',
+        matchScore: 92,
+        avatar: cand1CustomAvatar || DEFAULT_AVATARS.candidate,
+        interviewResponses: []
+      };
+      sanitized = [defaultSarah, ...sanitized];
+    }
+
     localStorage.setItem('rc_candidates', JSON.stringify(sanitized));
     return sanitized;
   });
@@ -284,7 +307,7 @@ export function useRecruitmentStore() {
     },
     {
       id: 'usr-recruiter-1',
-      name: 'Sarah Jenkins',
+      name: 'Sarah Jenkins (Recruiter)',
       email: 'recruiter@copilot.com',
       role: 'Talent Acquisition Specialist',
       userType: 'USER',
@@ -295,6 +318,17 @@ export function useRecruitmentStore() {
     },
     {
       id: 'usr-cand-1',
+      name: 'Sarah Johnson (Candidate)',
+      email: 'sarah.johnson@example.com',
+      role: 'Candidate Applicant',
+      userType: 'USER',
+      status: 'APPROVED',
+      createdAt: '2026-02-15',
+      password: 'candidate123',
+      avatar: DEFAULT_AVATARS.candidate
+    },
+    {
+      id: 'usr-cand-alias',
       name: 'Sarah Johnson (Candidate)',
       email: 'candidate@copilot.com',
       role: 'Candidate Applicant',
@@ -341,7 +375,7 @@ export function useRecruitmentStore() {
       }
     }
 
-    // Always guarantee Super Admin account admin@copilot.com exists with J Manju Raghvin
+    // 1. Always guarantee Super Admin account admin@copilot.com exists with J Manju Raghvin
     const adminIndex = accounts.findIndex(u => u.id === 'usr-admin-1' || u.email.toLowerCase() === 'admin@copilot.com');
     if (adminIndex >= 0) {
       const curName = accounts[adminIndex].name;
@@ -354,10 +388,64 @@ export function useRecruitmentStore() {
         userType: 'ADMIN',
         status: 'APPROVED',
         isSuperAdmin: true,
-        password: 'admin123'
+        password: accounts[adminIndex].password || 'admin123',
+        avatar: accounts[adminIndex].avatar || DEFAULT_AVATARS.admin
       };
     } else {
       accounts.unshift(INITIAL_USERS[0]);
+    }
+
+    // 2. Always guarantee Default Recruiter recruiter@copilot.com exists with Sarah Jenkins
+    const recruiterIndex = accounts.findIndex(u => u.email.toLowerCase() === 'recruiter@copilot.com');
+    if (recruiterIndex >= 0) {
+      accounts[recruiterIndex] = {
+        ...accounts[recruiterIndex],
+        id: accounts[recruiterIndex].id || 'usr-recruiter-1',
+        name: accounts[recruiterIndex].name || 'Sarah Jenkins (Recruiter)',
+        email: 'recruiter@copilot.com',
+        role: accounts[recruiterIndex].role || 'Talent Acquisition Specialist',
+        status: 'APPROVED',
+        password: accounts[recruiterIndex].password || 'recruiter123',
+        avatar: accounts[recruiterIndex].avatar || DEFAULT_AVATARS.recruiter
+      };
+    } else {
+      accounts.splice(1, 0, INITIAL_USERS[1]);
+    }
+
+    // 3. Always guarantee Default Candidate sarah.johnson@example.com exists with Sarah Johnson
+    const cand1Index = accounts.findIndex(u => u.email.toLowerCase() === 'sarah.johnson@example.com');
+    if (cand1Index >= 0) {
+      const curCandName = accounts[cand1Index].name;
+      const cleanCandName = (!curCandName || curCandName.toLowerCase().includes('sample')) ? 'Sarah Johnson (Candidate)' : curCandName;
+      accounts[cand1Index] = {
+        ...accounts[cand1Index],
+        id: accounts[cand1Index].id || 'usr-cand-1',
+        name: cleanCandName,
+        email: 'sarah.johnson@example.com',
+        role: accounts[cand1Index].role || 'Candidate Applicant',
+        status: 'APPROVED',
+        password: accounts[cand1Index].password || 'candidate123',
+        avatar: accounts[cand1Index].avatar || DEFAULT_AVATARS.candidate
+      };
+    } else {
+      accounts.splice(2, 0, INITIAL_USERS[2]);
+    }
+
+    // 4. Always guarantee candidate@copilot.com alias exists with Sarah Johnson
+    const candAliasIndex = accounts.findIndex(u => u.email.toLowerCase() === 'candidate@copilot.com');
+    if (candAliasIndex >= 0) {
+      accounts[candAliasIndex] = {
+        ...accounts[candAliasIndex],
+        id: accounts[candAliasIndex].id || 'usr-cand-alias',
+        name: accounts[candAliasIndex].name || 'Sarah Johnson (Candidate)',
+        email: 'candidate@copilot.com',
+        role: accounts[candAliasIndex].role || 'Candidate Applicant',
+        status: 'APPROVED',
+        password: accounts[candAliasIndex].password || 'candidate123',
+        avatar: accounts[candAliasIndex].avatar || DEFAULT_AVATARS.candidate
+      };
+    } else {
+      accounts.splice(3, 0, INITIAL_USERS[3]);
     }
 
     // Ensure each account has its own isolated avatar and persisted custom name
@@ -374,6 +462,7 @@ export function useRecruitmentStore() {
       };
     });
 
+    safeStorageSet('rc_user_accounts', JSON.stringify(accounts));
     return accounts;
   });
 
@@ -866,13 +955,58 @@ export function useRecruitmentStore() {
     makeUserCandidate(userId);
   };
 
+  const updateUserRole = (userId: string, newRole: string, newTier?: 'ADMIN' | 'RECRUITER' | 'CANDIDATE', newName?: string) => {
+    setUserAccounts(prev => prev.map(u => {
+      if (u.id === userId) {
+        if (u.isSuperAdmin && newTier && newTier !== 'ADMIN') return u; // Main Super Admin protected from demotion
+        const currentTier: 'ADMIN' | 'RECRUITER' | 'CANDIDATE' = u.userType === 'ADMIN' ? 'ADMIN' : (u.role.toLowerCase().includes('recruiter') || u.role.toLowerCase().includes('talent')) ? 'RECRUITER' : 'CANDIDATE';
+        const determinedTier = newTier || currentTier;
+        const finalType: 'ADMIN' | 'USER' = determinedTier === 'ADMIN' ? 'ADMIN' : 'USER';
+        const finalRole = newRole.trim() || (determinedTier === 'ADMIN' ? 'System Administrator' : determinedTier === 'RECRUITER' ? 'Talent Acquisition Specialist' : 'Candidate Applicant');
+        const finalName = (newName && newName.trim()) ? newName.trim() : u.name;
+
+        // If this user is currently logged in, update active session
+        if (userProfile && userProfile.email.toLowerCase() === u.email.toLowerCase()) {
+          setUserProfile(p => ({
+            ...p,
+            name: finalName,
+            userType: finalType,
+            isSuperAdmin: determinedTier === 'ADMIN' ? (u.isSuperAdmin || false) : false,
+            role: finalRole
+          }));
+        }
+
+        // Persist custom name if changed
+        if (newName && newName.trim()) {
+          safeStorageSet(`rc_name_${u.email.toLowerCase()}`, finalName);
+        }
+
+        return {
+          ...u,
+          name: finalName,
+          userType: finalType,
+          role: finalRole,
+          status: 'APPROVED' as const
+        };
+      }
+      return u;
+    }));
+  };
+
   const clearAllCandidates = () => {
+    localStorage.setItem('rc_name_sarah.johnson@example.com', 'Sarah Johnson');
+    localStorage.setItem('rc_name_candidate@copilot.com', 'Sarah Johnson');
+    localStorage.setItem('rc_name_cand-1', 'Sarah Johnson');
     setCandidates(INITIAL_CANDIDATES);
     setActiveCandidateId(INITIAL_CANDIDATES[0]?.id || '');
     localStorage.setItem('rc_candidates', JSON.stringify(INITIAL_CANDIDATES));
   };
 
   const clearAllUserAccounts = () => {
+    localStorage.setItem('rc_name_admin@copilot.com', 'J Manju Raghvin (Main Super-Admin)');
+    localStorage.setItem('rc_name_recruiter@copilot.com', 'Sarah Jenkins (Recruiter)');
+    localStorage.setItem('rc_name_sarah.johnson@example.com', 'Sarah Johnson (Candidate)');
+    localStorage.setItem('rc_name_candidate@copilot.com', 'Sarah Johnson (Candidate)');
     setUserAccounts(INITIAL_USERS);
     localStorage.setItem('rc_user_accounts', JSON.stringify(INITIAL_USERS));
   };
@@ -1212,6 +1346,7 @@ export function useRecruitmentStore() {
     makeUserRecruiter,
     makeUserCandidate,
     removeUserRecruiter,
+    updateUserRole,
     registerUser,
     clearAllCandidates,
     clearAllUserAccounts,

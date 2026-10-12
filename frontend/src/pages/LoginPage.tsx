@@ -285,11 +285,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     const isAdmin = targetAccount.userType === 'ADMIN' || targetAccount.isSuperAdmin === true || targetAccount.email.toLowerCase() === 'admin@copilot.com';
     const savedAvatar = getPersistedAvatar(targetAccount.email, targetAccount.avatar);
     const resolvedName = getPersistedName(targetAccount.email, targetAccount.name, userAccounts);
+    const finalEmail = (emailClean === 'sarah.johnson@example.com' || emailClean === 'candidate@copilot.com')
+      ? emailClean
+      : targetAccount.email;
 
     onLogin({
       name: resolvedName,
       role: targetAccount.role || (isAdmin ? 'System Administrator' : 'Talent Acquisition Specialist'),
-      email: targetAccount.email,
+      email: finalEmail,
       userType: isAdmin ? 'ADMIN' : 'USER',
       status: 'APPROVED',
       isSuperAdmin: isAdmin,
@@ -485,7 +488,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-2.5 space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Quick Demo Credentials
+                  Default System Credentials
                 </span>
                 <span className="text-[10px] text-slate-400 font-medium">Click to populate</span>
               </div>
@@ -493,38 +496,56 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 <button
                   type="button"
                   onClick={() => handleQuickFill('ADMIN')}
-                  className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center py-2 px-1.5 rounded-xl text-center border transition-all cursor-pointer ${
                     email === 'admin@copilot.com'
                       ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                   }`}
+                  title="J Manju Raghvin (admin@copilot.com | admin123)"
                 >
-                  <Shield className="w-3 h-3 text-blue-500 shrink-0" />
-                  <span className="truncate">Admin</span>
+                  <div className="flex items-center gap-1">
+                    <Shield className="w-3 h-3 text-blue-500 shrink-0" />
+                    <span className="text-[11px] font-bold">Admin</span>
+                  </div>
+                  <span className={`text-[9.5px] truncate max-w-full font-medium ${email === 'admin@copilot.com' ? 'text-slate-300' : 'text-slate-500'}`}>
+                    J Manju Raghvin
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQuickFill('RECRUITER')}
-                  className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center py-2 px-1.5 rounded-xl text-center border transition-all cursor-pointer ${
                     email === 'recruiter@copilot.com'
                       ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                   }`}
+                  title="Sarah Jenkins (recruiter@copilot.com | recruiter123)"
                 >
-                  <Briefcase className="w-3 h-3 text-blue-500 shrink-0" />
-                  <span className="truncate">Recruiter</span>
+                  <div className="flex items-center gap-1">
+                    <Briefcase className="w-3 h-3 text-blue-400 shrink-0" />
+                    <span className="text-[11px] font-bold">Recruiter</span>
+                  </div>
+                  <span className={`text-[9.5px] truncate max-w-full font-medium ${email === 'recruiter@copilot.com' ? 'text-blue-100' : 'text-slate-500'}`}>
+                    Sarah Jenkins
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQuickFill('CANDIDATE')}
-                  className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center py-2 px-1.5 rounded-xl text-center border transition-all cursor-pointer ${
                     email === 'sarah.johnson@example.com' || email === 'candidate@copilot.com'
                       ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                   }`}
+                  title="Sarah Johnson (sarah.johnson@example.com | candidate123)"
                 >
-                  <User className="w-3 h-3 text-purple-500 shrink-0" />
-                  <span className="truncate">Candidate</span>
+                  <div className="flex items-center gap-1">
+                    <User className="w-3 h-3 text-purple-400 shrink-0" />
+                    <span className="text-[11px] font-bold">Candidate</span>
+                  </div>
+                  <span className={`text-[9.5px] truncate max-w-full font-medium ${email === 'sarah.johnson@example.com' || email === 'candidate@copilot.com' ? 'text-purple-100' : 'text-slate-500'}`}>
+                    Sarah Johnson
+                  </span>
                 </button>
               </div>
             </div>
