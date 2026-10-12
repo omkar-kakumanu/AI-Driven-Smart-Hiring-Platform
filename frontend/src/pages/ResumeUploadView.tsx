@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Candidate, CandidateResumeDocument, SkillAdditionRequest } from '../types';
+import { EditCandidateSkillsModal } from '../components/EditCandidateSkillsModal';
 import { UserAvatar } from '../components/UserAvatar';
 import { Edit3, Sparkles, PlusCircle, AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -1223,7 +1224,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
         isOpen={Boolean(editingCandidate)}
         onClose={() => setEditingCandidate(null)}
         candidate={editingCandidate}
-        onSaveSkills={(candidateId, updatedSkills) => {
+        onSaveSkills={(candidateId: string, updatedSkills: string[]) => {
           if (onUpdateCandidateSkills) {
             onUpdateCandidateSkills(candidateId, updatedSkills);
           }
