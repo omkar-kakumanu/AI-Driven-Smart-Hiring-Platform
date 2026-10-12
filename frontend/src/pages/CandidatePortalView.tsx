@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import type { Candidate, Job, ScheduledInterview, CandidateNotification, UserProfile } from '../types';
+import type { Candidate, Job, ScheduledInterview, CandidateNotification, UserProfile, SkillAdditionRequest, CandidateResumeDocument } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
-import { Target, Share2, Mic, Bot, Check, Briefcase, MapPin, Calendar, Video, Zap, Sparkles, Bell } from 'lucide-react';
+import { Target, Share2, Mic, Bot, Check, Briefcase, MapPin, Calendar, Video, Zap, Sparkles, Bell, FileText, Download, PlusCircle, Clock, AlertTriangle, CheckCircle2, XCircle, X, ExternalLink, ShieldCheck } from 'lucide-react';
 
 interface CandidatePortalViewProps {
   candidates: Candidate[];
@@ -18,6 +18,9 @@ interface CandidatePortalViewProps {
   onNavigateToAts?: () => void;
   onCancelInterview?: (id: string) => void;
   onUpdateAvatar?: (avatar: string) => void;
+  skillRequests?: SkillAdditionRequest[];
+  onRequestSkillAddition?: (req: Omit<SkillAdditionRequest, 'id' | 'status' | 'requestedAt'>) => void;
+  onUpdateResumeDocument?: (candidateId: string, doc: CandidateResumeDocument) => void;
 }
 
 const formatIndianLocation = (loc?: string) => {
@@ -99,8 +102,18 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
   onNavigateToMatching,
   onNavigateToAts,
   onCancelInterview,
-  onUpdateAvatar
+  onUpdateAvatar,
+  skillRequests = [],
+  onRequestSkillAddition,
+  onUpdateResumeDocument
 }) => {
+  const [showSkillRequestModal, setShowSkillRequestModal] = useState(false);
+  const [reqSkillName, setReqSkillName] = useState('');
+  const [reqCategory, setReqCategory] = useState('Frameworks & Libraries');
+  const [reqProficiency, setReqProficiency] = useState<'Beginner' | 'Intermediate' | 'Advanced' | 'Expert'>('Advanced');
+  const [reqReasonNote, setReqReasonNote] = useState('');
+  const [showResumeViewer, setShowResumeViewer] = useState(false);
+  const [reqSubmittedNotice, setReqSubmittedNotice] = useState<string | null>(null);
   const emailLower = (currentCandidateEmail || userProfile?.email || 'candidate@copilot.com').toLowerCase();
   const isCandidateEmail = emailLower === 'candidate@copilot.com' || emailLower === 'sarah.johnson@example.com';
 
@@ -747,53 +760,406 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
           </div>
 
           {/* Profile & Skills Overview */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h4 className="font-extrabold text-slate-900 text-sm">Resume & Technical Profile</h4>
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
+              <div>
+                <h4 className="font-extrabold text-slate-900 text-sm">Resume Document & Technical Profile</h4>
+                <p className="text-slate-500 text-[11px] font-medium">Stored in database for automated verification and ATS alignment</p>
+              </div>
               <div className="flex items-center gap-2">
-                {onNavigateToMatching && (
-                  <button
-                    onClick={onNavigateToMatching}
-                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
-                  >
-                    Skill Alignment →
-                  </button>
-                )}
-                {onNavigateToResume && (
-                  <button
-                    onClick={onNavigateToResume}
-                    className="text-xs font-bold text-blue-600 hover:text-blue-800 cursor-pointer"
-                  >
-                    Edit Resume →
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setShowSkillRequestModal(true)}
+                  className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>Request Skill Addition</span>
+                </button>
               </div>
             </div>
 
-            <div className="space-y-3 text-xs">
-              <div>
-                <p className="text-slate-400 font-bold text-[10px] uppercase">Education</p>
-                <p className="font-bold text-slate-800">{activeCandidate.degree || 'BS Computer Science'} — {activeCandidate.institution || 'University'}</p>
-              </div>
+            {/* Stored Resume File Box */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-50/50 via-slate-50 to-blue-50/30 border border-indigo-100/80 space-y-2.5">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h5 className="font-black text-slate-900 text-xs truncate max-w-[200px] sm:max-w-xs">
+                      {activeCandidate.resumeDocument?.fileName || `${activeCandidate.fullName.replace(/\s+/g, '_')}_Resume.pdf`}
+                    </h5>
+                    <p className="text-[10px] text-slate-500 font-semibold">
+                      {activeCandidate.resumeDocument?.fileType || 'application/pdf'} • {activeCandidate.resumeDocument?.fileSize ? `${Math.round(activeCandidate.resumeDocument.fileSize / 1024)} KB` : '148 KB'} • Synced with MySQL
+                    </p>
+                  </div>
+                </div>
 
-              <div>
-                <p className="text-slate-400 font-bold text-[10px] uppercase mb-1.5">Extracted Technical Skills</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {(activeCandidate.skills || []).map(skill => (
-                    <span
-                      key={skill}
-                      className="px-2.5 py-1 bg-slate-100 text-slate-800 rounded-lg font-bold text-[11px] border border-slate-200/80"
-                    >
-                      {skill}
-                    </span>
-                  ))}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowResumeViewer(true)}
+                    className="px-3 py-1.5 bg-white hover:bg-slate-50 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center gap-1 cursor-pointer"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Inspect Resume</span>
+                  </button>
+
+                  <a
+                    href={activeCandidate.resumeDocument?.dataUrl || `data:text/plain;charset=utf-8,${encodeURIComponent(activeCandidate.resumeDocument?.extractedText || activeCandidate.headline)}`}
+                    download={activeCandidate.resumeDocument?.fileName || `${activeCandidate.fullName.replace(/\s+/g, '_')}_Resume.pdf`}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download</span>
+                  </a>
                 </div>
               </div>
+
+              <div className="flex items-center gap-2 text-[11px] text-emerald-700 font-bold bg-emerald-50/80 p-2 rounded-xl border border-emerald-200/60">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Original document is saved in the database so recruiters & administrators can verify skill authenticity before approving requests.</span>
+              </div>
+            </div>
+
+            {/* Education Info */}
+            <div className="space-y-1 text-xs">
+              <p className="text-slate-400 font-bold text-[10px] uppercase">Education</p>
+              <p className="font-bold text-slate-800">{activeCandidate.degree || 'BS Computer Science'} — {activeCandidate.institution || 'University'}</p>
+            </div>
+
+            {/* Extracted Technical Skills */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-slate-500 font-black text-[11px] uppercase tracking-wider">
+                  Verified Technical Skills ({activeCandidate.skills?.length || 0})
+                </p>
+                <span className="text-[10px] text-slate-400 font-medium">Protected against direct tampering</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {(activeCandidate.skills || []).map(skill => (
+                  <span
+                    key={skill}
+                    className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 text-slate-800 rounded-lg font-bold text-[11px] border border-slate-200/80 transition-all flex items-center gap-1"
+                  >
+                    <Check className="w-3 h-3 text-emerald-600" />
+                    <span>{skill}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Candidate's Skill Addition Requests Tracking */}
+            <div className="space-y-3 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-indigo-600" />
+                  <h5 className="font-extrabold text-slate-900 text-xs">
+                    My Skill Addition Requests
+                  </h5>
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
+                  {mySkillRequests.length} Requests
+                </span>
+              </div>
+
+              {mySkillRequests.length === 0 ? (
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center space-y-1">
+                  <p className="text-xs font-bold text-slate-600">No skill addition requests raised yet.</p>
+                  <p className="text-[11px] text-slate-500">
+                    If any of your skills were missed during automated resume parsing, click <strong className="text-indigo-600">"Request Skill Addition"</strong> above.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {mySkillRequests.map(req => {
+                    const statusBadge = {
+                      PENDING: 'bg-amber-100 text-amber-900 border-amber-300',
+                      APPROVED: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+                      REJECTED: 'bg-rose-100 text-rose-900 border-rose-300'
+                    }[req.status];
+
+                    return (
+                      <div
+                        key={req.id}
+                        className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-1.5 text-xs transition-all hover:border-slate-300"
+                      >
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-md font-black text-xs bg-indigo-100 text-indigo-800 border border-indigo-200">
+                              {req.skillName}
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-medium">({req.category || 'Technical Skill'} • {req.proficiency || 'Proficient'})</span>
+                          </div>
+
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${statusBadge}`}>
+                            {req.status === 'PENDING' && 'Pending Admin/Recruiter Review'}
+                            {req.status === 'APPROVED' && 'Approved & Added to Profile'}
+                            {req.status === 'REJECTED' && 'Declined by Reviewer'}
+                          </span>
+                        </div>
+
+                        <p className="text-[11px] text-slate-600">
+                          <strong className="text-slate-700">Resume Reference:</strong> {req.reasonNote}
+                        </p>
+
+                        {req.reviewNote && (
+                          <div className={`p-2 rounded-xl text-[10px] font-medium border ${req.status === 'APPROVED' ? 'bg-emerald-50/80 text-emerald-800 border-emerald-200' : 'bg-rose-50/80 text-rose-800 border-rose-200'}`}>
+                            <strong>Reviewer Note:</strong> {req.reviewNote} ({req.reviewedBy || 'Reviewer'})
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
         </div>
       </div>
+
+      {/* MODAL: Request Missing Skill Addition */}
+      {showSkillRequestModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 text-white flex items-center justify-between">
+              <div>
+                <span className="px-2 py-0.5 bg-white/20 text-white rounded text-[10px] font-black uppercase tracking-wider">
+                  Candidate Skill Request
+                </span>
+                <h3 className="text-lg font-black mt-1 text-white">Request Missing Skill Addition</h3>
+                <p className="text-xs text-blue-100 font-medium">
+                  Ask Administrators & Recruiters to verify and approve unparsed skills
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSkillRequestModal(false)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white font-bold transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!reqSkillName.trim()) {
+                  alert("Please enter skill name.");
+                  return;
+                }
+                if (!reqReasonNote.trim()) {
+                  alert("Please mention where this skill appears on your resume.");
+                  return;
+                }
+
+                onRequestSkillAddition?.({
+                  candidateId: activeCandidate.id,
+                  candidateName: activeCandidate.fullName,
+                  candidateEmail: activeCandidate.email,
+                  skillName: reqSkillName.trim(),
+                  category: reqCategory,
+                  proficiency: reqProficiency,
+                  reasonNote: reqReasonNote.trim(),
+                  resumeFileName: activeCandidate.resumeDocument?.fileName || 'Sarah_Johnson_ML_Engineer_Resume.pdf'
+                });
+
+                setReqSubmittedNotice(`Request to add "${reqSkillName.trim()}" has been submitted! Administrators will verify it against your uploaded resume.`);
+                setReqSkillName('');
+                setReqReasonNote('');
+                setTimeout(() => {
+                  setReqSubmittedNotice(null);
+                  setShowSkillRequestModal(false);
+                }, 1500);
+              }}
+              className="p-6 overflow-y-auto space-y-4"
+            >
+              {reqSubmittedNotice && (
+                <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl text-xs font-bold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{reqSubmittedNotice}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Skill Name <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={reqSkillName}
+                  onChange={(e) => setReqSkillName(e.target.value)}
+                  placeholder="e.g. Kubernetes, PyTorch, Docker, FastAPI..."
+                  required
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl h-11 px-3.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all"
+                />
+                
+                {/* Popular Skill Suggestion Badges */}
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {["Kubernetes", "Docker", "PyTorch", "FastAPI", "AWS", "TensorFlow", "PostgreSQL", "Next.js", "Redis", "GraphQL"].map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setReqSkillName(s)}
+                      className="px-2 py-0.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 rounded text-[10px] font-bold border border-slate-200 transition-colors"
+                    >
+                      + {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Skill Category</label>
+                  <select
+                    value={reqCategory}
+                    onChange={(e) => setReqCategory(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl h-10 px-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-indigo-500 focus:outline-none"
+                  >
+                    <option value="Languages">Programming Languages</option>
+                    <option value="Frameworks & Libraries">Frameworks & Libraries</option>
+                    <option value="Cloud & DevOps">Cloud & DevOps</option>
+                    <option value="Databases & Storage">Databases & Storage</option>
+                    <option value="AI & Machine Learning">AI & Machine Learning</option>
+                    <option value="Tools & Methodologies">Tools & Methodologies</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Proficiency Level</label>
+                  <select
+                    value={reqProficiency}
+                    onChange={(e) => setReqProficiency(e.target.value as any)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl h-10 px-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-indigo-500 focus:outline-none"
+                  >
+                    <option value="Beginner">Beginner (1-2 yrs)</option>
+                    <option value="Intermediate">Intermediate (2-4 yrs)</option>
+                    <option value="Advanced">Advanced (4-6 yrs)</option>
+                    <option value="Expert">Expert (6+ yrs)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Resume Location / Justification <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  value={reqReasonNote}
+                  onChange={(e) => setReqReasonNote(e.target.value)}
+                  placeholder="Explain exactly where this skill appears in your uploaded resume (e.g., 'Mentioned under Work Experience at NovaScale AI on page 1, used for distributed model serving')."
+                  required
+                  rows={3}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs font-medium text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Recruiters will inspect your stored PDF/DOCX file to verify that you did not falsify this skill.
+                </span>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setShowSkillRequestModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs rounded-xl shadow-md shadow-blue-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>Submit Request to Admin</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Inspect Stored Resume Document */}
+      {showResumeViewer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 bg-gradient-to-r from-slate-900 to-indigo-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-indigo-300" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">Stored Candidate Resume Document</h3>
+                  <p className="text-xs text-indigo-200">
+                    {activeCandidate.resumeDocument?.fileName || 'Sarah_Johnson_ML_Engineer_Resume.pdf'} • Database Record
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowResumeViewer(false)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white font-bold transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-4">
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs">
+                <div>
+                  <span className="font-bold text-slate-900 block">Candidate: {activeCandidate.fullName}</span>
+                  <span className="text-[11px] text-slate-500">{activeCandidate.email} • {activeCandidate.currentRole}</span>
+                </div>
+                <a
+                  href={activeCandidate.resumeDocument?.dataUrl || `data:text/plain;charset=utf-8,${encodeURIComponent(activeCandidate.resumeDocument?.extractedText || activeCandidate.headline)}`}
+                  download={activeCandidate.resumeDocument?.fileName || 'Resume.pdf'}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download Document</span>
+                </a>
+              </div>
+
+              <div>
+                <p className="text-[11px] font-black uppercase text-slate-500 tracking-wider mb-2">
+                  Document Text Content & Extracted Resume
+                </p>
+                <div className="bg-slate-900 text-slate-100 p-5 rounded-2xl font-mono text-xs leading-relaxed whitespace-pre-wrap max-h-96 overflow-y-auto border border-slate-800 select-text">
+                  {activeCandidate.resumeDocument?.extractedText || 
+`SARAH JOHNSON
+Email: sarah.johnson@example.com | Phone: +1 (555) 019-2831 | Location: San Francisco, CA
+
+PROFESSIONAL SUMMARY
+Senior Machine Learning Engineer with 5+ years experience building production ML pipelines, deep learning architectures, and distributed model serving on cloud platforms.
+
+TECHNICAL SKILLS
+- Programming Languages: Python, SQL, C++, Bash
+- Machine Learning & AI: TensorFlow, PyTorch, Scikit-Learn, MLOps, HuggingFace Transformers, NLP, Deep Learning
+- Cloud & DevOps: AWS SageMaker, Docker, Kubernetes, CI/CD, Linux, Git, FastAPI
+- Data & Databases: PostgreSQL, MySQL, Redis, Pandas, NumPy, Data Analysis
+
+WORK EXPERIENCE
+Senior Machine Learning Engineer | NovaScale AI (2022 – Present)
+- Deployed prediction services handling 12M daily requests using PyTorch and FastAPI.
+- Managed Kubernetes clusters and Docker containers for distributed training and low-latency inference on AWS SageMaker.
+- Automated MLOps pipelines reducing retraining latency by 42%.`}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowResumeViewer(false)}
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs rounded-xl transition-all cursor-pointer"
+              >
+                Close Viewer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

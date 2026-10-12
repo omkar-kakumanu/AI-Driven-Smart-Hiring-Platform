@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Candidate } from '../types';
+import type { Candidate, CandidateResumeDocument } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
 import { EditCandidateSkillsModal } from '../components/EditCandidateSkillsModal';
 import { Edit3 } from 'lucide-react';
@@ -53,6 +53,8 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   const [adminAddSkillCandId, setAdminAddSkillCandId] = useState<string | null>(null);
   const [adminSkillText, setAdminSkillText] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [fileDataUrl, setFileDataUrl] = useState<string>('');
+  const [extractedTextRaw, setExtractedTextRaw] = useState<string>('');
   const [parsingProgress, setParsingProgress] = useState(0);
   const [isParsing, setIsParsing] = useState(false);
   const [parsed, setParsed] = useState(false);
@@ -306,7 +308,17 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
 
       // 2. Client-side Real Text Extraction via pdfjs-dist
       const extractedText = await extractRealDocumentText(selectedFile);
+      setExtractedTextRaw(extractedText);
       setParsingProgress(80);
+
+      // Read as DataURL for offline storage & preview
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setFileDataUrl(reader.result);
+        }
+      };
+      reader.readAsDataURL(selectedFile);
 
       const parsedData = parseTextForResumeDetails(extractedText, selectedFile.name);
       setParsingProgress(100);
@@ -351,6 +363,15 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
     
     const finalEmail = (isCandidateUser && currentCandidateEmail) ? currentCandidateEmail : email;
 
+    const resumeDoc: CandidateResumeDocument | undefined = file ? {
+      fileName: file.name,
+      fileType: file.type || (file.name.endsWith('.pdf') ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'),
+      fileSize: file.size,
+      dataUrl: fileDataUrl || undefined,
+      extractedText: extractedTextRaw,
+      uploadedAt: new Date().toISOString().split('T')[0]
+    } : undefined;
+
     onAddCandidate({
       fullName,
       email: finalEmail,
@@ -362,7 +383,8 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
       skills,
       degree,
       institution,
-      avatar: candidateAvatar || undefined
+      avatar: candidateAvatar || undefined,
+      resumeDocument: resumeDoc
     });
 
     // Reset form and avatar to avoid leaking to next candidate
@@ -374,6 +396,8 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
     setCurrentRole('');
     setSkills([]);
     setFile(null);
+    setFileDataUrl('');
+    setExtractedTextRaw('');
     setParsed(false);
 
     alert(isCandidateUser 
