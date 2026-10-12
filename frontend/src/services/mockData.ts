@@ -141,6 +141,31 @@ export const INITIAL_JOBS: Job[] = [
 
 export const INITIAL_CANDIDATES: Candidate[] = [
   {
+    id: "cand-1",
+    fullName: "Sarah Johnson",
+    email: "sarah.johnson@example.com",
+    phone: "+1 (555) 019-2831",
+    location: "San Francisco, CA",
+    currentRole: "Senior Machine Learning Engineer",
+    totalExperienceYears: 5,
+    headline: "Senior ML Engineer with 5 years experience in Python, TensorFlow, PyTorch, MLOps",
+    skills: [
+      "Python",
+      "Machine Learning",
+      "TensorFlow",
+      "PyTorch",
+      "SQL",
+      "Data Analysis",
+      "AWS SageMaker",
+      "Docker"
+    ],
+    degree: "MS Computer Science",
+    institution: "Stanford University",
+    status: "Applied",
+    matchScore: 92,
+    interviewResponses: []
+  },
+  {
     "fullName": "Omkar Kakumanu",
     "email": "omkar.kakumanu17@gmail.com",
     "phone": "20251124105758",
