@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, AlertCircle, Eye, EyeOff, Sparkles, ArrowRight, X, Mail, Shield, Briefcase, User, Sun, Moon, Trash2, UserPlus, ArrowLeft } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Eye, EyeOff, Sparkles, ArrowRight, X, Mail, Shield, Briefcase, User, Sun, Moon } from 'lucide-react';
 import type { UserProfile, UserAccount } from '../types';
 
 const GoogleIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
@@ -58,55 +58,6 @@ const getPersistedAvatar = (email: string, storedAvatar?: string): string | unde
   return storedAvatar || undefined;
 };
 
-export interface GoogleDeviceAccount {
-  email: string;
-  name: string;
-  role: 'CANDIDATE' | 'RECRUITER' | 'ADMIN';
-  roleTitle: string;
-  avatar?: string;
-  isSuperAdmin?: boolean;
-}
-
-const DEFAULT_GOOGLE_DEVICE_ACCOUNTS: GoogleDeviceAccount[] = [
-  {
-    email: 'omkar.kakumanu17@gmail.com',
-    name: 'Omkar Kakumanu',
-    role: 'CANDIDATE',
-    roleTitle: 'Software Engineer / Developer'
-  },
-  {
-    email: 'sarah.jenkins@gmail.com',
-    name: 'Sarah Jenkins',
-    role: 'RECRUITER',
-    roleTitle: 'Talent Acquisition Specialist'
-  },
-  {
-    email: 'sarah.johnson@gmail.com',
-    name: 'Sarah Johnson',
-    role: 'CANDIDATE',
-    roleTitle: 'Senior Machine Learning Engineer'
-  },
-  {
-    email: 'j.manju.raghvin@gmail.com',
-    name: 'J Manju Raghvin',
-    role: 'ADMIN',
-    roleTitle: 'System Administrator & Hiring Director',
-    isSuperAdmin: true
-  },
-  {
-    email: 'candidate@copilot.com',
-    name: 'Sarah Johnson (Work Alias)',
-    role: 'CANDIDATE',
-    roleTitle: 'Candidate Applicant'
-  },
-  {
-    email: 'recruiter@copilot.com',
-    name: 'Sarah Jenkins (Work Alias)',
-    role: 'RECRUITER',
-    roleTitle: 'Talent Acquisition Specialist'
-  }
-];
-
 export const LoginPage: React.FC<LoginPageProps> = ({
   userAccounts,
   onLogin,
@@ -124,50 +75,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [desiredRole, setDesiredRole] = useState('Talent Acquisition Specialist');
 
-  // Google OAuth Modal state & Universal Device Accounts
+  // Google OAuth Modal state & Universal SSO
   const [showGoogleModal, setShowGoogleModal] = useState(false);
-  const [googleModalStep, setGoogleModalStep] = useState<'LIST' | 'ADD'>('LIST');
   const [customGmail, setCustomGmail] = useState('');
-  const [customNameInput, setCustomNameInput] = useState('');
   const [googleLoginRole, setGoogleLoginRole] = useState<'CANDIDATE' | 'RECRUITER' | 'ADMIN'>('CANDIDATE');
-
-  const [deviceGoogleAccounts, setDeviceGoogleAccounts] = useState<GoogleDeviceAccount[]>(() => {
-    try {
-      const saved = localStorage.getItem('rc_device_google_accounts');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    return DEFAULT_GOOGLE_DEVICE_ACCOUNTS;
-  });
-
-  const saveDeviceAccount = (newAcc: GoogleDeviceAccount) => {
-    setDeviceGoogleAccounts(prev => {
-      const existingIdx = prev.findIndex(a => a.email.toLowerCase() === newAcc.email.toLowerCase());
-      let updated: GoogleDeviceAccount[];
-      if (existingIdx >= 0) {
-        updated = [...prev];
-        updated[existingIdx] = { ...updated[existingIdx], ...newAcc };
-      } else {
-        updated = [newAcc, ...prev];
-      }
-      try {
-        localStorage.setItem('rc_device_google_accounts', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-  };
-
-  const removeDeviceAccount = (emailToRemove: string) => {
-    setDeviceGoogleAccounts(prev => {
-      const updated = prev.filter(a => a.email.toLowerCase() !== emailToRemove.toLowerCase());
-      try {
-        localStorage.setItem('rc_device_google_accounts', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-  };
 
   // Active step state for Hero column
   const [activeStep, setActiveStep] = useState<number>(1);
@@ -193,22 +104,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   // Universal Google SSO Login Handler (Instant access for any Gmail on this device)
   const handleGoogleSelect = (selectedEmail: string, selectedName: string, userRole: string, isAdmin = false) => {
     const cleanMail = selectedEmail.trim().toLowerCase();
-
-    // Determine role tier
-    const roleTier: 'CANDIDATE' | 'RECRUITER' | 'ADMIN' = isAdmin || cleanMail.includes('admin') || googleLoginRole === 'ADMIN'
-      ? 'ADMIN'
-      : userRole.toLowerCase().includes('recruiter') || googleLoginRole === 'RECRUITER'
-        ? 'RECRUITER'
-        : 'CANDIDATE';
-
-    // Persist to device accounts list for future 1-click access
-    saveDeviceAccount({
-      email: cleanMail,
-      name: selectedName || cleanMail.split('@')[0],
-      role: roleTier,
-      roleTitle: userRole,
-      isSuperAdmin: isAdmin
-    });
 
     const stored = userAccounts.find(u => 
       u.email.toLowerCase() === cleanMail ||
@@ -285,7 +180,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       return;
     }
     const clean = customGmail.trim().toLowerCase();
-    const nameFromEmail = customNameInput.trim() || clean.split('@')[0].replace(/[._-]/g, ' ');
+    const nameFromEmail = clean.split('@')[0].replace(/[._-]/g, ' ');
     const formattedName = nameFromEmail
       .split(' ')
       .map(part => part.charAt(0).toUpperCase() + part.slice(1))
@@ -595,6 +490,74 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             </p>
           </div>
 
+          {/* Quick Demo Evaluation Credentials Bar */}
+          {tab === 'SIGN_IN' && (
+            <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-2.5 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Default System Credentials
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">Click to populate</span>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('ADMIN')}
+                  className={`flex flex-col items-center justify-center py-2 px-1.5 rounded-xl text-center border transition-all cursor-pointer ${
+                    email === 'admin@copilot.com'
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                  title="J Manju Raghvin (admin@copilot.com | admin123)"
+                >
+                  <div className="flex items-center gap-1">
+                    <Shield className="w-3 h-3 text-blue-500 shrink-0" />
+                    <span className="text-[11px] font-bold">Admin</span>
+                  </div>
+                  <span className={`text-[9.5px] truncate max-w-full font-medium ${email === 'admin@copilot.com' ? 'text-slate-300' : 'text-slate-500'}`}>
+                    J Manju Raghvin
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('RECRUITER')}
+                  className={`flex flex-col items-center justify-center py-2 px-1.5 rounded-xl text-center border transition-all cursor-pointer ${
+                    email === 'recruiter@copilot.com'
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                  title="Sarah Jenkins (recruiter@copilot.com | recruiter123)"
+                >
+                  <div className="flex items-center gap-1">
+                    <Briefcase className="w-3 h-3 text-blue-400 shrink-0" />
+                    <span className="text-[11px] font-bold">Recruiter</span>
+                  </div>
+                  <span className={`text-[9.5px] truncate max-w-full font-medium ${email === 'recruiter@copilot.com' ? 'text-blue-100' : 'text-slate-500'}`}>
+                    Sarah Jenkins
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('CANDIDATE')}
+                  className={`flex flex-col items-center justify-center py-2 px-1.5 rounded-xl text-center border transition-all cursor-pointer ${
+                    email === 'sarah.johnson@example.com' || email === 'candidate@copilot.com'
+                      ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                  title="Sarah Johnson (sarah.johnson@example.com | candidate123)"
+                >
+                  <div className="flex items-center gap-1">
+                    <User className="w-3 h-3 text-purple-400 shrink-0" />
+                    <span className="text-[11px] font-bold">Candidate</span>
+                  </div>
+                  <span className={`text-[9.5px] truncate max-w-full font-medium ${email === 'sarah.johnson@example.com' || email === 'candidate@copilot.com' ? 'text-purple-100' : 'text-slate-500'}`}>
+                    Sarah Johnson
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Status Notice Alert */}
           {statusNotice && (
             <div
@@ -625,26 +588,25 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             </div>
           )}
 
-          {/* Primary Action: Official Sign in with Google SSO */}
+          {/* Single Google / Gmail Primary Login Button */}
           {tab === 'SIGN_IN' && (
             <>
               <button
                 type="button"
-                onClick={() => { setGoogleModalStep('LIST'); setShowGoogleModal(true); }}
-                className="flex items-center justify-center gap-3 w-full h-12 bg-white border border-slate-300 hover:border-slate-400 hover:bg-slate-50 active:scale-[0.99] rounded-2xl text-xs font-bold text-slate-800 shadow-sm transition-all cursor-pointer group"
-                id="hero-google-signin-btn"
+                onClick={() => setShowGoogleModal(true)}
+                className="flex items-center justify-center gap-3 w-full h-11 bg-white border border-slate-300 hover:border-slate-400 hover:bg-slate-50 active:scale-[0.98] rounded-xl text-xs font-bold text-slate-800 shadow-xs transition-all cursor-pointer group"
               >
-                <GoogleIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                <span className="text-sm font-bold">Sign in with Google</span>
+                <GoogleIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span>Sign in with Google</span>
               </button>
 
               {/* Divider */}
-              <div className="relative flex items-center justify-center my-3">
+              <div className="relative flex items-center justify-center">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-slate-200" />
                 </div>
                 <div className="relative bg-white px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  Or sign in with work email
+                  Or Work Credentials
                 </div>
               </div>
             </>
@@ -748,366 +710,203 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               </p>
             )}
           </div>
-
-          {/* Collapsible Demo / Evaluator Credentials Quick-Fill (Placed at bottom for evaluator testing) */}
-          {tab === 'SIGN_IN' && (
-            <div className="pt-2 border-t border-slate-100">
-              <details className="group">
-                <summary className="text-[11px] font-semibold text-slate-400 hover:text-slate-600 cursor-pointer list-none flex items-center justify-between py-1 select-none">
-                  <span className="flex items-center gap-1.5">
-                    <Shield className="w-3.5 h-3.5 text-slate-400" />
-                    Demo Evaluator Credentials (Quick-Fill)
-                  </span>
-                  <span className="text-[10px] text-blue-600 font-bold group-open:rotate-180 transition-transform">▼</span>
-                </summary>
-                <div className="mt-2 p-2.5 bg-slate-50 border border-slate-200/90 rounded-2xl space-y-1.5 text-left">
-                  <p className="text-[10px] text-slate-500 font-medium">Click any role to autofill evaluation test accounts:</p>
-                  <div className="grid grid-cols-3 gap-1.5 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => handleQuickFill('ADMIN')}
-                      className={`flex flex-col items-center justify-center py-2 px-1.5 rounded-xl text-center border transition-all cursor-pointer ${
-                        email === 'admin@copilot.com'
-                          ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                      }`}
-                      title="J Manju Raghvin (admin@copilot.com | admin123)"
-                    >
-                      <div className="flex items-center gap-1">
-                        <Shield className="w-3 h-3 text-blue-500 shrink-0" />
-                        <span className="text-[11px] font-bold">Admin</span>
-                      </div>
-                      <span className={`text-[9.5px] truncate max-w-full font-medium ${email === 'admin@copilot.com' ? 'text-slate-300' : 'text-slate-500'}`}>
-                        J Manju Raghvin
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleQuickFill('RECRUITER')}
-                      className={`flex flex-col items-center justify-center py-2 px-1.5 rounded-xl text-center border transition-all cursor-pointer ${
-                        email === 'recruiter@copilot.com'
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                      }`}
-                      title="Sarah Jenkins (recruiter@copilot.com | recruiter123)"
-                    >
-                      <div className="flex items-center gap-1">
-                        <Briefcase className="w-3 h-3 text-blue-400 shrink-0" />
-                        <span className="text-[11px] font-bold">Recruiter</span>
-                      </div>
-                      <span className={`text-[9.5px] truncate max-w-full font-medium ${email === 'recruiter@copilot.com' ? 'text-blue-100' : 'text-slate-500'}`}>
-                        Sarah Jenkins
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleQuickFill('CANDIDATE')}
-                      className={`flex flex-col items-center justify-center py-2 px-1.5 rounded-xl text-center border transition-all cursor-pointer ${
-                        email === 'sarah.johnson@example.com' || email === 'candidate@copilot.com'
-                          ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
-                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                      }`}
-                      title="Sarah Johnson (sarah.johnson@example.com | candidate123)"
-                    >
-                      <div className="flex items-center gap-1">
-                        <User className="w-3 h-3 text-purple-400 shrink-0" />
-                        <span className="text-[11px] font-bold">Candidate</span>
-                      </div>
-                      <span className={`text-[9.5px] truncate max-w-full font-medium ${email === 'sarah.johnson@example.com' || email === 'candidate@copilot.com' ? 'text-purple-100' : 'text-slate-500'}`}>
-                        Sarah Johnson
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              </details>
-            </div>
-          )}
         </motion.div>
       </div>
 
-      {/* OFFICIAL PROFESSIONAL GOOGLE OAUTH ACCOUNT CHOOSER MODAL */}
+      {/* GOOGLE / GMAIL OAUTH LOGIN MODAL */}
       {showGoogleModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 w-full max-w-md shadow-2xl relative text-slate-900 space-y-5"
+            className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl space-y-6 relative text-slate-900"
           >
             {/* Close Button */}
             <button
-              onClick={() => { setShowGoogleModal(false); setGoogleModalStep('LIST'); }}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-slate-100 transition-colors"
-              title="Close"
+              onClick={() => setShowGoogleModal(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
 
-            {googleModalStep === 'LIST' ? (
-              <>
-                {/* Google Brand Header */}
-                <div className="text-center space-y-1.5 pt-1">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto border border-slate-200/80 shadow-xs">
-                    <GoogleIcon className="w-7 h-7" />
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-900 tracking-tight">Choose an account</h3>
-                  <p className="text-xs text-slate-500 font-medium">
-                    to continue to <strong className="text-slate-800">AI Recruitment Copilot</strong>
-                  </p>
-                </div>
+            {/* Modal Header */}
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto border border-slate-200">
+                <GoogleIcon className="w-7 h-7" />
+              </div>
+              <h3 className="text-xl font-extrabold text-slate-900">Sign in with Google</h3>
+              <p className="text-xs text-slate-500 font-medium">
+                Choose an account or enter your Gmail to continue to <span className="font-bold text-slate-800">AI Recruitment Copilot</span>
+              </p>
+            </div>
 
-                {/* Role Switcher Pills */}
-                <div className="bg-slate-50 p-2.5 rounded-2xl border border-slate-200 space-y-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block text-center">
-                    Sign-In Role for Selected Account
-                  </span>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setGoogleLoginRole('CANDIDATE')}
-                      className={`py-1.5 text-center text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
-                        googleLoginRole === 'CANDIDATE'
-                          ? 'bg-purple-600 text-white shadow-xs'
-                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                      }`}
-                    >
-                      Candidate
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setGoogleLoginRole('RECRUITER')}
-                      className={`py-1.5 text-center text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
-                        googleLoginRole === 'RECRUITER'
-                          ? 'bg-blue-600 text-white shadow-xs'
-                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                      }`}
-                    >
-                      Recruiter
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setGoogleLoginRole('ADMIN')}
-                      className={`py-1.5 text-center text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
-                        googleLoginRole === 'ADMIN'
-                          ? 'bg-slate-900 text-white shadow-xs'
-                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                      }`}
-                    >
-                      Admin
-                    </button>
-                  </div>
-                </div>
-
-                {/* Scrollable Device Google Accounts List */}
-                <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
-                  <div className="flex items-center justify-between px-1">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                      Accounts on this device ({deviceGoogleAccounts.length})
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-medium">1-Click Sign In</span>
-                  </div>
-
-                  {deviceGoogleAccounts.map((acc, idx) => {
-                    const avatarColors = ['bg-blue-600', 'bg-red-500', 'bg-emerald-600', 'bg-amber-600', 'bg-purple-600', 'bg-indigo-600'];
-                    const colorClass = avatarColors[idx % avatarColors.length];
-                    const initials = acc.name.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'G';
-
-                    return (
-                      <div
-                        key={acc.email}
-                        onClick={() => handleGoogleSelect(acc.email, acc.name, acc.roleTitle, acc.role === 'ADMIN')}
-                        className="group w-full flex items-center justify-between p-2.5 rounded-2xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/40 transition-all text-left cursor-pointer"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className={`w-9 h-9 rounded-full ${colorClass} text-white font-extrabold text-xs flex items-center justify-center shrink-0 shadow-xs`}>
-                            {initials}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-bold text-slate-900 truncate group-hover:text-blue-600 block">
-                                {acc.name}
-                              </span>
-                              <span className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider ${
-                                acc.role === 'ADMIN' ? 'bg-slate-900 text-white' :
-                                acc.role === 'RECRUITER' ? 'bg-blue-100 text-blue-800' :
-                                'bg-purple-100 text-purple-800'
-                              }`}>
-                                {acc.role}
-                              </span>
-                            </div>
-                            <span className="text-[11px] text-slate-500 font-medium truncate block">
-                              {acc.email}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeDeviceAccount(acc.email);
-                            }}
-                            className="p-1.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                            title={`Remove ${acc.email} from list`}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                          <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* + Use another account Option */}
-                  <button
-                    type="button"
-                    onClick={() => setGoogleModalStep('ADD')}
-                    className="w-full flex items-center gap-3 p-2.5 rounded-2xl border border-dashed border-slate-300 hover:border-blue-500 hover:bg-slate-50 transition-all text-left cursor-pointer group mt-2"
-                  >
-                    <div className="w-9 h-9 rounded-full bg-slate-100 group-hover:bg-blue-100 text-slate-600 group-hover:text-blue-600 flex items-center justify-center shrink-0 transition-colors">
-                      <UserPlus className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold text-slate-800 group-hover:text-blue-600 block">
-                        Use another account
-                      </span>
-                      <span className="text-[10px] text-slate-500 font-medium">
-                        Enter any Gmail address to log in instantly
-                      </span>
-                    </div>
-                  </button>
-                </div>
-
-                {/* Google Official Footer */}
-                <div className="pt-2 border-t border-slate-100 text-center space-y-2">
-                  <p className="text-[10px] text-slate-500 leading-tight">
-                    To continue, Google will share your name, email address, language preference, and profile picture with AI Recruitment Copilot.
-                  </p>
-                  <div className="flex items-center justify-center gap-3 text-[10px] text-slate-400 font-medium">
-                    <span>English (United States)</span>
-                    <span>•</span>
-                    <a href="#" onClick={(e) => e.preventDefault()} className="hover:underline">Help</a>
-                    <span>•</span>
-                    <a href="#" onClick={(e) => e.preventDefault()} className="hover:underline">Privacy</a>
-                    <span>•</span>
-                    <a href="#" onClick={(e) => e.preventDefault()} className="hover:underline">Terms</a>
-                  </div>
-                </div>
-              </>
-            ) : (
-              /* Google Sign In with Any Account View */
-              <div className="space-y-4">
+            {/* Role Preference Selector for Universal SSO */}
+            <div className="bg-slate-50 p-2.5 rounded-2xl border border-slate-200 space-y-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block text-center">
+                Sign-In Role for Google Account
+              </span>
+              <div className="grid grid-cols-3 gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setGoogleModalStep('LIST')}
-                  className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors"
+                  onClick={() => setGoogleLoginRole('CANDIDATE')}
+                  className={`py-1.5 text-center text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
+                    googleLoginRole === 'CANDIDATE'
+                      ? 'bg-purple-600 text-white shadow-xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
                 >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Back to accounts</span>
+                  Candidate
                 </button>
-
-                <div className="text-center space-y-1">
-                  <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center mx-auto border border-slate-200">
-                    <GoogleIcon className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-900 tracking-tight">Sign in with Google</h3>
-                  <p className="text-xs text-slate-500">
-                    Use your Google Account to access AI Recruitment Copilot
-                  </p>
-                </div>
-
-                {/* Role Selector */}
-                <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 space-y-1">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block text-center">
-                    Select Role on Platform
-                  </span>
-                  <div className="grid grid-cols-3 gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setGoogleLoginRole('CANDIDATE')}
-                      className={`py-1 text-center text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
-                        googleLoginRole === 'CANDIDATE' ? 'bg-purple-600 text-white' : 'bg-white text-slate-600 border border-slate-200'
-                      }`}
-                    >
-                      Candidate
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setGoogleLoginRole('RECRUITER')}
-                      className={`py-1 text-center text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
-                        googleLoginRole === 'RECRUITER' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 border border-slate-200'
-                      }`}
-                    >
-                      Recruiter
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setGoogleLoginRole('ADMIN')}
-                      className={`py-1 text-center text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
-                        googleLoginRole === 'ADMIN' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 border border-slate-200'
-                      }`}
-                    >
-                      Admin
-                    </button>
-                  </div>
-                </div>
-
-                {/* Account Input Form */}
-                <form onSubmit={handleCustomGmailSubmit} className="space-y-3">
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      Email or phone
-                    </label>
-                    <div className="relative flex items-center">
-                      <input
-                        type="email"
-                        value={customGmail}
-                        onChange={(e) => setCustomGmail(e.target.value)}
-                        placeholder="yourname@gmail.com"
-                        required
-                        autoFocus
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl h-11 px-3.5 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
-                      />
-                      <Mail className="absolute right-3.5 w-4 h-4 text-slate-400" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      Full Name (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={customNameInput}
-                      onChange={(e) => setCustomNameInput(e.target.value)}
-                      placeholder="e.g. Omkar Kakumanu"
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl h-11 px-3.5 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
-                    />
-                  </div>
-
-                  <p className="text-[10px] text-slate-500 leading-tight">
-                    This account will be saved to your device for instant 1-click access next time.
-                  </p>
-
-                  <div className="flex items-center justify-end gap-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setGoogleModalStep('LIST')}
-                      className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-                    >
-                      Back
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <span>Sign In</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </form>
+                <button
+                  type="button"
+                  onClick={() => setGoogleLoginRole('RECRUITER')}
+                  className={`py-1.5 text-center text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
+                    googleLoginRole === 'RECRUITER'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  Recruiter
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGoogleLoginRole('ADMIN')}
+                  className={`py-1.5 text-center text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
+                    googleLoginRole === 'ADMIN'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  Admin
+                </button>
               </div>
-            )}
+            </div>
+
+            {/* Recognized Device Accounts */}
+            <div className="space-y-2 pt-1 max-h-56 overflow-y-auto pr-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                Recognized Device Accounts
+              </p>
+
+              {/* Recruiter Sarah Jenkins */}
+              <button
+                type="button"
+                onClick={() => handleGoogleSelect('recruiter@copilot.com', 'Sarah Jenkins', 'Talent Acquisition Specialist', false)}
+                className="w-full flex items-center justify-between p-2.5 border border-slate-200 rounded-2xl hover:border-blue-500 hover:bg-blue-50/50 transition-all text-left cursor-pointer group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
+                    SJ
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block group-hover:text-blue-600">Sarah Jenkins (Recruiter)</span>
+                    <span className="text-[10px] text-slate-500 font-medium">recruiter@copilot.com • sarah.jenkins@gmail.com</span>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0" />
+              </button>
+
+              {/* Candidate Sarah Johnson */}
+              {(() => {
+                const candName = getPersistedName('sarah.johnson@example.com', 'Sarah Johnson', userAccounts);
+                const candInitials = candName.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'SJ';
+                return (
+                  <button
+                    type="button"
+                    onClick={() => handleGoogleSelect('sarah.johnson@example.com', candName, 'Candidate Applicant', false)}
+                    className="w-full flex items-center justify-between p-2.5 border border-slate-200 rounded-2xl hover:border-purple-500 hover:bg-purple-50/50 transition-all text-left cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-purple-600 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
+                        {candInitials}
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 block group-hover:text-purple-600">{candName} (Candidate)</span>
+                        <span className="text-[10px] text-slate-500 font-medium">sarah.johnson@example.com • candidate@copilot.com</span>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all shrink-0" />
+                  </button>
+                );
+              })()}
+
+              {/* Admin J Manju Raghvin */}
+              <button
+                type="button"
+                onClick={() => handleGoogleSelect('admin@copilot.com', 'J Manju Raghvin', 'System Administrator & Hiring Director', true)}
+                className="w-full flex items-center justify-between p-2.5 border border-slate-200 rounded-2xl hover:border-slate-900 hover:bg-slate-50 transition-all text-left cursor-pointer group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
+                    JM
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block group-hover:text-slate-900">J Manju Raghvin (Main Super-Admin)</span>
+                    <span className="text-[10px] text-slate-500 font-medium">admin@copilot.com • j.manju.raghvin@gmail.com</span>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all shrink-0" />
+              </button>
+
+              {/* Candidate Omkar Kakumanu */}
+              <button
+                type="button"
+                onClick={() => handleGoogleSelect('omkar.kakumanu17@gmail.com', 'Omkar Kakumanu', 'Software Engineer / Developer', false)}
+                className="w-full flex items-center justify-between p-2.5 border border-slate-200 rounded-2xl hover:border-emerald-500 hover:bg-emerald-50/50 transition-all text-left cursor-pointer group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
+                    OK
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block group-hover:text-emerald-600">Omkar Kakumanu (Candidate)</span>
+                    <span className="text-[10px] text-slate-500 font-medium">omkar.kakumanu17@gmail.com</span>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all shrink-0" />
+              </button>
+            </div>
+
+            <div className="relative flex items-center justify-center my-2">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200" />
+              </div>
+              <div className="relative bg-white px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                Or Use Any Device Gmail
+              </div>
+            </div>
+
+            {/* Custom Gmail Input Form */}
+            <form onSubmit={handleCustomGmailSubmit} className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Universal Google Sign-In (Any Gmail on this device)
+                </label>
+                <div className="relative flex items-center">
+                  <input
+                    type="email"
+                    value={customGmail}
+                    onChange={(e) => setCustomGmail(e.target.value)}
+                    placeholder="Enter any Gmail from this device..."
+                    required
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl h-11 px-3.5 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
+                  />
+                  <Mail className="absolute right-3.5 w-4 h-4 text-slate-400" />
+                </div>
+                <span className="text-[10px] text-slate-500 mt-1 block">
+                  Will sign in as <strong className="text-indigo-600">{googleLoginRole}</strong> with full instant access.
+                </span>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <GoogleIcon className="w-4 h-4" />
+                <span>Instant Sign In with Google</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </form>
           </motion.div>
         </div>
       )}
