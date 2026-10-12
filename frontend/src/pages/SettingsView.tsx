@@ -19,7 +19,8 @@ import {
   Search,
   CheckCircle2,
   Users,
-  RefreshCw
+  RefreshCw,
+  Edit2
 } from 'lucide-react';
 
 interface SettingsViewProps {
@@ -38,6 +39,7 @@ interface SettingsViewProps {
   onMakeUserRecruiter?: (userId: string) => void;
   onMakeUserCandidate?: (userId: string) => void;
   onRemoveUserRecruiter?: (userId: string) => void;
+  onUpdateUserRole?: (userId: string, newRole: string, newTier?: 'ADMIN' | 'RECRUITER' | 'CANDIDATE', newName?: string) => void;
   onClearAllCandidates?: () => void;
   onClearAllUserAccounts?: () => void;
   onRestoreDefaultJobs?: () => void;
@@ -105,6 +107,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onMakeUserRecruiter,
   onMakeUserCandidate,
   onRemoveUserRecruiter,
+  onUpdateUserRole,
   onClearAllCandidates,
   onClearAllUserAccounts,
   onRestoreDefaultJobs
@@ -217,6 +220,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [aiReportAlerts, setAiReportAlerts] = useState(true);
   const [accountFilter, setAccountFilter] = useState<'ALL' | 'PENDING' | 'ADMIN' | 'RECRUITER' | 'CANDIDATE' | 'REVOKED'>('ALL');
   const [accountSearchQuery, setAccountSearchQuery] = useState('');
+  const [editingUser, setEditingUser] = useState<UserAccount | null>(null);
+  const [editRoleTitle, setEditRoleTitle] = useState('');
+  const [editRoleTier, setEditRoleTier] = useState<'ADMIN' | 'RECRUITER' | 'CANDIDATE'>('RECRUITER');
+  const [editUserName, setEditUserName] = useState('');
 
   const INDIAN_TECH_HUBS = [
     'Bengaluru',
@@ -1427,76 +1434,102 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                   <span className="text-[10px] font-extrabold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">
                                     Root Super-Admin
                                   </span>
-                                ) : (
-                                  <div className="inline-flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200">
-                                    {/* Make Admin Button */}
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        if (!userIsAdmin) {
-                                          onMakeUserAdmin && onMakeUserAdmin(user.id);
-                                          alert(`Promoted "${user.name}" to Administrator.`);
-                                        }
-                                      }}
-                                      className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                                        userIsAdmin
-                                          ? 'bg-purple-700 text-white shadow-2xs'
-                                          : 'text-slate-600 hover:text-purple-700 hover:bg-slate-200/60'
-                                      }`}
-                                      title={userIsAdmin ? "Currently Administrator" : "Promote to Administrator"}
-                                    >
-                                      <Shield className="w-2.5 h-2.5" />
-                                      <span>Admin</span>
-                                    </button>
+                                  ) : (
+                                    <div className="inline-flex items-center gap-1">
+                                      <div className="inline-flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200">
+                                        {/* Make Admin Button */}
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            if (!userIsAdmin) {
+                                              if (onUpdateUserRole) {
+                                                onUpdateUserRole(user.id, 'Administrator & Hiring Director', 'ADMIN');
+                                              } else if (onMakeUserAdmin) {
+                                                onMakeUserAdmin(user.id);
+                                              }
+                                              alert(`Promoted "${user.name}" to Administrator.`);
+                                            }
+                                          }}
+                                          className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                                            userIsAdmin
+                                              ? 'bg-purple-700 text-white shadow-2xs'
+                                              : 'text-slate-600 hover:text-purple-700 hover:bg-slate-200/60'
+                                          }`}
+                                          title={userIsAdmin ? "Currently Administrator" : `Promote ${user.name} to Administrator`}
+                                        >
+                                          <Shield className="w-2.5 h-2.5" />
+                                          <span>Admin</span>
+                                        </button>
 
-                                    {/* Make Recruiter Button */}
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        if (!userIsRecruiter) {
-                                          if (userIsAdmin && onRemoveUserAdmin) {
-                                            onRemoveUserAdmin(user.id);
-                                          } else if (onMakeUserRecruiter) {
-                                            onMakeUserRecruiter(user.id);
-                                          }
-                                          alert(`Assigned Recruiter role to "${user.name}".`);
-                                        }
-                                      }}
-                                      className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                                        userIsRecruiter
-                                          ? 'bg-blue-600 text-white shadow-2xs'
-                                          : 'text-slate-600 hover:text-blue-700 hover:bg-slate-200/60'
-                                      }`}
-                                      title={userIsRecruiter ? "Currently Recruiter" : "Assign Recruiter role"}
-                                    >
-                                      <Briefcase className="w-2.5 h-2.5" />
-                                      <span>Recruiter</span>
-                                    </button>
+                                        {/* Make Recruiter Button */}
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            if (!userIsRecruiter) {
+                                              if (onUpdateUserRole) {
+                                                onUpdateUserRole(user.id, 'Talent Acquisition Specialist', 'RECRUITER');
+                                              } else if (userIsAdmin && onRemoveUserAdmin) {
+                                                onRemoveUserAdmin(user.id);
+                                              } else if (onMakeUserRecruiter) {
+                                                onMakeUserRecruiter(user.id);
+                                              }
+                                              alert(`Assigned Recruiter role to "${user.name}".`);
+                                            }
+                                          }}
+                                          className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                                            userIsRecruiter
+                                              ? 'bg-blue-600 text-white shadow-2xs'
+                                              : 'text-slate-600 hover:text-blue-700 hover:bg-slate-200/60'
+                                          }`}
+                                          title={userIsRecruiter ? "Currently Recruiter" : `Assign Recruiter role to ${user.name}`}
+                                        >
+                                          <Briefcase className="w-2.5 h-2.5" />
+                                          <span>Recruiter</span>
+                                        </button>
 
-                                    {/* Make Candidate Button */}
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        if (!userIsCandidate) {
-                                          if (userIsRecruiter && onRemoveUserRecruiter) {
-                                            onRemoveUserRecruiter(user.id);
-                                          } else if (onMakeUserCandidate) {
-                                            onMakeUserCandidate(user.id);
-                                          }
-                                          alert(`Assigned Candidate role to "${user.name}".`);
-                                        }
-                                      }}
-                                      className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                                        userIsCandidate
-                                          ? 'bg-emerald-600 text-white shadow-2xs'
-                                          : 'text-slate-600 hover:text-emerald-700 hover:bg-slate-200/60'
-                                      }`}
-                                      title={userIsCandidate ? "Currently Candidate" : "Assign Candidate role"}
-                                    >
-                                      <UserCheck className="w-2.5 h-2.5" />
-                                      <span>Candidate</span>
-                                    </button>
-                                  </div>
+                                        {/* Make Candidate Button */}
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            if (!userIsCandidate) {
+                                              if (onUpdateUserRole) {
+                                                onUpdateUserRole(user.id, 'Candidate Applicant', 'CANDIDATE');
+                                              } else if (userIsRecruiter && onRemoveUserRecruiter) {
+                                                onRemoveUserRecruiter(user.id);
+                                              } else if (onMakeUserCandidate) {
+                                                onMakeUserCandidate(user.id);
+                                              }
+                                              alert(`Assigned Candidate role to "${user.name}".`);
+                                            }
+                                          }}
+                                          className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                                            userIsCandidate
+                                              ? 'bg-emerald-600 text-white shadow-2xs'
+                                              : 'text-slate-600 hover:text-emerald-700 hover:bg-slate-200/60'
+                                          }`}
+                                          title={userIsCandidate ? "Currently Candidate" : `Assign Candidate role to ${user.name}`}
+                                        >
+                                          <UserCheck className="w-2.5 h-2.5" />
+                                          <span>Candidate</span>
+                                        </button>
+                                      </div>
+
+                                      {/* Edit Role Button showing user name */}
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setEditingUser(user);
+                                          setEditUserName(user.name);
+                                          setEditRoleTitle(user.role);
+                                          setEditRoleTier(userIsAdmin ? 'ADMIN' : userIsRecruiter ? 'RECRUITER' : 'CANDIDATE');
+                                        }}
+                                        className="px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 shadow-2xs ml-1"
+                                        title={`Edit Role Title & Information for ${user.name}`}
+                                      >
+                                        <Edit2 className="w-2.5 h-2.5 text-blue-600" />
+                                        <span>Edit Role</span>
+                                      </button>
+                                    </div>
                                 )}
                               </td>
 
@@ -1589,6 +1622,163 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
             )}
           </div>
+
+          {/* Modal: Edit User Role & Information */}
+          {editingUser && (
+            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 font-bold overflow-hidden">
+                      <UserAvatar name={editUserName || editingUser.name} avatar={editingUser.avatar} size="sm" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-slate-900">
+                        Edit Role: {editUserName || editingUser.name}
+                      </h3>
+                      <p className="text-[11px] text-slate-400 font-mono">
+                        {editingUser.email}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditingUser(null)}
+                    className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-all cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (onUpdateUserRole) {
+                      onUpdateUserRole(editingUser.id, editRoleTitle, editRoleTier, editUserName);
+                    } else if (editRoleTier === 'ADMIN' && onMakeUserAdmin) {
+                      onMakeUserAdmin(editingUser.id);
+                    } else if (editRoleTier === 'RECRUITER' && onMakeUserRecruiter) {
+                      onMakeUserRecruiter(editingUser.id);
+                    } else if (editRoleTier === 'CANDIDATE' && onMakeUserCandidate) {
+                      onMakeUserCandidate(editingUser.id);
+                    }
+                    alert(`Role updated successfully for "${editUserName || editingUser.name}".`);
+                    setEditingUser(null);
+                  }}
+                  className="space-y-4 pt-4"
+                >
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Full Name / Display Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editUserName}
+                      onChange={(e) => setEditUserName(e.target.value)}
+                      placeholder="e.g. Sarah Jenkins"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-medium"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      System Role Tier
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditRoleTier('ADMIN');
+                          if (!editRoleTitle || editRoleTitle === 'Talent Acquisition Specialist' || editRoleTitle === 'Candidate Applicant') {
+                            setEditRoleTitle('Administrator & Hiring Director');
+                          }
+                        }}
+                        className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                          editRoleTier === 'ADMIN'
+                            ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <Shield className="w-4 h-4" />
+                        <span>Admin</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditRoleTier('RECRUITER');
+                          if (!editRoleTitle || editRoleTitle.includes('Admin') || editRoleTitle === 'Candidate Applicant') {
+                            setEditRoleTitle('Talent Acquisition Specialist');
+                          }
+                        }}
+                        className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                          editRoleTier === 'RECRUITER'
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <Briefcase className="w-4 h-4" />
+                        <span>Recruiter</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditRoleTier('CANDIDATE');
+                          if (!editRoleTitle || editRoleTitle.includes('Admin') || editRoleTitle.includes('Talent')) {
+                            setEditRoleTitle('Candidate Applicant');
+                          }
+                        }}
+                        className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                          editRoleTier === 'CANDIDATE'
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <UserCheck className="w-4 h-4" />
+                        <span>Candidate</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Designation / Role Title
+                    </label>
+                    <input
+                      type="text"
+                      value={editRoleTitle}
+                      onChange={(e) => setEditRoleTitle(e.target.value)}
+                      placeholder="e.g. Talent Acquisition Specialist, Senior ML Engineer"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-medium"
+                      required
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      This role designation appears across candidate evaluations, notifications, and portal sessions.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setEditingUser(null)}
+                      className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-1.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Save Role</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
 
           {/* Candidate Resume Data Reset Management */}
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">

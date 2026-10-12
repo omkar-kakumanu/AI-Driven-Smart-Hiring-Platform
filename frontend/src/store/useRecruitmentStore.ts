@@ -223,7 +223,7 @@ export function useRecruitmentStore() {
       cand1CustomName = 'Abhishek';
     }
 
-    const sanitized = cands.map(c => {
+    let sanitized = cands.map(c => {
       const cMail = (c.email || '').toLowerCase();
       const orig = initialMap.get(c.id);
       const isCand1 = c.id === 'cand-1' || cMail === 'candidate@copilot.com' || cMail === 'sarah.johnson@example.com';
