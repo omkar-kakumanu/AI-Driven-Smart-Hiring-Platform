@@ -364,6 +364,16 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
                     <span className="text-xs">→</span>
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setShowSkillRequestModal(true)}
+                  className="px-3.5 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-xl text-xs font-black transition-all shadow-md flex items-center gap-1.5 cursor-pointer border border-purple-300/40"
+                  id="hero-request-missing-skill-btn"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <span>+ Request Missing Skill</span>
+                  <span className="text-xs">→</span>
+                </button>
               </div>
             </div>
           </div>

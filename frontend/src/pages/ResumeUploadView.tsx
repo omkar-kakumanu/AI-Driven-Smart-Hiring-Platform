@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import type { Candidate, CandidateResumeDocument, SkillAdditionRequest } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
-import { EditCandidateSkillsModal } from '../components/EditCandidateSkillsModal';
-import { Edit3, Sparkles, PlusCircle, AlertTriangle, CheckCircle2, X, FileText, Check } from 'lucide-react';
+import { Edit3, Sparkles, PlusCircle, AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
@@ -259,8 +258,11 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
         inSkillSection = false;
       }
 
-      if (inSkillSection || /Tech\s+Stack:/i.test(line) || (line.includes('|') && line.length < 120)) {
-        // Strip common category label prefix before tokenizing
+      const isExplicitSkillLine = inSkillSection || /Tech\s+Stack\s*:/i.test(line) || /^Skills\s*:/i.test(line);
+      const isPipeDelimitedSummary = line.includes('|') && line.length < 120 && !/email|phone|contact|address|university|college|b\.?tech|m\.?tech|bachelor/i.test(line);
+
+      if (isExplicitSkillLine || isPipeDelimitedSummary) {
+        // Strip common category label prefix before tokenizing (e.g. "Languages:", "Frontend Tools:")
         const lineWithoutCategory = line.replace(/^[A-Za-z0-9\s/&,+-]+:\s*/, '');
         const tokens = lineWithoutCategory
           .split(/[,|•·;/\t*▪]+/)
@@ -271,10 +273,13 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
           const matchSkill = SKILLS_VOCAB.find(s => s.toLowerCase() === token.toLowerCase());
           if (matchSkill) {
             foundSkillsSet.add(matchSkill);
-          } else if (/^[a-zA-Z0-9#+.\s-]+$/.test(token) && !/^(programming|development|cloud|tools|databases|languages|technologies|frameworks|libraries)$/i.test(token)) {
-            // Keep well-formed technical terms
-            if (token.length >= 2 && !token.includes('@') && !token.includes('http')) {
-              foundSkillsSet.add(token);
+          } else if (isExplicitSkillLine && /^[a-zA-Z#+.\s-]+$/.test(token)) {
+            // Only add unlisted tokens if we are strictly in a dedicated skill section
+            // AND ensure it doesn't match numbers, dates, GPAs, or common resume non-skill words
+            const isNonSkillWord = /^(programming|development|cloud|tools|databases|languages|technologies|frameworks|libraries|experience|education|projects|summary|gpa|cgpa|percentage|fresher|intern|bachelor|master|university|college|present|current|\d+)$/i.test(token);
+            const hasDateOrNumber = /\d/.test(token);
+            if (!isNonSkillWord && !hasDateOrNumber && token.length >= 2 && !token.includes('@') && !token.includes('http')) {
+              foundSkillsSet.add(token.replace(/\b\w/g, c => c.toUpperCase()));
             }
           }
         }
@@ -622,7 +627,16 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
               : 'Upload candidate resumes to extract skills automatically, edit profiles, and view the directory.'}
           </p>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setShowSkillRequestModal(true)}
+            className="w-full sm:w-auto px-4 py-2 sm:py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-xs font-bold rounded-lg transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+            id="header-request-missing-skill-btn"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>+ Request Missing Skill</span>
+          </button>
           <button 
             onClick={loadSampleResume}
             className="w-full sm:w-auto px-3.5 py-2 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-all border border-slate-300 cursor-pointer"
