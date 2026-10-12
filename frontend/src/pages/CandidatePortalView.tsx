@@ -880,13 +880,42 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
             </div>
 
             {/* Extracted Technical Skills */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-slate-500 font-black text-[11px] uppercase tracking-wider">
-                  Verified Technical Skills ({activeCandidate.skills?.length || 0})
-                </p>
-                <span className="text-[10px] text-slate-400 font-medium">Protected against direct tampering</span>
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <p className="text-slate-900 font-black text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    <span>Verified Technical Skills ({activeCandidate.skills?.length || 0})</span>
+                    <span className="text-[10px] text-slate-400 font-medium normal-case">(Tamper-proof)</span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSkillRequestModal(true)}
+                  className="px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  id="candidate-portal-request-skill-btn"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>+ Request Skill Addition</span>
+                </button>
               </div>
+
+              {/* Callout Notice */}
+              <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-xl flex items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <p className="text-[11px] text-indigo-950 font-medium">
+                    <strong>Missed an unparsed skill?</strong> Raise an official skill addition request here. Administrators & Recruiters will inspect your stored resume document and approve it into your verified skills.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSkillRequestModal(true)}
+                  className="px-2.5 py-1 bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg border border-indigo-300 text-[11px] shrink-0 cursor-pointer"
+                >
+                  Request Now
+                </button>
+              </div>
+
               <div className="flex flex-wrap gap-1.5">
                 {(activeCandidate.skills || []).map(skill => (
                   <span

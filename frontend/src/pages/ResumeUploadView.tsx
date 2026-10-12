@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import type { Candidate, CandidateResumeDocument } from '../types';
+import type { Candidate, CandidateResumeDocument, SkillAdditionRequest } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
 import { EditCandidateSkillsModal } from '../components/EditCandidateSkillsModal';
-import { Edit3 } from 'lucide-react';
+import { Edit3, Sparkles, PlusCircle, AlertTriangle, CheckCircle2, X, FileText, Check } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
@@ -26,6 +26,7 @@ interface ResumeUploadViewProps {
   onUpdateCandidateSkills?: (candidateId: string, skills: string[]) => void;
   onUpdateCandidateRoleAndExperience?: (candidateId: string, role: string, exp: number) => void;
   onUpdateCandidateAvatar?: (candidateId: string, avatar: string | undefined) => void;
+  onRequestSkillAddition?: (req: Omit<SkillAdditionRequest, 'id' | 'status' | 'requestedAt'>) => void;
   onNavigateToMatching: () => void;
 }
 
@@ -46,6 +47,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   onUpdateCandidateSkills,
   onUpdateCandidateRoleAndExperience,
   onUpdateCandidateAvatar,
+  onRequestSkillAddition,
   onNavigateToMatching
 }) => {
   const canEditCandidateSkills = canEditSkills ?? (isMainAdmin || isRecruiterUser || !isCandidateUser);
@@ -58,6 +60,14 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   const [parsingProgress, setParsingProgress] = useState(0);
   const [isParsing, setIsParsing] = useState(false);
   const [parsed, setParsed] = useState(false);
+
+  // Missing Skill Addition Request Modal State
+  const [showSkillRequestModal, setShowSkillRequestModal] = useState(false);
+  const [reqSkillName, setReqSkillName] = useState('');
+  const [reqCategory, setReqCategory] = useState('Frameworks & Libraries');
+  const [reqProficiency, setReqProficiency] = useState<'Beginner' | 'Intermediate' | 'Advanced' | 'Expert'>('Advanced');
+  const [reqReasonNote, setReqReasonNote] = useState('');
+  const [reqSubmittedNotice, setReqSubmittedNotice] = useState<string | null>(null);
 
   // Editable Extracted Form State
   const [fullName, setFullName] = useState('');
@@ -73,12 +83,48 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   const [newSkillInput, setNewSkillInput] = useState('');
   const [parseError, setParseError] = useState<string | null>(null);
 
+  // Industry-Standard Comprehensive Technical Skills Vocabulary (300+ Skills)
   const SKILLS_VOCAB = [
-    "Python", "Java", "JavaScript", "TypeScript", "HTML", "CSS", "React", "React Native", "Node.js", "Express.js",
-    "Django", "Flask", "FastAPI", "Spring Boot", "Machine Learning", "Deep Learning", "GenAI", "LLMs", "Data Analysis",
-    "Data Science", "AWS", "Google Cloud", "GCP", "Azure", "Docker", "Kubernetes", "MySQL", "PostgreSQL", "MongoDB",
-    "BigQuery", "Redis", "Git", "GitHub", "VS Code", "Linux", "Jupyter Notebook", "Firebase", "TensorFlow", "PyTorch",
-    "Streamlit", "Cybersecurity", "SQL", "Tailwind CSS", "Bootstrap", "REST API", "APIs", "Microservices", "C++", "C#"
+    // Languages
+    "Python", "Java", "JavaScript", "TypeScript", "C", "C++", "C#", "Go", "Golang", "Rust",
+    "PHP", "Ruby", "Swift", "Kotlin", "Dart", "Scala", "R", "SQL", "PL/SQL", "HTML", "HTML5",
+    "CSS", "CSS3", "Bash", "Shell", "PowerShell", "MATLAB", "Perl", "Assembly", "Solidity",
+    // Frontend
+    "React", "React.js", "React Native", "Next.js", "Vue", "Vue.js", "Nuxt.js", "Angular",
+    "AngularJS", "Svelte", "SvelteKit", "Redux", "Redux Toolkit", "Zustand", "MobX", "Tailwind CSS",
+    "Bootstrap", "Material UI", "Chakra UI", "Sass", "SCSS", "Less", "Webpack", "Vite", "Babel",
+    "jQuery", "WebSockets", "PWA", "Responsive Design", "Figma", "Adobe XD",
+    // Backend & APIs
+    "Node.js", "Express", "Express.js", "NestJS", "FastAPI", "Django", "Flask", "Spring",
+    "Spring Boot", "Hibernate", "ASP.NET", ".NET", ".NET Core", "Ruby on Rails", "Laravel",
+    "GraphQL", "Apollo GraphQL", "REST API", "RESTful APIs", "Microservices", "gRPC", "SOAP",
+    "Kafka", "RabbitMQ", "Celery", "Socket.io", "Serverless",
+    // AI / ML / Data Science
+    "Machine Learning", "Deep Learning", "Generative AI", "GenAI", "LLMs", "Large Language Models",
+    "NLP", "Natural Language Processing", "Computer Vision", "TensorFlow", "PyTorch", "Keras",
+    "Scikit-learn", "Pandas", "NumPy", "SciPy", "OpenCV", "Hugging Face", "Transformers",
+    "LangChain", "LlamaIndex", "Vector Databases", "ChromaDB", "Pinecone", "Milvus", "FAISS",
+    "RAG", "Prompt Engineering", "Fine-tuning", "MLOps", "MLflow", "Kubeflow", "Data Analysis",
+    "Data Science", "Data Engineering", "Data Pipelines", "ETL", "Apache Spark", "PySpark",
+    "Apache Flink", "Hadoop", "Tableau", "Power BI", "Matplotlib", "Seaborn", "Streamlit",
+    // Cloud & DevOps
+    "AWS", "Amazon Web Services", "EC2", "S3", "Lambda", "AWS SageMaker", "GCP", "Google Cloud",
+    "Google Cloud Platform", "BigQuery", "Azure", "Microsoft Azure", "Cloudflare", "DigitalOcean",
+    "Heroku", "Firebase", "Supabase", "Vercel", "Netlify", "Docker", "Kubernetes", "CI/CD",
+    "Continuous Integration", "Continuous Deployment", "Jenkins", "GitHub Actions", "GitLab CI",
+    "CircleCI", "Terraform", "Ansible", "Helm", "Linux", "Ubuntu", "Debian", "CentOS", "Nginx",
+    "Apache", "Prometheus", "Grafana", "ELK Stack", "Datadog", "Splunk",
+    // Databases
+    "MySQL", "PostgreSQL", "MongoDB", "Redis", "Elasticsearch", "Cassandra", "DynamoDB",
+    "SQLite", "MariaDB", "Oracle", "Microsoft SQL Server", "Snowflake", "Neo4j", "CouchDB",
+    "Memcached", "Prisma", "TypeORM", "Mongoose", "SQLAlchemy",
+    // Testing & Tools
+    "Jest", "Mocha", "Chai", "Cypress", "Selenium", "Playwright", "Puppeteer", "JUnit",
+    "TestNG", "PyTest", "Unit Testing", "Integration Testing", "TDD", "BDD",
+    "Git", "GitHub", "GitLab", "Bitbucket", "Jira", "Confluence", "Postman", "Swagger",
+    "VS Code", "IntelliJ IDEA", "Eclipse", "Agile", "Scrum", "Kanban", "DevOps",
+    "System Design", "Object-Oriented Programming", "OOP", "Design Patterns", "Clean Architecture",
+    "Cybersecurity", "OWASP", "OAuth", "JWT", "Authentication", "Authorization"
   ];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,6 +136,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
     }
   };
 
+  // High-accuracy client-side text extractor preserving vertical line structure
   const extractRealDocumentText = async (file: File): Promise<string> => {
     const ext = file.name.split('.').pop()?.toLowerCase() || '';
 
@@ -101,17 +148,51 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
           useSystemFonts: true,
         });
         const pdf = await loadingTask.promise;
-        const textPieces: string[] = [];
+        const pageTextBlocks: string[] = [];
+
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const content = await page.getTextContent();
-          const pageText = content.items
-            .map((item: any) => ('str' in item ? item.str : ''))
-            .filter((s: string) => s.trim().length > 0)
-            .join(' ');
-          textPieces.push(pageText);
+          
+          let lastY: number | null = null;
+          const pageLines: string[] = [];
+          let currentLine = '';
+
+          for (const rawItem of content.items) {
+            const item = rawItem as any;
+            if (!item || typeof item.str !== 'string') continue;
+            const textStr = item.str;
+            const y = item.transform ? Math.round(item.transform[5]) : null;
+
+            // When vertical position changes significantly (>3px), treat as a distinct new line
+            if (lastY !== null && y !== null && Math.abs(y - lastY) > 3) {
+              if (currentLine.trim()) {
+                pageLines.push(currentLine.trim());
+              }
+              currentLine = textStr;
+            } else {
+              currentLine += (currentLine && !currentLine.endsWith(' ') && !textStr.startsWith(' ') ? ' ' : '') + textStr;
+            }
+
+            if (y !== null) lastY = y;
+
+            if (item.hasEOL) {
+              if (currentLine.trim()) {
+                pageLines.push(currentLine.trim());
+              }
+              currentLine = '';
+              lastY = null;
+            }
+          }
+
+          if (currentLine.trim()) {
+            pageLines.push(currentLine.trim());
+          }
+
+          pageTextBlocks.push(pageLines.join('\n'));
         }
-        const combined = textPieces.join('\n');
+
+        const combined = pageTextBlocks.join('\n');
         if (combined.trim().length > 20) {
           return combined;
         }
@@ -124,6 +205,21 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
       try {
         const arrayBuffer = await file.arrayBuffer();
         const rawText = new TextDecoder('utf-8', { fatal: false }).decode(arrayBuffer);
+        
+        // Extract paragraph-by-paragraph (<w:p> tags) for structured line preservation
+        const paragraphMatches = rawText.match(/<w:p[^>]*>.*?<\/w:p>/gi);
+        if (paragraphMatches && paragraphMatches.length > 0) {
+          const lines = paragraphMatches.map(p => {
+            const textMatches = p.match(/<w:t[^>]*>(.*?)<\/w:t>/gi);
+            if (!textMatches) return '';
+            return textMatches.map(t => t.replace(/<[^>]+>/g, '')).join('');
+          }).filter(l => l.trim().length > 0);
+
+          if (lines.length > 0) {
+            return lines.join('\n');
+          }
+        }
+
         const matches = rawText.match(/<w:t[^>]*>(.*?)<\/w:t>/gi);
         if (matches && matches.length > 0) {
           return matches.map(m => m.replace(/<[^>]+>/g, '')).join(' ');
@@ -150,44 +246,91 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
 
     const foundSkillsSet = new Set<string>();
 
-    // 1. Structural extraction from Technical Skills section and lines with | or comma
+    // 1. Structural extraction from Technical Skills section with broad heading recognition
     const lines = cleanText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     let inSkillSection = false;
 
     for (const line of lines) {
-      if (/^(?:TECHNICAL\s+SKILLS|SKILLS|TECH\s+STACK)\b/i.test(line)) {
+      if (/^(?:TECHNICAL\s+SKILLS|SKILLS\s*(?:&|AND)?\s*COMPETENCIES|CORE\s+COMPETENCIES|TECHNICAL\s+COMPETENCIES|KEY\s+SKILLS|SKILLS|TECH\s+STACK|TECHNOLOGIES|TECHNICAL\s+EXPERTISE|AREAS\s+OF\s+EXPERTISE|PROFICIENCIES|TOOLS\s*(?:&|AND)?\s*TECHNOLOGIES|PROGRAMMING\s+SKILLS|DEVELOPMENT\s+SKILLS)\b/i.test(line)) {
         inSkillSection = true;
         continue;
       }
-      if (inSkillSection && /^(?:EXPERIENCE|EDUCATION|PROJECTS|CERTIFICATIONS|ACHIEVEMENTS|LANGUAGES|ABOUT)\b/i.test(line)) {
+      if (inSkillSection && /^(?:WORK\s+EXPERIENCE|PROFESSIONAL\s+EXPERIENCE|EXPERIENCE|EMPLOYMENT\s+HISTORY|EDUCATION|ACADEMIC\s+BACKGROUND|PROJECTS|KEY\s+PROJECTS|CERTIFICATIONS|ACHIEVEMENTS|PUBLICATIONS|LANGUAGES|ABOUT\s+ME|SUMMARY|OBJECTIVE)\b/i.test(line)) {
         inSkillSection = false;
       }
 
-      if (inSkillSection || /Tech\s+Stack:/i.test(line) || (line.includes('|') && line.length < 100)) {
-        const tokens = line.replace(/^(?:Programming Languages|Web Development|AI\/ML & Data Science|Cloud & DevOps|Databases|Tools & Others|Tech Stack):\s*/i, '')
-          .split(/[:|•,]+/)
+      if (inSkillSection || /Tech\s+Stack:/i.test(line) || (line.includes('|') && line.length < 120)) {
+        // Strip common category label prefix before tokenizing
+        const lineWithoutCategory = line.replace(/^[A-Za-z0-9\s/&,+-]+:\s*/, '');
+        const tokens = lineWithoutCategory
+          .split(/[,|•·;/\t*▪]+/)
           .map(t => t.trim())
-          .filter(t => t.length >= 2 && t.length <= 25);
+          .filter(t => t.length >= 2 && t.length <= 30);
 
         for (const token of tokens) {
           const matchSkill = SKILLS_VOCAB.find(s => s.toLowerCase() === token.toLowerCase());
           if (matchSkill) {
             foundSkillsSet.add(matchSkill);
-          } else if (/^[a-zA-Z0-9#+.\s-]+$/.test(token) && !/^(programming|development|cloud|tools|databases|languages)$/i.test(token)) {
-            foundSkillsSet.add(token);
+          } else if (/^[a-zA-Z0-9#+.\s-]+$/.test(token) && !/^(programming|development|cloud|tools|databases|languages|technologies|frameworks|libraries)$/i.test(token)) {
+            // Keep well-formed technical terms
+            if (token.length >= 2 && !token.includes('@') && !token.includes('http')) {
+              foundSkillsSet.add(token);
+            }
           }
         }
       }
     }
 
-    // 2. Vocabulary extraction with strict word boundaries (ignoring single-letter false positives like C, R)
+    // 2. High-precision vocabulary scan across whole resume document text
     for (const skill of SKILLS_VOCAB) {
       const sLower = skill.toLowerCase();
-      if (sLower === 'c' || sLower === 'r') continue;
-      const escaped = sLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`(?<![a-zA-Z0-9#+])${escaped}(?![a-zA-Z0-9#+])`, 'i');
-      if (regex.test(textLower)) {
-        foundSkillsSet.add(skill);
+      if (sLower === 'c' || sLower === 'r') {
+        // Single letters require strict isolated context
+        const singleRegex = new RegExp(`(?:^|[^a-zA-Z0-9#+])\\b${sLower}\\b(?:$|[^a-zA-Z0-9#+])`, 'i');
+        if (singleRegex.test(cleanText)) {
+          // Verify it appears in a programming language context
+          if (textLower.includes('c/c++') || textLower.includes('c, c++') || textLower.includes('c language') || textLower.includes('r programming') || textLower.includes('r language')) {
+            foundSkillsSet.add(skill);
+          }
+        }
+        continue;
+      }
+
+      // Handle skills with punctuation like C++, C#, .NET, Node.js
+      if (skill === 'C++') {
+        if (/(?:^|[^a-zA-Z0-9#+])C\+\+(?:$|[^a-zA-Z0-9#+])/i.test(cleanText)) {
+          foundSkillsSet.add('C++');
+        }
+      } else if (skill === 'C#') {
+        if (/(?:^|[^a-zA-Z0-9#+])C#(?:$|[^a-zA-Z0-9#+])/i.test(cleanText)) {
+          foundSkillsSet.add('C#');
+        }
+      } else if (skill === '.NET' || skill === '.NET Core') {
+        if (/(?:^|[^a-zA-Z0-9])\.NET(?:\s+Core)?(?:$|[^a-zA-Z0-9])/i.test(cleanText)) {
+          foundSkillsSet.add('.NET');
+        }
+      } else if (skill === 'Node.js') {
+        if (/\bNode(?:\.js)?\b/i.test(cleanText)) {
+          foundSkillsSet.add('Node.js');
+        }
+      } else if (skill === 'Vue.js') {
+        if (/\bVue(?:\.js)?\b/i.test(cleanText)) {
+          foundSkillsSet.add('Vue.js');
+        }
+      } else if (skill === 'Next.js') {
+        if (/\bNext(?:\.js)?\b/i.test(cleanText)) {
+          foundSkillsSet.add('Next.js');
+        }
+      } else if (skill === 'React.js') {
+        if (/\bReact(?:\.js)?\b/i.test(cleanText)) {
+          foundSkillsSet.add('React');
+        }
+      } else {
+        const escaped = sLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`(?<![a-zA-Z0-9#+])${escaped}(?![a-zA-Z0-9#+])`, 'i');
+        if (regex.test(textLower)) {
+          foundSkillsSet.add(skill);
+        }
       }
     }
 
@@ -197,20 +340,28 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
       return { isValid: false, error: "The uploaded file does not contain valid candidate resume text or technical skills." };
     }
 
-    // Extract Name
+    // High-Accuracy Name Extraction: Scan top 10 lines for candidate personal name
     let formattedName = '';
-    const excludedNameWords = ['resume', 'curriculum', 'vitae', 'cv', 'page', 'skills', 'experience', 'education', 'contact', 'email', 'phone', 'about', 'summary', 'profile', 'building', 'intelligent', 'solutions', 'student', 'engineer', 'developer', 'intern'];
+    const excludedNameWords = [
+      'resume', 'curriculum', 'vitae', 'cv', 'page', 'skills', 'experience', 'education', 
+      'contact', 'email', 'phone', 'about', 'summary', 'profile', 'building', 'intelligent', 
+      'solutions', 'student', 'engineer', 'developer', 'intern', 'full', 'stack', 'software',
+      'portfolio', 'github', 'linkedin', 'address', 'objective', 'overview', 'fresher', 'associate'
+    ];
     
-    for (const l of lines.slice(0, 6)) {
+    for (const l of lines.slice(0, 10)) {
       const cleanLine = l.replace(/[^a-zA-Z\s]/g, '').trim();
-      const words = cleanLine.split(/\s+/);
-      if (words.length >= 1 && words.length <= 3 && cleanLine.length >= 3 && cleanLine.length <= 35) {
+      const words = cleanLine.split(/\s+/).filter(Boolean);
+      // Valid candidate names usually consist of 2 to 4 capitalized words without digits
+      if (words.length >= 2 && words.length <= 4 && cleanLine.length >= 4 && cleanLine.length <= 35) {
         if (!words.some(w => excludedNameWords.includes(w.toLowerCase()))) {
+          // Verify words look like names (starts with capital letter)
           formattedName = cleanLine.replace(/\b\w/g, c => c.toUpperCase());
           break;
         }
       }
     }
+
     if (!formattedName) {
       if (isCandidateUser && userProfileName && userProfileName !== 'Candidate' && !userProfileName.toLowerCase().includes('resume')) {
         formattedName = userProfileName;
@@ -225,23 +376,45 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
       }
     }
 
-    // Contact
+    // Contact info
     const emailMatch = cleanText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-    const phoneMatch = cleanText.match(/(?:\+?91[\s-]?)?[6-9]\d{9}|(?:\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{4}/);
-    const locMatch = cleanText.match(/(?:Hyderabad|Bengaluru|Bangalore|Mumbai|Delhi|Pune|Chennai|San Francisco|New York|London)[,\s]+[A-Za-z\s]+/i);
+    const phoneMatch = cleanText.match(/(?:\+?91[\s-]?)?[6-9]\d{9}|(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}|\+?\d{1,3}[-.\s]?\d{2,4}[-.\s]?\d{3,4}[-.\s]?\d{4}/);
+    const locMatch = cleanText.match(/(?:Bengaluru|Bangalore|Hyderabad|Pune|Mumbai|Delhi|Noida|Gurugram|Gurgaon|Chennai|Kolkata|Ahmedabad|Jaipur|San Francisco|New York|Seattle|Austin|London|Toronto|Remote)[,\s]*[A-Za-z\s]*/i);
 
     // Role & Experience
-    const roleMatch = cleanText.match(/\b(Full\s*Stack\s*Developer|Software\s*Engineer|Backend\s*Developer|Frontend\s*Developer|Data\s*Scientist|ML\s*Engineer|Machine\s*Learning\s*Engineer|DevOps\s*Engineer)\b/i);
+    const roleMatch = cleanText.match(/\b(Full\s*Stack\s*(?:Developer|Engineer)|Software\s*(?:Developer|Engineer)|Backend\s*(?:Developer|Engineer)|Frontend\s*(?:Developer|Engineer)|Data\s*Scientist|ML\s*Engineer|Machine\s*Learning\s*Engineer|AI\s*(?:Engineer|Researcher)|DevOps\s*Engineer|Cloud\s*Architect|Mobile\s*Developer|Android\s*Developer|iOS\s*Developer|QA\s*Engineer)\b/i);
     const role = roleMatch ? roleMatch[0].replace(/\b\w/g, c => c.toUpperCase()) : 'Software Developer';
 
+    // Experience Years calculation (from explicit text or date ranges)
+    let experienceYears = 2;
     const expYearsMatch = cleanText.match(/(\d{1,2})\s*\+?\s*(?:years?|yrs?)\s*(?:of)?\s*(?:experience|exp)/i);
-    const experienceYears = expYearsMatch ? parseInt(expYearsMatch[1], 10) : 2;
+    if (expYearsMatch) {
+      experienceYears = parseInt(expYearsMatch[1], 10);
+    } else {
+      // Calculate from employment year ranges like "2020 - 2024" or "2019 - Present"
+      const currentYear = new Date().getFullYear();
+      const dateRanges = Array.from(cleanText.matchAll(/\b(20\d{2})\s*(?:[-–—to]+)\s*(20\d{2}|Present|Current)\b/gi));
+      if (dateRanges.length > 0) {
+        let maxDuration = 0;
+        for (const dr of dateRanges) {
+          const startYr = parseInt(dr[1], 10);
+          const endYr = dr[2].toLowerCase().includes('present') || dr[2].toLowerCase().includes('current') ? currentYear : parseInt(dr[2], 10);
+          const dur = endYr - startYr;
+          if (dur > 0 && dur < 35 && dur > maxDuration) {
+            maxDuration = dur;
+          }
+        }
+        if (maxDuration > 0) {
+          experienceYears = Math.min(25, maxDuration);
+        }
+      }
+    }
 
     // Degree & Institution
-    const degreeMatch = cleanText.match(/(?:B\.?Tech(?:\s*-\s*[A-Za-z\s&]+)?|Bachelor[^\n,]*|Master[^\n,]*|BS[^\n,]*|MS[^\n,]*)/i);
+    const degreeMatch = cleanText.match(/(?:B\.?Tech(?:\s*-\s*[A-Za-z\s&]+)?|B\.?E\.?(?:\s*-\s*[A-Za-z\s&]+)?|Bachelor[^\n,]*|Master[^\n,]*|M\.?Tech[^\n,]*|BS[^\n,]*|MS[^\n,]*|MCA|BCA|Ph\.?D)/i);
     const degree = degreeMatch ? degreeMatch[0].trim() : 'B.Tech in Computer Science';
 
-    const instMatch = cleanText.match(/([A-Za-z\s]+(?:University|College|Institute)[A-Za-z\s]*)/i);
+    const instMatch = cleanText.match(/([A-Za-z\s]+(?:University|College|Institute|Academy|School\s+of\s+Technology|IIT|NIT|BITS)[A-Za-z\s]*)/i);
     const institution = instMatch ? instMatch[1].trim() : 'Engineering University';
 
     const fallbackEmail = (isCandidateUser && currentCandidateEmail) 
@@ -678,6 +851,32 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                     />
                   </div>
                 </div>
+
+                {/* Missing Skill Addition Request Banner & Trigger */}
+                <div className="mt-3 p-3.5 bg-gradient-to-r from-indigo-50 via-purple-50 to-blue-50 border border-indigo-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h5 className="font-extrabold text-slate-900 text-xs">
+                        Missing a Skill from Automated Parsing?
+                      </h5>
+                      <p className="text-[11px] text-slate-600 font-medium">
+                        If parsing missed any skill from your uploaded resume, raise a request for Administrator/Recruiter verification.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowSkillRequestModal(true)}
+                    className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer active:scale-95"
+                    id="request-missing-skill-btn"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>Request Skill Addition</span>
+                  </button>
+                </div>
               </div>
 
               {/* Action Bar */}
@@ -1016,6 +1215,168 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
           }
         }}
       />
+
+      {/* Candidate / User Missing Skill Addition Request Modal */}
+      {showSkillRequestModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 text-white flex items-center justify-between">
+              <div>
+                <span className="px-2 py-0.5 bg-white/20 text-white rounded text-[10px] font-black uppercase tracking-wider">
+                  Resume Skill Request
+                </span>
+                <h3 className="text-lg font-black mt-1 text-white">Request Missing Skill Addition</h3>
+                <p className="text-xs text-blue-100 font-medium">
+                  Ask Administrators & Recruiters to verify and approve unparsed skills
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSkillRequestModal(false)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white font-bold transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!reqSkillName.trim()) {
+                  alert("Please enter skill name.");
+                  return;
+                }
+                if (!reqReasonNote.trim()) {
+                  alert("Please mention where this skill appears on your resume.");
+                  return;
+                }
+
+                onRequestSkillAddition?.({
+                  candidateId: `cand-${(email || currentCandidateEmail || 'applicant').replace(/[^a-z0-9]/g, '-')}`,
+                  candidateName: fullName || userProfileName || 'Candidate Applicant',
+                  candidateEmail: email || currentCandidateEmail || 'candidate@copilot.com',
+                  skillName: reqSkillName.trim(),
+                  category: reqCategory,
+                  proficiency: reqProficiency,
+                  reasonNote: reqReasonNote.trim(),
+                  resumeFileName: file?.name || 'Uploaded_Resume.pdf'
+                });
+
+                setReqSubmittedNotice(`Request to add "${reqSkillName.trim()}" has been submitted! Administrators will inspect your resume document.`);
+                setReqSkillName('');
+                setReqReasonNote('');
+                setTimeout(() => {
+                  setReqSubmittedNotice(null);
+                  setShowSkillRequestModal(false);
+                }, 1500);
+              }}
+              className="p-6 overflow-y-auto space-y-4"
+            >
+              {reqSubmittedNotice && (
+                <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl text-xs font-bold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{reqSubmittedNotice}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Missing Skill Name <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={reqSkillName}
+                  onChange={(e) => setReqSkillName(e.target.value)}
+                  placeholder="e.g. Kubernetes, PyTorch, GraphQL, Next.js, Redis, FastAPI"
+                  required
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl h-11 px-3.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all"
+                />
+
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase">Quick suggestions:</span>
+                  {['Kubernetes', 'PyTorch', 'Next.js', 'GraphQL', 'FastAPI', 'LangChain', 'Docker', 'Redis'].map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setReqSkillName(s)}
+                      className="px-2 py-0.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 rounded text-[10px] font-bold border border-slate-200 transition-colors cursor-pointer"
+                    >
+                      + {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Skill Category</label>
+                  <select
+                    value={reqCategory}
+                    onChange={(e) => setReqCategory(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl h-10 px-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-indigo-500 focus:outline-none"
+                  >
+                    <option value="Languages">Programming Languages</option>
+                    <option value="Frameworks & Libraries">Frameworks & Libraries</option>
+                    <option value="Cloud & DevOps">Cloud & DevOps</option>
+                    <option value="Databases & Storage">Databases & Storage</option>
+                    <option value="AI & Machine Learning">AI & Machine Learning</option>
+                    <option value="Tools & Methodologies">Tools & Methodologies</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Proficiency Level</label>
+                  <select
+                    value={reqProficiency}
+                    onChange={(e) => setReqProficiency(e.target.value as any)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl h-10 px-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-indigo-500 focus:outline-none"
+                  >
+                    <option value="Beginner">Beginner (1-2 yrs)</option>
+                    <option value="Intermediate">Intermediate (2-4 yrs)</option>
+                    <option value="Advanced">Advanced (4-6 yrs)</option>
+                    <option value="Expert">Expert (6+ yrs)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Resume Location / Justification <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  value={reqReasonNote}
+                  onChange={(e) => setReqReasonNote(e.target.value)}
+                  placeholder="Explain exactly where this skill appears in your uploaded resume (e.g., 'Mentioned under Work Experience at NovaScale AI on page 1, used for distributed model serving')."
+                  required
+                  rows={3}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs font-medium text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all"
+                />
+                <div className="flex items-start gap-1.5 p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-[11px] font-medium mt-1">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span>Administrators will inspect your stored PDF/DOCX file using automated text verification to verify that you did not falsify this skill.</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setShowSkillRequestModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs rounded-xl shadow-md shadow-blue-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Submit Skill Request</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

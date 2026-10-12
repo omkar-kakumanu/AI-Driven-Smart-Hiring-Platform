@@ -435,6 +435,7 @@ export default function App() {
               onUpdateCandidateSkills={store.updateCandidateSkills}
               onUpdateCandidateRoleAndExperience={store.updateCandidateRoleAndExperience}
               onUpdateCandidateAvatar={store.updateCandidateAvatar}
+              onRequestSkillAddition={store.requestSkillAddition}
               onNavigateToMatching={() => setCurrentTab('matching')}
             />
           )}
