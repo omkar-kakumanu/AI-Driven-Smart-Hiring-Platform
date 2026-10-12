@@ -223,18 +223,30 @@ export function useRecruitmentStore() {
       cand1CustomName = 'Abhishek';
     }
 
-    let sanitized = cands.map(c => {
+    let sanitized: Candidate[] = cands.map((c: any): Candidate => {
       const cMail = (c.email || '').toLowerCase();
       const orig = initialMap.get(c.id);
       const isCand1 = c.id === 'cand-1' || cMail === 'candidate@copilot.com' || cMail === 'sarah.johnson@example.com';
       
+      const docKeyId = `rc_resume_doc_${c.id}`;
+      const docKeyMail = `rc_resume_doc_${cMail}`;
+      let persistedDoc = c.resumeDocument || orig?.resumeDocument;
+      if (!persistedDoc) {
+        const docFromStorage = localStorage.getItem(docKeyId) || (cMail ? localStorage.getItem(docKeyMail) : null);
+        if (docFromStorage) {
+          try { persistedDoc = JSON.parse(docFromStorage); } catch (e) {}
+        }
+      }
+
       if (isCand1) {
         return {
+          ...orig,
           ...c,
           id: 'cand-1',
           fullName: (cand1CustomName && cand1CustomName.trim()) ? cand1CustomName.trim() : (c.fullName && c.fullName !== 'Candidate' ? c.fullName : 'Sarah Johnson'),
           email: c.email || 'sarah.johnson@example.com',
-          avatar: cand1CustomAvatar || c.avatar
+          avatar: cand1CustomAvatar || c.avatar,
+          resumeDocument: persistedDoc || orig?.resumeDocument
         };
       }
 
@@ -253,12 +265,16 @@ export function useRecruitmentStore() {
           email: orig.email,
           currentRole: c.currentRole || orig.currentRole,
           skills: (c.skills && c.skills.length > 0) ? c.skills : orig.skills,
-          avatar: savedSpecificAvatar || c.avatar || orig.avatar
+          avatar: savedSpecificAvatar || c.avatar || orig.avatar,
+          resumeDocument: persistedDoc || orig.resumeDocument
         };
       }
 
       // User-uploaded candidate (e.g. cand-1727...)
-      return c;
+      return {
+        ...c,
+        resumeDocument: persistedDoc
+      };
     });
 
     // Guarantee that Sarah Johnson (cand-1) is always present in candidate database
@@ -1074,6 +1090,13 @@ export function useRecruitmentStore() {
       matchScore: score
     };
 
+    if (newCandidate.resumeDocument) {
+      safeStorageSet(`rc_resume_doc_${candidateId}`, JSON.stringify(newCandidate.resumeDocument));
+      if (cleanMail) {
+        safeStorageSet(`rc_resume_doc_${cleanMail}`, JSON.stringify(newCandidate.resumeDocument));
+      }
+    }
+
     setCandidates(prev => {
       const existingIdx = cleanMail ? prev.findIndex(c => (c.email || '').toLowerCase().trim() === cleanMail) : -1;
       if (existingIdx >= 0) {
@@ -1081,8 +1104,13 @@ export function useRecruitmentStore() {
         savedCand = {
           ...updated[existingIdx],
           ...newCandidate,
+          resumeDocument: newCandidate.resumeDocument || updated[existingIdx].resumeDocument,
           matchScore: score
         };
+        if (savedCand.resumeDocument) {
+          safeStorageSet(`rc_resume_doc_${savedCand.id}`, JSON.stringify(savedCand.resumeDocument));
+          safeStorageSet(`rc_resume_doc_${cleanMail}`, JSON.stringify(savedCand.resumeDocument));
+        }
         updated[existingIdx] = savedCand;
         return updated;
       }
@@ -1370,8 +1398,13 @@ export function useRecruitmentStore() {
   };
 
   const updateCandidateResumeDocument = (candidateId: string, doc: CandidateResumeDocument) => {
+    safeStorageSet(`rc_resume_doc_${candidateId}`, JSON.stringify(doc));
     setCandidates(prev => prev.map(c => {
       if (c.id === candidateId || (c.email && c.email.toLowerCase() === candidateId.toLowerCase())) {
+        safeStorageSet(`rc_resume_doc_${c.id}`, JSON.stringify(doc));
+        if (c.email) {
+          safeStorageSet(`rc_resume_doc_${c.email.toLowerCase()}`, JSON.stringify(doc));
+        }
         return {
           ...c,
           resumeDocument: doc

@@ -2145,16 +2145,27 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     )}
 
                     {/* Stored Resume File Metadata & Actions */}
-                    <div className="border border-slate-200 rounded-xl p-3.5 flex items-center justify-between bg-white">
+                    <div className="border border-slate-200 rounded-xl p-3.5 flex items-center justify-between bg-white flex-wrap gap-2">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-red-50 text-red-600 flex items-center justify-center font-bold text-xs border border-red-200">
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-xs border ${
+                          (resumeDoc?.fileName || req.resumeFileName || '').toLowerCase().endsWith('.docx') || resumeDoc?.fileType?.includes('word')
+                            ? 'bg-blue-50 text-blue-600 border-blue-200'
+                            : 'bg-red-50 text-red-600 border-red-200'
+                        }`}>
                           <FileText className="w-5 h-5" />
                         </div>
                         <div>
-                          <div className="text-xs font-bold text-slate-800">
-                            {resumeDoc?.fileName || req.resumeFileName || `${req.candidateName.replace(/\s+/g, '_')}_Resume.pdf`}
+                          <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            <span>{resumeDoc?.fileName || req.resumeFileName || `${req.candidateName.replace(/\s+/g, '_')}_Resume.pdf`}</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
+                              (resumeDoc?.fileName || req.resumeFileName || '').toLowerCase().endsWith('.docx') || resumeDoc?.fileType?.includes('word')
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {(resumeDoc?.fileName || req.resumeFileName || '').toLowerCase().endsWith('.docx') || resumeDoc?.fileType?.includes('word') ? 'DOCX' : 'PDF'}
+                            </span>
                           </div>
-                          <div className="text-[11px] text-slate-400 flex items-center gap-2">
+                          <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
                             <span>{resumeDoc?.fileSize ? `${Math.round(resumeDoc.fileSize / 1024)} KB` : '184 KB'}</span>
                             <span>•</span>
                             <span>Uploaded: {resumeDoc?.uploadedAt || targetCandidate?.appliedDate || '2026-03-15'}</span>
@@ -2164,15 +2175,32 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         </div>
                       </div>
 
-                      {resumeDoc?.dataUrl && (
+                      {resumeDoc?.dataUrl ? (
                         <a
                           href={resumeDoc.dataUrl}
-                          download={resumeDoc.fileName || 'resume.pdf'}
+                          download={resumeDoc.fileName || `${req.candidateName.replace(/\s+/g, '_')}_Resume.${(resumeDoc?.fileType?.includes('word') || resumeDoc?.fileName?.endsWith('.docx')) ? 'docx' : 'pdf'}`}
                           className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-all flex items-center gap-1.5 cursor-pointer border border-slate-300"
                         >
                           <Download className="w-3.5 h-3.5" />
-                          <span>Download File</span>
+                          <span>Download {(resumeDoc?.fileName || '').toLowerCase().endsWith('.docx') ? 'DOCX' : 'PDF'}</span>
                         </a>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const blob = new Blob([resumeText || ''], { type: 'text/plain' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `${req.candidateName.replace(/\s+/g, '_')}_Resume_Document.txt`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }}
+                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-all flex items-center gap-1.5 cursor-pointer border border-slate-300"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Download Stored Text</span>
+                        </button>
                       )}
                     </div>
 

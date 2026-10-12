@@ -209,6 +209,14 @@ export const INITIAL_CANDIDATES: Candidate[] = [
     "id": "cand-1789048344793",
     "status": "Interview Completed",
     "matchScore": 98,
+    "resumeDocument": {
+      "fileName": "Omkar_Kakumanu_Software_Engineer_Resume.docx",
+      "fileType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "fileSize": 184520,
+      "dataUrl": "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,UEsDBBQABgAIAAAAIQDqg5c=",
+      "extractedText": "OMKAR KAKUMANU\nEmail: omkar.kakumanu17@gmail.com | Phone: 20251124105758\nLocation: San Francisco, CA | Full Stack Developer & Software Engineer\n\nTECHNICAL SKILLS\nProgramming: Python, Java, Go, R, JavaScript, TypeScript, C, C#, Kotlin, SQL, Java 17+\nFrontend: React, Tailwind CSS, Bootstrap, CSS, HTML5, Responsive UI\nBackend: Spring Boot, Django, RESTful APIs, Node.js, FastAPIs\nCloud & Data: Docker, Git, MySQL, PostgreSQL, LLMs, Microservices\n\nPROFESSIONAL SUMMARY\nSoftware Engineer with 3+ years experience building distributed backends and scalable web applications.\n\nEXPERIENCE & ACHIEVEMENTS\nSoftware Engineer & Developer\n- Architected high-throughput microservices using Spring Boot, Java, and Docker.\n- Developed modern interactive frontends using React, TypeScript, and Tailwind CSS.\n- Optimized distributed SQL databases and implemented real-time API integrations.\n\nEDUCATION\nComputer Science Engineering — State University",
+      "uploadedAt": "2026-09-18"
+    },
     "interviewResponses": [
       {
         "id": "resp-1790085744016",

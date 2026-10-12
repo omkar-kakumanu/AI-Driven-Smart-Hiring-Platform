@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import type { Candidate, CandidateResumeDocument, SkillAdditionRequest } from '../types';
 import { EditCandidateSkillsModal } from '../components/EditCandidateSkillsModal';
 import { UserAvatar } from '../components/UserAvatar';
-import { Edit3, Sparkles, PlusCircle, AlertTriangle, CheckCircle2, X } from 'lucide-react';
+import { Edit3, Sparkles, PlusCircle, AlertTriangle, CheckCircle2, X, FileText, Download, Eye, Lock, Search } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
@@ -54,6 +54,8 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   const [editingCandidate, setEditingCandidate] = useState<Candidate | null>(null);
   const [adminAddSkillCandId, setAdminAddSkillCandId] = useState<string | null>(null);
   const [adminSkillText, setAdminSkillText] = useState('');
+  const [viewingResumeCandidate, setViewingResumeCandidate] = useState<Candidate | null>(null);
+  const [resumeSearchTerm, setResumeSearchTerm] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [fileDataUrl, setFileDataUrl] = useState<string>('');
   const [extractedTextRaw, setExtractedTextRaw] = useState<string>('');
@@ -441,14 +443,34 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
     };
   };
 
+  const readFileAsDataUrl = (selectedFile: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        resolve(typeof reader.result === 'string' ? reader.result : '');
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(selectedFile);
+    });
+  };
+
   const processFile = async (selectedFile: File) => {
     setCandidateAvatar('');
     setIsParsing(true);
-    setParsingProgress(20);
+    setParsingProgress(15);
     setParseError(null);
 
     try {
-      // 1. Attempt backend API parsing first
+      // 1. Immediately read file as Data URL and extract raw text so PDF/DOCX bytes are preserved
+      const [dataUrl, extractedText] = await Promise.all([
+        readFileAsDataUrl(selectedFile),
+        extractRealDocumentText(selectedFile)
+      ]);
+      setFileDataUrl(dataUrl);
+      setExtractedTextRaw(extractedText);
+      setParsingProgress(40);
+
+      // 2. Attempt backend API parsing first
       try {
         const formData = new FormData();
         formData.append('file', selectedFile);
@@ -480,24 +502,10 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
           }
         }
       } catch (backendErr) {
-        console.warn("Backend API unavailable, using high-accuracy PDF.js client extractor", backendErr);
+        console.warn("Backend API unavailable, using high-accuracy PDF.js/DOCX client extractor", backendErr);
       }
 
-      setParsingProgress(50);
-
-      // 2. Client-side Real Text Extraction via pdfjs-dist
-      const extractedText = await extractRealDocumentText(selectedFile);
-      setExtractedTextRaw(extractedText);
-      setParsingProgress(80);
-
-      // Read as DataURL for offline storage & preview
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          setFileDataUrl(reader.result);
-        }
-      };
-      reader.readAsDataURL(selectedFile);
+      setParsingProgress(70);
 
       const parsedData = parseTextForResumeDetails(extractedText, selectedFile.name);
       setParsingProgress(100);
@@ -527,6 +535,8 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   };
 
   const handleAddSkill = () => {
+    // Candidates cannot manually add skills during resume parsing
+    if (isCandidateUser) return;
     if (newSkillInput.trim() && !skills.includes(newSkillInput.trim())) {
       setSkills([...skills, newSkillInput.trim()]);
       setNewSkillInput('');
@@ -534,6 +544,8 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   };
 
   const handleRemoveSkill = (skillToRemove: string) => {
+    // Candidates cannot manually remove skills during resume parsing
+    if (isCandidateUser) return;
     setSkills(skills.filter(s => s !== skillToRemove));
   };
 
@@ -542,9 +554,14 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
     
     const finalEmail = (isCandidateUser && currentCandidateEmail) ? currentCandidateEmail : email;
 
+    const isDocx = file?.name?.toLowerCase().endsWith('.docx') || file?.name?.toLowerCase().endsWith('.doc');
+    const detectedMime = isDocx 
+      ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+      : 'application/pdf';
+
     const resumeDoc: CandidateResumeDocument | undefined = file ? {
       fileName: file.name,
-      fileType: file.type || (file.name.endsWith('.pdf') ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'),
+      fileType: file.type || detectedMime,
       fileSize: file.size,
       dataUrl: fileDataUrl || undefined,
       extractedText: extractedTextRaw,
@@ -847,25 +864,53 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
 
               {/* Skills Tags Input */}
               <div>
-                <label className="font-bold text-slate-700 block mb-1.5 text-xs">Extracted Technical Skills</label>
+                <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
+                  <label className="font-bold text-slate-700 block text-xs">Extracted Technical Skills</label>
+                  {isCandidateUser && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
+                      <Lock className="w-3 h-3 text-amber-600" />
+                      <span>Tamper-Proof: Candidate Skill Additions Restricted</span>
+                    </span>
+                  )}
+                </div>
+
                 <div className="flex flex-wrap gap-1.5 p-3 bg-slate-50 border border-slate-300 rounded-xl min-h-[60px]">
                   {skills.map((skill, idx) => (
                     <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-100 text-blue-800 font-bold text-xs rounded-lg border border-blue-200">
                       {skill}
-                      <button onClick={() => handleRemoveSkill(skill)} className="hover:text-rose-600 font-black">×</button>
+                      {!isCandidateUser && (
+                        <button 
+                          type="button"
+                          onClick={() => handleRemoveSkill(skill)} 
+                          className="hover:text-rose-600 font-black cursor-pointer"
+                          title={`Remove ${skill}`}
+                        >
+                          ×
+                        </button>
+                      )}
                     </span>
                   ))}
-                  <div className="flex items-center gap-1">
-                    <input 
-                      type="text" 
-                      placeholder="+ Add skill" 
-                      value={newSkillInput} 
-                      onChange={e => setNewSkillInput(e.target.value)} 
-                      onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddSkill())}
-                      className="text-xs bg-transparent border-none focus:outline-none w-24 text-slate-800 font-medium" 
-                    />
-                  </div>
+
+                  {!isCandidateUser && (
+                    <div className="flex items-center gap-1">
+                      <input 
+                        type="text" 
+                        placeholder="+ Add skill" 
+                        value={newSkillInput} 
+                        onChange={e => setNewSkillInput(e.target.value)} 
+                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddSkill())}
+                        className="text-xs bg-transparent border-none focus:outline-none w-24 text-slate-800 font-medium" 
+                      />
+                    </div>
+                  )}
                 </div>
+
+                {isCandidateUser && (
+                  <div className="mt-1.5 p-2 bg-slate-100/90 rounded-lg border border-slate-200 text-[11px] text-slate-600 flex items-center gap-1.5 font-medium">
+                    <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    <span>Direct manual skill editing is disabled for candidates. If automated parsing missed a skill from your resume, use the verified <strong>"Request Skill Addition"</strong> button below for Recruiter / Admin review.</span>
+                  </div>
+                )}
 
                 {/* Missing Skill Addition Request Banner & Trigger */}
                 <div className="mt-3 p-3.5 bg-gradient-to-r from-indigo-50 via-purple-50 to-blue-50 border border-indigo-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -999,6 +1044,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                         <th className="py-3 px-4">Experience</th>
                         <th className="py-3 px-4">Skills & Admin Edits</th>
                         <th className="py-3 px-4 text-center">Match Score & Benchmark</th>
+                        <th className="py-3 px-4 text-center">Submitted Resume</th>
                         <th className="py-3 px-4 text-center">Status</th>
                         <th className="py-3 px-4 text-right">Actions</th>
                       </tr>
@@ -1152,6 +1198,70 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                                     Alert: &lt;85% Match
                                   </span>
                                 </div>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              {cand.resumeDocument ? (
+                                <div className="inline-flex flex-col items-center gap-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                                      cand.resumeDocument.fileName?.toLowerCase().endsWith('.docx') || cand.resumeDocument.fileType?.includes('word')
+                                        ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                                        : 'bg-red-100 text-red-800 border border-red-300'
+                                    }`}>
+                                      <FileText className="w-3 h-3" />
+                                      {cand.resumeDocument.fileName?.toLowerCase().endsWith('.docx') || cand.resumeDocument.fileType?.includes('word') ? 'DOCX' : 'PDF'}
+                                    </span>
+                                    <span className="text-[10px] text-slate-500 font-semibold truncate max-w-[110px]" title={cand.resumeDocument.fileName}>
+                                      {cand.resumeDocument.fileName}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1 mt-0.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setViewingResumeCandidate(cand);
+                                        setResumeSearchTerm('');
+                                      }}
+                                      className="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded border border-indigo-200 transition-colors flex items-center gap-1 cursor-pointer"
+                                      title="Inspect submitted resume document & text in database"
+                                    >
+                                      <Eye className="w-3 h-3" />
+                                      <span>Inspect</span>
+                                    </button>
+                                    {cand.resumeDocument.dataUrl ? (
+                                      <a
+                                        href={cand.resumeDocument.dataUrl}
+                                        download={cand.resumeDocument.fileName || `${cand.fullName.replace(/\s+/g, '_')}_Resume.${cand.resumeDocument.fileType?.includes('word') ? 'docx' : 'pdf'}`}
+                                        className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded border border-slate-300 transition-colors flex items-center gap-1 cursor-pointer"
+                                        title="Download submitted file"
+                                      >
+                                        <Download className="w-3 h-3" />
+                                        <span>Save</span>
+                                      </a>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const blob = new Blob([cand.resumeDocument?.extractedText || cand.headline], { type: 'text/plain' });
+                                          const url = URL.createObjectURL(blob);
+                                          const a = document.createElement('a');
+                                          a.href = url;
+                                          a.download = `${cand.fullName.replace(/\s+/g, '_')}_Resume_Extracted.txt`;
+                                          a.click();
+                                          URL.revokeObjectURL(url);
+                                        }}
+                                        className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded border border-slate-300 transition-colors flex items-center gap-1 cursor-pointer"
+                                        title="Download extracted text from database"
+                                      >
+                                        <Download className="w-3 h-3" />
+                                        <span>Text</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-slate-400 font-medium italic">No File</span>
                               )}
                             </td>
                             <td className="py-3.5 px-4 text-center">
@@ -1389,6 +1499,173 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Recruiter & Admin Document Inspector Modal */}
+      {viewingResumeCandidate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white flex items-center justify-between">
+              <div>
+                <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded text-[10px] font-black uppercase tracking-wider">
+                  Resume Document Inspector
+                </span>
+                <h3 className="text-lg font-black mt-1 text-white flex items-center gap-2">
+                  <span>{viewingResumeCandidate.fullName}</span>
+                  <span className="text-xs font-normal text-slate-300">({viewingResumeCandidate.email})</span>
+                </h3>
+                <p className="text-xs text-blue-200 font-medium">
+                  Recruiter & Administrator Access: Stored PDF/DOCX file and raw database text
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setViewingResumeCandidate(null);
+                  setResumeSearchTerm('');
+                }}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white font-bold transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-4">
+              {/* Document Metadata Card */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
+                    viewingResumeCandidate.resumeDocument?.fileName?.toLowerCase().endsWith('.docx') || viewingResumeCandidate.resumeDocument?.fileType?.includes('word')
+                      ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                      : 'bg-red-100 text-red-700 border border-red-300'
+                  }`}>
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h5 className="font-black text-slate-900 text-sm">
+                      {viewingResumeCandidate.resumeDocument?.fileName || `${viewingResumeCandidate.fullName.replace(/\s+/g, '_')}_Resume.pdf`}
+                    </h5>
+                    <div className="text-[11px] text-slate-500 font-semibold flex items-center gap-2 mt-0.5">
+                      <span>{viewingResumeCandidate.resumeDocument?.fileType || 'application/pdf'}</span>
+                      <span>•</span>
+                      <span>{viewingResumeCandidate.resumeDocument?.fileSize ? `${Math.round(viewingResumeCandidate.resumeDocument.fileSize / 1024)} KB` : 'Verified Size'}</span>
+                      <span>•</span>
+                      <span className="text-emerald-600 font-bold">Stored in Database</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {viewingResumeCandidate.resumeDocument?.dataUrl ? (
+                    <a
+                      href={viewingResumeCandidate.resumeDocument.dataUrl}
+                      download={viewingResumeCandidate.resumeDocument.fileName || `${viewingResumeCandidate.fullName.replace(/\s+/g, '_')}_Resume.${viewingResumeCandidate.resumeDocument?.fileType?.includes('word') ? 'docx' : 'pdf'}`}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download {viewingResumeCandidate.resumeDocument?.fileName?.toLowerCase().endsWith('.docx') ? 'DOCX' : 'PDF'}</span>
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const blob = new Blob([viewingResumeCandidate.resumeDocument?.extractedText || viewingResumeCandidate.headline], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${viewingResumeCandidate.fullName.replace(/\s+/g, '_')}_Resume_Extracted.txt`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download Text Export</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Skill & Keyword Lie Detector Search */}
+              <div className="p-3.5 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-indigo-950 flex items-center gap-1.5">
+                    <Search className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Skill & Keyword Lie Detector</span>
+                  </label>
+                  {resumeSearchTerm.trim() && (
+                    <span className="text-[11px] font-bold text-indigo-700">
+                      {((viewingResumeCandidate.resumeDocument?.extractedText || viewingResumeCandidate.headline).toLowerCase().match(new RegExp(resumeSearchTerm.trim().toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length} occurrence(s) found
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={resumeSearchTerm}
+                    onChange={(e) => setResumeSearchTerm(e.target.value)}
+                    placeholder="Type any skill or keyword (e.g. Kubernetes, React, Python) to verify if it appears in the resume..."
+                    className="w-full bg-white border border-indigo-300 rounded-xl h-10 px-3.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                  />
+                  {resumeSearchTerm && (
+                    <button
+                      type="button"
+                      onClick={() => setResumeSearchTerm('')}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+
+                {resumeSearchTerm.trim() && (
+                  <div className="pt-1">
+                    {((viewingResumeCandidate.resumeDocument?.extractedText || viewingResumeCandidate.headline).toLowerCase().includes(resumeSearchTerm.trim().toLowerCase())) ? (
+                      <div className="p-2 bg-emerald-100/80 border border-emerald-300 text-emerald-900 rounded-xl text-xs font-bold flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>Verified Genuine: "{resumeSearchTerm.trim()}" exists in the candidate's submitted document text.</span>
+                      </div>
+                    ) : (
+                      <div className="p-2 bg-rose-100/80 border border-rose-300 text-rose-900 rounded-xl text-xs font-bold flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                        <span>Not Found: "{resumeSearchTerm.trim()}" does NOT appear anywhere in the candidate's submitted resume.</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Extracted Resume Text Box */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Extracted Resume Document Text</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400">
+                    Database Raw Representation
+                  </span>
+                </div>
+                <div className="max-h-72 overflow-y-auto bg-slate-950 text-slate-200 p-4 rounded-2xl font-mono text-xs leading-relaxed border border-slate-800 whitespace-pre-wrap select-text">
+                  {viewingResumeCandidate.resumeDocument?.extractedText || viewingResumeCandidate.headline || 'No document text found.'}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setViewingResumeCandidate(null);
+                  setResumeSearchTerm('');
+                }}
+                className="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs rounded-xl transition-all cursor-pointer"
+              >
+                Close Inspector
+              </button>
+            </div>
           </div>
         </div>
       )}
