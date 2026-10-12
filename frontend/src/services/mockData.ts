@@ -595,7 +595,7 @@ export const INITIAL_CANDIDATES: Candidate[] = [
   },
   {
     "id": "cand-1",
-    "fullName": "Sarah Johnson",
+    "fullName": "Candidate Sample",
     "email": "sarah.johnson@example.com",
     "phone": "+1 (555) 019-2831",
     "location": "San Francisco, CA",
