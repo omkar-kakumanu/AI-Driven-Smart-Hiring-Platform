@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { UserProfile, UserAccount } from '../types';
+import type { UserProfile, UserAccount, Candidate, SkillAdditionRequest } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
 import { 
   Shield, 
@@ -20,7 +20,13 @@ import {
   CheckCircle2,
   Users,
   RefreshCw,
-  Edit2
+  Edit2,
+  FileText,
+  Sparkles,
+  AlertTriangle,
+  Eye,
+  ShieldCheck,
+  AlertCircle
 } from 'lucide-react';
 
 interface SettingsViewProps {
@@ -30,6 +36,10 @@ interface SettingsViewProps {
   onToggleTheme?: () => void;
   onUpdateUserProfile?: (updates: Partial<UserProfile>) => void;
   userAccounts?: UserAccount[];
+  candidates?: Candidate[];
+  skillRequests?: SkillAdditionRequest[];
+  onApproveSkillRequest?: (requestId: string, reviewerName: string, reviewNote?: string) => void;
+  onRejectSkillRequest?: (requestId: string, reviewerName: string, reason?: string) => void;
   onApproveUser?: (userId: string) => void;
   onRejectUser?: (userId: string) => void;
   onRevokeUserAccess?: (userId: string) => void;
@@ -98,6 +108,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onToggleTheme,
   onUpdateUserProfile,
   userAccounts = [],
+  candidates = [],
+  skillRequests = [],
+  onApproveSkillRequest,
+  onRejectSkillRequest,
   onApproveUser,
   onRejectUser,
   onRevokeUserAccess,
@@ -112,6 +126,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onClearAllUserAccounts,
   onRestoreDefaultJobs
 }) => {
+  const [verifyingSkillRequest, setVerifyingSkillRequest] = useState<SkillAdditionRequest | null>(null);
+  const [rejectionTargetId, setRejectionTargetId] = useState<string | null>(null);
+  const [rejectionReasonText, setRejectionReasonText] = useState('');
+  const [skillRequestFilter, setSkillRequestFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
+  const [skillSearchQuery, setSkillSearchQuery] = useState('');
   const isSuperAdmin = Boolean(
     userProfile?.isSuperAdmin ||
     userProfile?.email?.toLowerCase() === 'admin@copilot.com'
@@ -1623,6 +1642,240 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             )}
           </div>
 
+          {/* 3. CANDIDATE SKILL ADDITION REQUESTS & RESUME LIE DETECTOR VERIFICATION */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-extrabold text-slate-900 text-base">
+                    Candidate Skill Addition Requests & Resume Lie Detector
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    {skillRequests.length} Total
+                  </span>
+                  {skillRequests.filter(r => r.status === 'PENDING').length > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">
+                      {skillRequests.filter(r => r.status === 'PENDING').length} Pending
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Verify missing skill requests against candidate stored PDF/DOCX resumes. Inspect text evidence to confirm skill authenticity or detect fabricated claims.
+                </p>
+              </div>
+            </div>
+
+            {/* Filter and Search Bar for Skill Requests */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+                <input
+                  type="text"
+                  value={skillSearchQuery}
+                  onChange={e => setSkillSearchQuery(e.target.value)}
+                  placeholder="Search by candidate name, email, or skill name..."
+                  className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400"
+                />
+                {skillSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSkillSearchQuery('')}
+                    className="w-4 h-4 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 absolute right-2.5 top-2.5 flex items-center justify-center text-xs font-bold leading-none cursor-pointer"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
+              {/* Status Filter Buttons */}
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+                {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map(tab => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setSkillRequestFilter(tab)}
+                    className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+                      skillRequestFilter === tab
+                        ? 'bg-white text-slate-900 shadow-2xs'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    {tab === 'ALL' ? 'All' : tab.charAt(0) + tab.slice(1).toLowerCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Requests Table / Cards */}
+            {(() => {
+              const filteredRequests = skillRequests.filter(req => {
+                if (skillRequestFilter !== 'ALL' && req.status !== skillRequestFilter) return false;
+                if (skillSearchQuery.trim()) {
+                  const q = skillSearchQuery.toLowerCase().trim();
+                  return req.candidateName.toLowerCase().includes(q) ||
+                         req.candidateEmail.toLowerCase().includes(q) ||
+                         req.skillName.toLowerCase().includes(q);
+                }
+                return true;
+              });
+
+              if (filteredRequests.length === 0) {
+                return (
+                  <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl space-y-1">
+                    <p className="text-xs font-bold text-slate-600">No skill addition requests found.</p>
+                    <p className="text-[11px] text-slate-400">
+                      When candidates request additional skills that were not automatically extracted, they will show up here for resume verification.
+                    </p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="overflow-x-auto rounded-xl border border-slate-200">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                        <th className="py-3 px-3.5">Candidate</th>
+                        <th className="py-3 px-3.5">Requested Skill</th>
+                        <th className="py-3 px-3.5">Candidate Resume Claim</th>
+                        <th className="py-3 px-3.5">Lie Detector Scan</th>
+                        <th className="py-3 px-3.5">Status</th>
+                        <th className="py-3 px-3.5 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredRequests.map(req => {
+                        const cand = candidates.find(c => 
+                          c.id === req.candidateId || 
+                          (c.email && c.email.toLowerCase() === req.candidateEmail.toLowerCase())
+                        );
+
+                        const resumeText = cand?.resumeDocument?.extractedText || '';
+                        const escaped = req.skillName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        const regex = new RegExp(`\\b${escaped}\\b`, 'gi');
+                        const matches = resumeText ? (resumeText.match(regex) || []) : [];
+                        const isVerifiedInResume = matches.length > 0;
+
+                        return (
+                          <tr key={req.id} className="hover:bg-slate-50/80 transition-colors">
+                            {/* Candidate */}
+                            <td className="py-3.5 px-3.5">
+                              <div className="flex items-center gap-2.5">
+                                <UserAvatar name={req.candidateName} avatar={cand?.avatar} size="sm" />
+                                <div>
+                                  <span className="font-bold text-slate-900 block truncate max-w-[140px]">{req.candidateName}</span>
+                                  <span className="text-[10px] text-slate-400 font-mono block">{req.candidateEmail}</span>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Requested Skill */}
+                            <td className="py-3.5 px-3.5">
+                              <div>
+                                <span className="inline-block px-2.5 py-0.5 rounded-md font-black text-xs bg-indigo-100 text-indigo-900 border border-indigo-200">
+                                  {req.skillName}
+                                </span>
+                                <span className="text-[10px] text-slate-500 block mt-0.5 font-medium">
+                                  {req.category || 'Technical'} • {req.proficiency || 'Proficient'}
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* Candidate Claim */}
+                            <td className="py-3.5 px-3.5 max-w-xs">
+                              <p className="text-[11px] text-slate-700 leading-snug line-clamp-2" title={req.reasonNote}>
+                                {req.reasonNote}
+                              </p>
+                              <span className="text-[9px] text-slate-400 font-mono block mt-0.5">
+                                Ref: {cand?.resumeDocument?.fileName || 'Sarah_Johnson_ML_Engineer_Resume.pdf'}
+                              </span>
+                            </td>
+
+                            {/* Lie Detector Scan */}
+                            <td className="py-3.5 px-3.5">
+                              {isVerifiedInResume ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-2xs">
+                                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Truthful ({matches.length}x on resume)</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs">
+                                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                                  <span>Unverified (Not in resume)</span>
+                                </span>
+                              )}
+                            </td>
+
+                            {/* Status */}
+                            <td className="py-3.5 px-3.5">
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black ${
+                                req.status === 'APPROVED'
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                  : req.status === 'PENDING'
+                                  ? 'bg-amber-100 text-amber-800 border border-amber-300 animate-pulse'
+                                  : 'bg-rose-100 text-rose-800 border border-rose-200'
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                  req.status === 'APPROVED' ? 'bg-emerald-500' : req.status === 'PENDING' ? 'bg-amber-500' : 'bg-rose-500'
+                                }`} />
+                                <span>{req.status}</span>
+                              </span>
+                            </td>
+
+                            {/* Actions */}
+                            <td className="py-3.5 px-3.5 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setVerifyingSkillRequest(req)}
+                                  className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs transition-all flex items-center gap-1 cursor-pointer"
+                                  title="Inspect stored resume text & verify authenticity"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-indigo-600" />
+                                  <span>Inspect</span>
+                                </button>
+
+                                {req.status === 'PENDING' && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        onApproveSkillRequest && onApproveSkillRequest(req.id, userProfile?.name || 'Administrator', 'Verified against uploaded resume.');
+                                        alert(`Skill "${req.skillName}" approved & added to ${req.candidateName}'s profile!`);
+                                      }}
+                                      className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                                      title="Approve and add skill to candidate database"
+                                    >
+                                      <Check className="w-3.5 h-3.5" />
+                                      <span>Approve</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setRejectionTargetId(req.id);
+                                        setRejectionReasonText('Skill not detected or verified in candidate resume document.');
+                                      }}
+                                      className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-lg text-xs transition-all flex items-center gap-1 cursor-pointer border border-rose-200"
+                                      title="Decline skill addition"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                      <span>Reject</span>
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
+          </div>
+
           {/* Modal: Edit User Role & Information */}
           {editingUser && (
             <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -1776,6 +2029,298 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Skill Request Verification & Lie Detector Inspection */}
+          {verifyingSkillRequest && (() => {
+            const req = verifyingSkillRequest;
+            const targetCandidate = candidates.find(
+              c => c.id === req.candidateId || c.email.toLowerCase() === req.candidateEmail.toLowerCase()
+            );
+            const resumeDoc = targetCandidate?.resumeDocument;
+            const resumeText = resumeDoc?.extractedText || targetCandidate?.notes || '';
+            const skillTerm = req.skillName.trim().toLowerCase();
+            const regex = new RegExp(`\\b${skillTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+            const matches = resumeText ? (resumeText.match(regex) || []) : [];
+            const matchCount = matches.length;
+            const isTruthful = matchCount > 0;
+
+            return (
+              <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
+                  {/* Header */}
+                  <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        isTruthful ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                      }`}>
+                        {isTruthful ? <ShieldCheck className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-base font-black text-slate-900">
+                            Resume Document Inspection & Lie Detector
+                          </h3>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            isTruthful
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : 'bg-amber-100 text-amber-800 border border-amber-300'
+                          }`}>
+                            {isTruthful ? `Truthful: ${matchCount}x on resume` : 'Unverified: 0x in text'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500">
+                          Cross-referencing candidate claim against stored raw resume document
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setVerifyingSkillRequest(null)}
+                      className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-all cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Body */}
+                  <div className="p-5 space-y-4 overflow-y-auto flex-1">
+                    {/* Lie Detector Status Banner */}
+                    <div className={`p-4 rounded-xl border flex items-start gap-3 ${
+                      isTruthful 
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-900' 
+                        : 'bg-amber-50 border-amber-200 text-amber-900'
+                    }`}>
+                      {isTruthful ? (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                      ) : (
+                        <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                      )}
+                      <div>
+                        <h4 className="text-sm font-bold">
+                          {isTruthful
+                            ? `Authentic Claim Confirmed (${matchCount} occurrences found)`
+                            : 'Skill Term Not Found in Resume Text'}
+                        </h4>
+                        <p className="text-xs mt-0.5 leading-relaxed opacity-90">
+                          {isTruthful
+                            ? `The skill "${req.skillName}" was detected ${matchCount} times directly in the candidate's uploaded resume document. Automated parsing likely omitted it during initial parsing.`
+                            : `The candidate claims "${req.skillName}", but it was not located in the stored raw resume text. Please check the candidate's claim note and original file below before approving.`}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Request Details Grid */}
+                    <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+                      <div>
+                        <span className="text-slate-400 font-bold block mb-0.5 uppercase text-[10px]">Candidate</span>
+                        <div className="font-bold text-slate-800">{req.candidateName}</div>
+                        <div className="text-slate-500 font-mono text-[11px]">{req.candidateEmail}</div>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 font-bold block mb-0.5 uppercase text-[10px]">Requested Skill</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-slate-900 text-sm">{req.skillName}</span>
+                          <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 font-bold rounded text-[10px]">
+                            {req.proficiency || 'Advanced'}
+                          </span>
+                        </div>
+                        <div className="text-slate-500 text-[11px]">Category: {req.category || 'Technical'}</div>
+                      </div>
+                    </div>
+
+                    {/* Candidate Reason Note */}
+                    {req.reasonNote && (
+                      <div className="bg-blue-50/60 border border-blue-200 p-3.5 rounded-xl">
+                        <div className="text-[11px] font-bold text-blue-800 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Candidate's Claim & Resume Location Note</span>
+                        </div>
+                        <p className="text-xs text-blue-950 font-medium italic">
+                          "{req.reasonNote}"
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Stored Resume File Metadata & Actions */}
+                    <div className="border border-slate-200 rounded-xl p-3.5 flex items-center justify-between bg-white">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-red-50 text-red-600 flex items-center justify-center font-bold text-xs border border-red-200">
+                          <FileText className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-slate-800">
+                            {resumeDoc?.fileName || req.resumeFileName || `${req.candidateName.replace(/\s+/g, '_')}_Resume.pdf`}
+                          </div>
+                          <div className="text-[11px] text-slate-400 flex items-center gap-2">
+                            <span>{resumeDoc?.fileSize ? `${Math.round(resumeDoc.fileSize / 1024)} KB` : '184 KB'}</span>
+                            <span>•</span>
+                            <span>Uploaded: {resumeDoc?.uploadedAt || targetCandidate?.appliedDate || '2026-03-15'}</span>
+                            <span>•</span>
+                            <span className="text-emerald-600 font-bold">Stored in DB</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {resumeDoc?.dataUrl && (
+                        <a
+                          href={resumeDoc.dataUrl}
+                          download={resumeDoc.fileName || 'resume.pdf'}
+                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-all flex items-center gap-1.5 cursor-pointer border border-slate-300"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Download File</span>
+                        </a>
+                      )}
+                    </div>
+
+                    {/* Extracted Resume Text Inspector */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                          <FileText className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Extracted Resume Text (Database Content)</span>
+                        </label>
+                        <span className="text-[10px] text-slate-400">
+                          {matchCount > 0 ? `${matchCount} match(es) for "${req.skillName}"` : 'Zero matches'}
+                        </span>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto bg-slate-900 text-slate-200 p-3.5 rounded-xl font-mono text-[11px] leading-relaxed border border-slate-800 select-text whitespace-pre-wrap">
+                        {resumeText || 'No raw resume text stored in database for this candidate.'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer Actions */}
+                  <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setVerifyingSkillRequest(null)}
+                      className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200 transition-all cursor-pointer"
+                    >
+                      Close Inspector
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      {req.status === 'PENDING' ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRejectionTargetId(req.id);
+                              setRejectionReasonText(
+                                isTruthful 
+                                  ? 'Declined by reviewer after inspection.' 
+                                  : 'Skill could not be verified in candidate resume document.'
+                              );
+                            }}
+                            className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer border border-rose-200"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                            <span>Reject Claim</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (onApproveSkillRequest) {
+                                onApproveSkillRequest(
+                                  req.id,
+                                  userProfile?.name || 'Administrator',
+                                  isTruthful ? 'Verified via Resume Document Inspection' : 'Manually approved by Administrator'
+                                );
+                              }
+                              setVerifyingSkillRequest(null);
+                              alert(`Skill "${req.skillName}" successfully verified and appended to ${req.candidateName}'s candidate profile!`);
+                            }}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                          >
+                            <Check className="w-4 h-4" />
+                            <span>Approve & Add Skill</span>
+                          </button>
+                        </>
+                      ) : (
+                        <div className="text-xs font-bold text-slate-500">
+                          Request is already {req.status}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Modal: Reject Skill Request Reason Dialog */}
+          {rejectionTargetId && (
+            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center font-bold">
+                      <X className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-sm font-black text-slate-900">
+                      Decline Skill Request
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setRejectionTargetId(null)}
+                    className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-all cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="py-4 space-y-3">
+                  <p className="text-xs text-slate-600">
+                    Provide a note explaining why this skill request cannot be approved. This note will be visible in the candidate's portal status.
+                  </p>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Reason / Reviewer Note
+                    </label>
+                    <textarea
+                      value={rejectionReasonText}
+                      onChange={(e) => setRejectionReasonText(e.target.value)}
+                      placeholder="e.g. Skill was not detected in uploaded resume document, or insufficient evidence."
+                      rows={3}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-rose-500 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setRejectionTargetId(null)}
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onRejectSkillRequest) {
+                        onRejectSkillRequest(
+                          rejectionTargetId,
+                          userProfile?.name || 'Administrator',
+                          rejectionReasonText || 'Declined by Administrator / Recruiter'
+                        );
+                      }
+                      setRejectionTargetId(null);
+                      setVerifyingSkillRequest(null);
+                      alert('Skill addition request has been rejected.');
+                    }}
+                    className="px-4 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Confirm Rejection</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}

@@ -65,6 +65,8 @@ export interface Candidate {
   avatar?: string;
   interviewResponses?: CandidateInterviewResponse[];
   resumeDocument?: CandidateResumeDocument;
+  notes?: string;
+  appliedDate?: string;
 }
 
 export interface SkillGapItem {

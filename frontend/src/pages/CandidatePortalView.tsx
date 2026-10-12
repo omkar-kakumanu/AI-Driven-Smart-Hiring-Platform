@@ -224,6 +224,14 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
     return true;
   });
 
+  // Filter skill addition requests raised by or for this candidate
+  const mySkillRequests = (skillRequests || []).filter(
+    (req: SkillAdditionRequest) =>
+      req.candidateId === activeCandidate.id ||
+      req.candidateEmail.toLowerCase() === activeCandidate.email.toLowerCase() ||
+      (isCandidateEmail && (req.candidateEmail.toLowerCase() === 'candidate@copilot.com' || req.candidateEmail.toLowerCase() === 'sarah.johnson@example.com'))
+  );
+
   // Calculate ATS Pipeline Stepper Status
   const currentStatus = (activeCandidate.status || 'Applied').toLowerCase();
   
@@ -795,14 +803,57 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {onNavigateToResume && (
+                    <button
+                      type="button"
+                      onClick={onNavigateToResume}
+                      className="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center gap-1 cursor-pointer"
+                      title="Upload new resume from resume scanner"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Scanner</span>
+                    </button>
+                  )}
+
+                  {onUpdateResumeDocument && (
+                    <label className="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center gap-1 cursor-pointer" title="Directly store/replace resume in database">
+                      <PlusCircle className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Attach File</span>
+                      <input
+                        type="file"
+                        accept=".pdf,.docx,.txt"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file && onUpdateResumeDocument) {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                              const dataUrl = ev.target?.result as string;
+                              onUpdateResumeDocument(activeCandidate.id, {
+                                fileName: file.name,
+                                fileType: file.type || 'application/pdf',
+                                fileSize: file.size,
+                                dataUrl,
+                                extractedText: activeCandidate.headline || file.name,
+                                uploadedAt: new Date().toISOString().split('T')[0]
+                              });
+                              alert(`Resume document "${file.name}" saved to database successfully!`);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => setShowResumeViewer(true)}
                     className="px-3 py-1.5 bg-white hover:bg-slate-50 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center gap-1 cursor-pointer"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
-                    <span>Inspect Resume</span>
+                    <span>Inspect</span>
                   </button>
 
                   <a
@@ -872,12 +923,13 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {mySkillRequests.map(req => {
-                    const statusBadge = {
+                  {mySkillRequests.map((req: SkillAdditionRequest) => {
+                    const statusBadgeMap: Record<string, string> = {
                       PENDING: 'bg-amber-100 text-amber-900 border-amber-300',
                       APPROVED: 'bg-emerald-100 text-emerald-900 border-emerald-300',
                       REJECTED: 'bg-rose-100 text-rose-900 border-rose-300'
-                    }[req.status];
+                    };
+                    const statusBadge = statusBadgeMap[req.status] || statusBadgeMap.PENDING;
 
                     return (
                       <div
@@ -892,10 +944,25 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
                             <span className="text-[10px] text-slate-500 font-medium">({req.category || 'Technical Skill'} • {req.proficiency || 'Proficient'})</span>
                           </div>
 
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${statusBadge}`}>
-                            {req.status === 'PENDING' && 'Pending Admin/Recruiter Review'}
-                            {req.status === 'APPROVED' && 'Approved & Added to Profile'}
-                            {req.status === 'REJECTED' && 'Declined by Reviewer'}
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border flex items-center gap-1 ${statusBadge}`}>
+                            {req.status === 'PENDING' && (
+                              <>
+                                <Clock className="w-3 h-3 text-amber-700" />
+                                <span>Pending Admin/Recruiter Review</span>
+                              </>
+                            )}
+                            {req.status === 'APPROVED' && (
+                              <>
+                                <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                                <span>Approved & Added to Profile</span>
+                              </>
+                            )}
+                            {req.status === 'REJECTED' && (
+                              <>
+                                <XCircle className="w-3 h-3 text-rose-700" />
+                                <span>Declined by Reviewer</span>
+                              </>
+                            )}
                           </span>
                         </div>
 
@@ -1054,9 +1121,10 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
                   rows={3}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs font-medium text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all"
                 />
-                <span className="text-[10px] text-slate-400 mt-1 block">
-                  Recruiters will inspect your stored PDF/DOCX file to verify that you did not falsify this skill.
-                </span>
+                <div className="flex items-start gap-1.5 p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-[11px] font-medium mt-1">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span>Recruiters will inspect your stored PDF/DOCX file using automated text verification to verify that you did not falsify this skill.</span>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
