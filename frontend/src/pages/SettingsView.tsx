@@ -2016,6 +2016,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
+                    if (editRoleTier === 'ADMIN' && !isAdmin) {
+                      alert('Access Denied: Only System Administrators can grant Admin privileges.');
+                      return;
+                    }
                     if (onUpdateUserRole) {
                       onUpdateUserRole(editingUser.id, editRoleTitle, editRoleTier, editUserName);
                     } else if (editRoleTier === 'ADMIN' && onMakeUserAdmin) {
@@ -2051,20 +2055,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     <div className="grid grid-cols-3 gap-2">
                       <button
                         type="button"
+                        disabled={!isAdmin}
                         onClick={() => {
+                          if (!isAdmin) {
+                            alert('Access Denied: Only System Administrators can grant Admin privileges.');
+                            return;
+                          }
                           setEditRoleTier('ADMIN');
                           if (!editRoleTitle || editRoleTitle === 'Talent Acquisition Specialist' || editRoleTitle === 'Candidate Applicant') {
                             setEditRoleTitle('Administrator & Hiring Director');
                           }
                         }}
-                        className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                          editRoleTier === 'ADMIN'
-                            ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
-                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all flex flex-col items-center gap-1 ${
+                          !isAdmin
+                            ? 'bg-slate-100 text-slate-400 border-slate-200 opacity-60 cursor-not-allowed'
+                            : editRoleTier === 'ADMIN'
+                            ? 'bg-purple-600 text-white border-purple-600 shadow-xs cursor-pointer'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 cursor-pointer'
                         }`}
+                        title={!isAdmin ? "Only System Administrators can grant Admin privileges" : "Administrator"}
                       >
-                        <Shield className="w-4 h-4" />
-                        <span>Admin</span>
+                        {!isAdmin ? <Lock className="w-4 h-4 text-slate-400" /> : <Shield className="w-4 h-4" />}
+                        <span>Admin {!isAdmin && '(Locked)'}</span>
                       </button>
 
                       <button
@@ -2151,15 +2163,90 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             );
             const resumeDoc = targetCandidate?.resumeDocument;
             const resumeText = resumeDoc?.extractedText || targetCandidate?.notes || '';
+            
+            // Skill Claim Check (Exact requested skill)
             const skillTerm = req.skillName.trim().toLowerCase();
-            const regex = new RegExp(`\\b${skillTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
-            const matches = resumeText ? (resumeText.match(regex) || []) : [];
-            const matchCount = matches.length;
-            const isTruthful = matchCount > 0;
+            const claimRegex = new RegExp(`\\b${skillTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+            const claimMatches = resumeText ? (resumeText.match(claimRegex) || []) : [];
+            const claimMatchCount = claimMatches.length;
+            const isTruthful = claimMatchCount > 0;
+
+            // Live Search Keyword
+            const activeKeyword = (docSearchKeyword.trim() || req.skillName).trim();
+            const activeEscaped = activeKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const searchRegex = new RegExp(`\\b${activeEscaped}\\b`, 'gi');
+            const searchMatches = resumeText ? (resumeText.match(searchRegex) || []) : [];
+
+            const isPdf = Boolean(
+              (resumeDoc?.fileName || req.resumeFileName || '').toLowerCase().endsWith('.pdf') ||
+              resumeDoc?.fileType?.includes('pdf') ||
+              (resumeDoc?.dataUrl && resumeDoc.dataUrl.startsWith('data:application/pdf'))
+            );
+
+            const isDocx = Boolean(
+              (resumeDoc?.fileName || req.resumeFileName || '').toLowerCase().endsWith('.docx') ||
+              (resumeDoc?.fileName || req.resumeFileName || '').toLowerCase().endsWith('.doc') ||
+              resumeDoc?.fileType?.includes('word') ||
+              (resumeDoc?.dataUrl && resumeDoc.dataUrl.includes('officedocument.wordprocessingml'))
+            );
+
+            // Highlight matches in text
+            const renderHighlightedText = (text: string, term: string) => {
+              if (!term.trim() || !text) return text;
+              const escaped = term.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const parts = text.split(new RegExp(`(\\b${escaped}\\b)`, 'gi'));
+              return parts.map((part, i) => {
+                if (part.toLowerCase() === term.trim().toLowerCase()) {
+                  return (
+                    <mark key={i} className="bg-amber-300 text-slate-950 font-black px-1 py-0.5 rounded shadow-2xs">
+                      {part}
+                    </mark>
+                  );
+                }
+                return part;
+              });
+            };
+
+            const downloadOriginalFile = () => {
+              if (resumeDoc?.dataUrl) {
+                const a = document.createElement('a');
+                a.href = resumeDoc.dataUrl;
+                a.download = resumeDoc.fileName || `${req.candidateName.replace(/\s+/g, '_')}_Resume.${isDocx ? 'docx' : 'pdf'}`;
+                a.click();
+              } else {
+                const blob = new Blob([resumeText || ''], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${req.candidateName.replace(/\s+/g, '_')}_Stored_Resume_Archive.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }
+            };
+
+            const openInNewTab = () => {
+              if (resumeDoc?.dataUrl) {
+                const win = window.open();
+                if (win) {
+                  win.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                      <head>
+                        <title>${resumeDoc.fileName || req.candidateName + ' - Resume Document'}</title>
+                        <style>body { margin: 0; background: #0f172a; height: 100vh; overflow: hidden; }</style>
+                      </head>
+                      <body>
+                        <iframe src="${resumeDoc.dataUrl}" style="border:none; width:100%; height:100%;"></iframe>
+                      </body>
+                    </html>
+                  `);
+                }
+              }
+            };
 
             return (
               <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
+                <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
                   {/* Header */}
                   <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50">
                     <div className="flex items-center gap-3">
@@ -2169,7 +2256,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         {isTruthful ? <ShieldCheck className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="text-base font-black text-slate-900">
                             Resume Document Inspection & Lie Detector
                           </h3>
@@ -2178,164 +2265,316 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                               ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                               : 'bg-amber-100 text-amber-800 border border-amber-300'
                           }`}>
-                            {isTruthful ? `Truthful: ${matchCount}x on resume` : 'Unverified: 0x in text'}
+                            {isTruthful ? `Truthful: ${claimMatchCount}x in resume` : 'Unverified: 0x in text'}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                            isDocx ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'bg-red-100 text-red-800 border border-red-200'
+                          }`}>
+                            {isDocx ? 'DOCX File' : 'PDF File'}
                           </span>
                         </div>
                         <p className="text-xs text-slate-500">
-                          Cross-referencing candidate claim against stored raw resume document
+                          Cross-referencing candidate claim against stored raw {isDocx ? 'Word (.docx)' : 'PDF'} document in database
                         </p>
                       </div>
                     </div>
                     <button
                       type="button"
-                      onClick={() => setVerifyingSkillRequest(null)}
+                      onClick={() => {
+                        setVerifyingSkillRequest(null);
+                        setDocSearchKeyword('');
+                        setSkillDocViewTab('DETECTOR');
+                      }}
                       className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-all cursor-pointer"
                     >
                       <X className="w-4 h-4" />
                     </button>
                   </div>
 
-                  {/* Body */}
-                  <div className="p-5 space-y-4 overflow-y-auto flex-1">
-                    {/* Lie Detector Status Banner */}
-                    <div className={`p-4 rounded-xl border flex items-start gap-3 ${
-                      isTruthful 
-                        ? 'bg-emerald-50 border-emerald-200 text-emerald-900' 
-                        : 'bg-amber-50 border-amber-200 text-amber-900'
-                    }`}>
-                      {isTruthful ? (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                      ) : (
-                        <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                      )}
-                      <div>
-                        <h4 className="text-sm font-bold">
-                          {isTruthful
-                            ? `Authentic Claim Confirmed (${matchCount} occurrences found)`
-                            : 'Skill Term Not Found in Resume Text'}
-                        </h4>
-                        <p className="text-xs mt-0.5 leading-relaxed opacity-90">
-                          {isTruthful
-                            ? `The skill "${req.skillName}" was detected ${matchCount} times directly in the candidate's uploaded resume document. Automated parsing likely omitted it during initial parsing.`
-                            : `The candidate claims "${req.skillName}", but it was not located in the stored raw resume text. Please check the candidate's claim note and original file below before approving.`}
-                        </p>
-                      </div>
+                  {/* Mode Tabs */}
+                  <div className="flex items-center justify-between px-5 pt-3 pb-2 border-b border-slate-100 bg-white">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSkillDocViewTab('DETECTOR')}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                          skillDocViewTab === 'DETECTOR'
+                            ? 'bg-indigo-600 text-white shadow-xs'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>Lie Detector & Skill Scan</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSkillDocViewTab('PREVIEW')}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                          skillDocViewTab === 'PREVIEW'
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Open Original File ({isDocx ? 'DOCX' : 'PDF'})</span>
+                      </button>
                     </div>
 
-                    {/* Request Details Grid */}
-                    <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
-                      <div>
-                        <span className="text-slate-400 font-bold block mb-0.5 uppercase text-[10px]">Candidate</span>
-                        <div className="font-bold text-slate-800">{req.candidateName}</div>
-                        <div className="text-slate-500 font-mono text-[11px]">{req.candidateEmail}</div>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-bold block mb-0.5 uppercase text-[10px]">Requested Skill</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-black text-slate-900 text-sm">{req.skillName}</span>
-                          <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 font-bold rounded text-[10px]">
-                            {req.proficiency || 'Advanced'}
-                          </span>
-                        </div>
-                        <div className="text-slate-500 text-[11px]">Category: {req.category || 'Technical'}</div>
-                      </div>
-                    </div>
-
-                    {/* Candidate Reason Note */}
-                    {req.reasonNote && (
-                      <div className="bg-blue-50/60 border border-blue-200 p-3.5 rounded-xl">
-                        <div className="text-[11px] font-bold text-blue-800 uppercase tracking-wide mb-1 flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5" />
-                          <span>Candidate's Claim & Resume Location Note</span>
-                        </div>
-                        <p className="text-xs text-blue-950 font-medium italic">
-                          "{req.reasonNote}"
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Stored Resume File Metadata & Actions */}
-                    <div className="border border-slate-200 rounded-xl p-3.5 flex items-center justify-between bg-white flex-wrap gap-2">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-xs border ${
-                          (resumeDoc?.fileName || req.resumeFileName || '').toLowerCase().endsWith('.docx') || resumeDoc?.fileType?.includes('word')
-                            ? 'bg-blue-50 text-blue-600 border-blue-200'
-                            : 'bg-red-50 text-red-600 border-red-200'
-                        }`}>
-                          <FileText className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                            <span>{resumeDoc?.fileName || req.resumeFileName || `${req.candidateName.replace(/\s+/g, '_')}_Resume.pdf`}</span>
-                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
-                              (resumeDoc?.fileName || req.resumeFileName || '').toLowerCase().endsWith('.docx') || resumeDoc?.fileType?.includes('word')
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}>
-                              {(resumeDoc?.fileName || req.resumeFileName || '').toLowerCase().endsWith('.docx') || resumeDoc?.fileType?.includes('word') ? 'DOCX' : 'PDF'}
-                            </span>
-                          </div>
-                          <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
-                            <span>{resumeDoc?.fileSize ? `${Math.round(resumeDoc.fileSize / 1024)} KB` : '184 KB'}</span>
-                            <span>•</span>
-                            <span>Uploaded: {resumeDoc?.uploadedAt || targetCandidate?.appliedDate || '2026-03-15'}</span>
-                            <span>•</span>
-                            <span className="text-emerald-600 font-bold">Stored in DB</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {resumeDoc?.dataUrl ? (
-                        <a
-                          href={resumeDoc.dataUrl}
-                          download={resumeDoc.fileName || `${req.candidateName.replace(/\s+/g, '_')}_Resume.${(resumeDoc?.fileType?.includes('word') || resumeDoc?.fileName?.endsWith('.docx')) ? 'docx' : 'pdf'}`}
-                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-all flex items-center gap-1.5 cursor-pointer border border-slate-300"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                          <span>Download {(resumeDoc?.fileName || '').toLowerCase().endsWith('.docx') ? 'DOCX' : 'PDF'}</span>
-                        </a>
-                      ) : (
+                    <div className="flex items-center gap-2">
+                      {resumeDoc?.dataUrl && (
                         <button
                           type="button"
-                          onClick={() => {
-                            const blob = new Blob([resumeText || ''], { type: 'text/plain' });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = `${req.candidateName.replace(/\s+/g, '_')}_Resume_Document.txt`;
-                            a.click();
-                            URL.revokeObjectURL(url);
-                          }}
-                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-all flex items-center gap-1.5 cursor-pointer border border-slate-300"
+                          onClick={openInNewTab}
+                          className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all flex items-center gap-1 cursor-pointer"
+                          title="Open document in a new window/tab"
                         >
-                          <Download className="w-3.5 h-3.5" />
-                          <span>Download Stored Text</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Full Window</span>
                         </button>
                       )}
+                      <button
+                        type="button"
+                        onClick={downloadOriginalFile}
+                        className="px-2.5 py-1 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition-all flex items-center gap-1 cursor-pointer"
+                        title="Download candidate resume document"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download {isDocx ? 'DOCX' : 'PDF'}</span>
+                      </button>
                     </div>
+                  </div>
 
-                    {/* Extracted Resume Text Inspector */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                          <FileText className="w-3.5 h-3.5 text-slate-500" />
-                          <span>Extracted Resume Text (Database Content)</span>
-                        </label>
-                        <span className="text-[10px] text-slate-400">
-                          {matchCount > 0 ? `${matchCount} match(es) for "${req.skillName}"` : 'Zero matches'}
-                        </span>
+                  {/* Body Content */}
+                  <div className="p-5 space-y-4 overflow-y-auto flex-1 bg-slate-50/50">
+                    {skillDocViewTab === 'DETECTOR' ? (
+                      <>
+                        {/* Lie Detector Status Banner */}
+                        <div className={`p-4 rounded-xl border flex items-start gap-3 ${
+                          isTruthful 
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-900' 
+                            : 'bg-amber-50 border-amber-200 text-amber-900'
+                        }`}>
+                          {isTruthful ? (
+                            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                          ) : (
+                            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                          )}
+                          <div>
+                            <h4 className="text-sm font-bold">
+                              {isTruthful
+                                ? `Authentic Claim Confirmed (${claimMatchCount} occurrences found)`
+                                : 'Skill Term Not Found in Candidate Resume Text'}
+                            </h4>
+                            <p className="text-xs mt-0.5 leading-relaxed opacity-90">
+                              {isTruthful
+                                ? `The skill "${req.skillName}" was detected ${claimMatchCount} times directly in the candidate's stored resume document (${resumeDoc?.fileName || 'resume file'}). Automated parsing likely omitted it during initial parsing.`
+                                : `The candidate claims "${req.skillName}", but zero exact occurrences were found in the stored resume text. You can switch to the "Open Original File" tab to visually examine the full original document before deciding.`}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Request Details Grid */}
+                        <div className="grid grid-cols-2 gap-3 bg-white p-4 rounded-xl border border-slate-200 text-xs shadow-2xs">
+                          <div>
+                            <span className="text-slate-400 font-bold block mb-0.5 uppercase text-[10px]">Candidate</span>
+                            <div className="font-bold text-slate-800">{req.candidateName}</div>
+                            <div className="text-slate-500 font-mono text-[11px]">{req.candidateEmail}</div>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 font-bold block mb-0.5 uppercase text-[10px]">Requested Skill</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-slate-900 text-sm">{req.skillName}</span>
+                              <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 font-bold rounded text-[10px]">
+                                {req.proficiency || 'Advanced'}
+                              </span>
+                            </div>
+                            <div className="text-slate-500 text-[11px]">Category: {req.category || 'Technical'}</div>
+                          </div>
+                        </div>
+
+                        {/* Candidate Reason Note */}
+                        {req.reasonNote && (
+                          <div className="bg-blue-50/70 border border-blue-200 p-3.5 rounded-xl">
+                            <div className="text-[11px] font-bold text-blue-800 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5" />
+                              <span>Candidate's Claim & Resume Location Note</span>
+                            </div>
+                            <p className="text-xs text-blue-950 font-medium italic">
+                              "{req.reasonNote}"
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Live Keyword Scanner Bar */}
+                        <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                              <Search className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>Live Resume Text Keyword Scanner</span>
+                            </label>
+                            <span className="text-xs font-bold text-indigo-600">
+                              {searchMatches.length} match(es) for "{activeKeyword}"
+                            </span>
+                          </div>
+
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={docSearchKeyword}
+                              onChange={(e) => setDocSearchKeyword(e.target.value)}
+                              placeholder={`Type any term to test in resume (default: "${req.skillName}")...`}
+                              className="w-full pl-3 pr-8 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                            {docSearchKeyword && (
+                              <button
+                                type="button"
+                                onClick={() => setDocSearchKeyword('')}
+                                className="w-4 h-4 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 absolute right-2.5 top-2.5 flex items-center justify-center text-xs font-bold leading-none cursor-pointer"
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                            <span className="text-[10px] text-slate-400 font-bold uppercase">Quick test:</span>
+                            <button
+                              type="button"
+                              onClick={() => setDocSearchKeyword(req.skillName)}
+                              className="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-[10px] font-bold border border-indigo-200 transition-colors cursor-pointer"
+                            >
+                              Claimed: {req.skillName}
+                            </button>
+                            {['Python', 'Kubernetes', 'Docker', 'AWS', 'React', 'FastAPI', 'MLOps'].map(quickTerm => (
+                              <button
+                                key={quickTerm}
+                                type="button"
+                                onClick={() => setDocSearchKeyword(quickTerm)}
+                                className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-[10px] font-semibold transition-colors cursor-pointer"
+                              >
+                                {quickTerm}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Extracted Resume Text Inspector with Highlighted Keywords */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                              <FileText className="w-3.5 h-3.5 text-slate-500" />
+                              <span>Database Extracted Resume Content (Live Match Highlighting)</span>
+                            </label>
+                            <span className="text-[10px] text-slate-400">
+                              Matches highlighted in yellow
+                            </span>
+                          </div>
+                          <div className="max-h-64 overflow-y-auto bg-slate-900 text-slate-200 p-4 rounded-xl font-mono text-[11px] leading-relaxed border border-slate-800 select-text whitespace-pre-wrap">
+                            {resumeText 
+                              ? renderHighlightedText(resumeText, activeKeyword)
+                              : 'No raw resume text stored in database for this candidate.'}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      /* Original Document File Viewer Tab */
+                      <div className="space-y-4">
+                        {/* File Metadata Banner */}
+                        <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-xs border ${
+                              isDocx ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-red-50 text-red-600 border-red-200'
+                            }`}>
+                              <FileText className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                <span>{resumeDoc?.fileName || req.resumeFileName || `${req.candidateName.replace(/\s+/g, '_')}_Resume.${isDocx ? 'docx' : 'pdf'}`}</span>
+                                <span className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase ${
+                                  isDocx ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {isDocx ? 'Word Document' : 'PDF Document'}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                                <span>{resumeDoc?.fileSize ? `${Math.round(resumeDoc.fileSize / 1024)} KB` : '184 KB'}</span>
+                                <span>•</span>
+                                <span>Uploaded: {resumeDoc?.uploadedAt || targetCandidate?.appliedDate || 'Recent'}</span>
+                                <span>•</span>
+                                <span className="text-emerald-600 font-bold">Stored in File Storage</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-600">
+                              Claim verification: {isTruthful ? `✓ Found ${claimMatchCount}x` : '⚠ 0x occurrences'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Interactive Viewer Component */}
+                        {isPdf && resumeDoc?.dataUrl && resumeDoc.dataUrl.startsWith('data:application/pdf') ? (
+                          <div className="rounded-xl overflow-hidden border border-slate-300 shadow-inner bg-slate-800">
+                            <iframe
+                              src={resumeDoc.dataUrl}
+                              className="w-full h-[480px] bg-white"
+                              title={resumeDoc.fileName || "Candidate Resume PDF"}
+                            />
+                          </div>
+                        ) : isDocx ? (
+                          /* Formatted Word Document Paper Viewer */
+                          <div className="border border-slate-200 rounded-2xl bg-slate-200/50 p-4 max-h-[500px] overflow-y-auto">
+                            <div className="bg-white max-w-2xl mx-auto rounded-xl shadow-md border border-slate-200 p-8 text-slate-800 font-sans text-xs leading-relaxed space-y-4">
+                              <div className="border-b border-slate-200 pb-3 flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-blue-700 font-bold">
+                                  <FileText className="w-4 h-4" />
+                                  <span>{resumeDoc?.fileName || `${req.candidateName}_Resume.docx`}</span>
+                                </div>
+                                <span className="text-[10px] text-slate-400 font-mono">Microsoft Word Document</span>
+                              </div>
+
+                              <div className="whitespace-pre-wrap select-text leading-relaxed">
+                                {resumeText 
+                                  ? renderHighlightedText(resumeText, activeKeyword)
+                                  : 'Document text content is empty.'}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          /* General Rich Paper Viewer */
+                          <div className="border border-slate-200 rounded-2xl bg-slate-100 p-4 max-h-[500px] overflow-y-auto">
+                            <div className="bg-white max-w-2xl mx-auto rounded-xl shadow-md border border-slate-200 p-8 text-slate-800 font-sans text-xs leading-relaxed space-y-4">
+                              <div className="border-b border-slate-200 pb-3 flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-indigo-700 font-bold">
+                                  <FileText className="w-4 h-4" />
+                                  <span>{resumeDoc?.fileName || `${req.candidateName}_Resume.pdf`}</span>
+                                </div>
+                                <span className="text-[10px] text-slate-400 font-mono">Candidate Resume Archive</span>
+                              </div>
+
+                              <div className="whitespace-pre-wrap select-text leading-relaxed">
+                                {resumeText 
+                                  ? renderHighlightedText(resumeText, activeKeyword)
+                                  : 'No text extracted for this resume.'}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="max-h-48 overflow-y-auto bg-slate-900 text-slate-200 p-3.5 rounded-xl font-mono text-[11px] leading-relaxed border border-slate-800 select-text whitespace-pre-wrap">
-                        {resumeText || 'No raw resume text stored in database for this candidate.'}
-                      </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Footer Actions */}
                   <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
                     <button
                       type="button"
-                      onClick={() => setVerifyingSkillRequest(null)}
+                      onClick={() => {
+                        setVerifyingSkillRequest(null);
+                        setDocSearchKeyword('');
+                        setSkillDocViewTab('DETECTOR');
+                      }}
                       className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200 transition-all cursor-pointer"
                     >
                       Close Inspector
@@ -2371,6 +2610,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                 );
                               }
                               setVerifyingSkillRequest(null);
+                              setDocSearchKeyword('');
                               alert(`Skill "${req.skillName}" successfully verified and appended to ${req.candidateName}'s candidate profile!`);
                             }}
                             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"

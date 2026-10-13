@@ -1369,7 +1369,8 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                     </tbody>
                   </table>
                 </div>
-              )}
+              </div>
+            )}
             </>
           );
         })()}
