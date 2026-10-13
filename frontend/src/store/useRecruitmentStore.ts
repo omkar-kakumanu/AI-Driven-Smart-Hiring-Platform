@@ -895,6 +895,15 @@ export function useRecruitmentStore() {
   };
 
   const makeUserAdmin = (userId: string) => {
+    const isCurrentAdmin = Boolean(
+      userProfile?.userType === 'ADMIN' ||
+      userProfile?.isSuperAdmin ||
+      userProfile?.email?.toLowerCase() === 'admin@copilot.com'
+    );
+    if (!isCurrentAdmin) {
+      alert("Permission denied: Only System Administrators can grant Administrator privileges.");
+      return;
+    }
     setUserAccounts(prev => prev.map(u => {
       if (u.id === userId) {
         const cleanName = u.name.replace(/\s*\(Candidate\)\s*/gi, '').trim() || u.name;
@@ -998,6 +1007,15 @@ export function useRecruitmentStore() {
   };
 
   const updateUserRole = (userId: string, newRole: string, newTier?: 'ADMIN' | 'RECRUITER' | 'CANDIDATE', newName?: string) => {
+    const isCurrentAdmin = Boolean(
+      userProfile?.userType === 'ADMIN' ||
+      userProfile?.isSuperAdmin ||
+      userProfile?.email?.toLowerCase() === 'admin@copilot.com'
+    );
+    if (newTier === 'ADMIN' && !isCurrentAdmin) {
+      alert("Permission denied: Only System Administrators can assign Administrator privileges.");
+      return;
+    }
     setUserAccounts(prev => prev.map(u => {
       if (u.id === userId) {
         if (u.isSuperAdmin && newTier && newTier !== 'ADMIN') return u; // Main Super Admin protected from demotion

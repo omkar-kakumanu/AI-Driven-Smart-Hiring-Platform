@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { Candidate, Job, ScheduledInterview, CandidateNotification, UserProfile, SkillAdditionRequest, CandidateResumeDocument } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
 import { Target, Share2, Mic, Bot, Check, Briefcase, MapPin, Calendar, Video, Zap, Sparkles, Bell, FileText, Download, PlusCircle, Clock, AlertTriangle, CheckCircle2, XCircle, X, ExternalLink, ShieldCheck } from 'lucide-react';
+import { extractDocumentText, readFileAsDataUrl } from '../utils/documentUtils';
 
 interface CandidatePortalViewProps {
   candidates: Candidate[];
@@ -834,23 +835,29 @@ export const CandidatePortalView: React.FC<CandidatePortalViewProps> = ({
                         type="file"
                         accept=".pdf,.docx,.txt"
                         className="hidden"
-                        onChange={(e) => {
+                        onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (file && onUpdateResumeDocument) {
-                            const reader = new FileReader();
-                            reader.onload = (ev) => {
-                              const dataUrl = ev.target?.result as string;
+                            try {
+                              const [dataUrl, extractedText] = await Promise.all([
+                                readFileAsDataUrl(file),
+                                extractDocumentText(file)
+                              ]);
+                              const isDocx = file.name.toLowerCase().endsWith('.docx') || file.name.toLowerCase().endsWith('.doc');
+                              const mime = isDocx ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : (file.type || 'application/pdf');
                               onUpdateResumeDocument(activeCandidate.id, {
                                 fileName: file.name,
-                                fileType: file.type || 'application/pdf',
+                                fileType: mime,
                                 fileSize: file.size,
                                 dataUrl,
-                                extractedText: activeCandidate.headline || file.name,
+                                extractedText: extractedText || activeCandidate.headline || file.name,
                                 uploadedAt: new Date().toISOString().split('T')[0]
                               });
                               alert(`Resume document "${file.name}" saved to database successfully!`);
-                            };
-                            reader.readAsDataURL(file);
+                            } catch (err) {
+                              console.warn('Error saving resume:', err);
+                              alert('Error uploading resume document.');
+                            }
                           }
                         }}
                       />
