@@ -46,7 +46,7 @@ export const MatchingView: React.FC<MatchingViewProps> = ({
   onRemoveSkillFromCandidate,
   onEditJob
 }) => {
-  const canEditCandidateSkills = canEditSkills ?? (isMainAdmin || isRecruiterUser || !isCandidateUser);
+  const canEditCandidateSkills = canEditSkills ?? Boolean(isMainAdmin || isRecruiterUser);
   const [adminSkillInput, setAdminSkillInput] = useState('');
 
   // Available Jobs List

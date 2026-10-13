@@ -50,7 +50,8 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   onRequestSkillAddition,
   onNavigateToMatching
 }) => {
-  const canEditCandidateSkills = canEditSkills ?? (isMainAdmin || isRecruiterUser || !isCandidateUser);
+  const canModifySkills = Boolean(isMainAdmin || isRecruiterUser);
+  const canEditCandidateSkills = canEditSkills ?? canModifySkills;
   const [editingCandidate, setEditingCandidate] = useState<Candidate | null>(null);
   const [adminAddSkillCandId, setAdminAddSkillCandId] = useState<string | null>(null);
   const [adminSkillText, setAdminSkillText] = useState('');
@@ -535,8 +536,8 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   };
 
   const handleAddSkill = () => {
-    // Candidates cannot manually add skills during resume parsing
-    if (isCandidateUser) return;
+    // Only Recruiters and Administrators can manually add skills during resume parsing
+    if (!canModifySkills) return;
     if (newSkillInput.trim() && !skills.includes(newSkillInput.trim())) {
       setSkills([...skills, newSkillInput.trim()]);
       setNewSkillInput('');
@@ -544,8 +545,8 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   };
 
   const handleRemoveSkill = (skillToRemove: string) => {
-    // Candidates cannot manually remove skills during resume parsing
-    if (isCandidateUser) return;
+    // Only Recruiters and Administrators can manually remove skills during resume parsing
+    if (!canModifySkills) return;
     setSkills(skills.filter(s => s !== skillToRemove));
   };
 
@@ -866,10 +867,15 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
               <div>
                 <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
                   <label className="font-bold text-slate-700 block text-xs">Extracted Technical Skills</label>
-                  {isCandidateUser && (
+                  {!canModifySkills ? (
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
                       <Lock className="w-3 h-3 text-amber-600" />
                       <span>Tamper-Proof: Candidate Skill Additions Restricted</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
+                      <Sparkles className="w-3 h-3 text-indigo-600" />
+                      <span>Recruiter & Administrator Skill Editor</span>
                     </span>
                   )}
                 </div>
@@ -878,7 +884,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                   {skills.map((skill, idx) => (
                     <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-100 text-blue-800 font-bold text-xs rounded-lg border border-blue-200">
                       {skill}
-                      {!isCandidateUser && (
+                      {canModifySkills && (
                         <button 
                           type="button"
                           onClick={() => handleRemoveSkill(skill)} 
@@ -891,7 +897,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                     </span>
                   ))}
 
-                  {!isCandidateUser && (
+                  {canModifySkills && (
                     <div className="flex items-center gap-1">
                       <input 
                         type="text" 
@@ -899,16 +905,19 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                         value={newSkillInput} 
                         onChange={e => setNewSkillInput(e.target.value)} 
                         onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddSkill())}
-                        className="text-xs bg-transparent border-none focus:outline-none w-24 text-slate-800 font-medium" 
+                        className="text-xs bg-transparent border-none focus:outline-none w-24 text-slate-800 font-medium placeholder:text-slate-400" 
                       />
                     </div>
                   )}
                 </div>
 
-                {isCandidateUser && (
-                  <div className="mt-1.5 p-2 bg-slate-100/90 rounded-lg border border-slate-200 text-[11px] text-slate-600 flex items-center gap-1.5 font-medium">
-                    <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                    <span>Direct manual skill editing is disabled for candidates. If automated parsing missed a skill from your resume, use the verified <strong>"Request Skill Addition"</strong> button below for Recruiter / Admin review.</span>
+                {!canModifySkills && (
+                  <div className="mt-2 p-2.5 bg-slate-100/90 rounded-xl border border-slate-200 text-[11px] text-slate-600 flex items-start gap-2 font-medium">
+                    <Lock className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
+                    <div>
+                      <span>Manual skill addition is restricted to <strong>Recruiters & System Administrators</strong> to maintain verified skill authenticity. Candidates cannot manually add skills.</span>
+                      <span className="block mt-0.5 text-slate-500">If automated resume parsing missed a skill from your uploaded resume, click <strong>"Request Skill Addition"</strong> below to submit a verification request for Recruiter & Admin review.</span>
+                    </div>
                   </div>
                 )}
 

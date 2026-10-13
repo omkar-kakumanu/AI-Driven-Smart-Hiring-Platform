@@ -149,6 +149,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   );
 
   const isCandidate = isCandidateUser || Boolean(!isAdmin && !isRecruiterUser);
+  const hasApprovalAccess = Boolean(isAdmin || isRecruiterUser);
 
   const activeRoleTier = isAdmin 
     ? (isSuperAdmin ? 'Super-Admin' : 'Administrator') 
@@ -460,13 +461,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
         <div className="text-left sm:text-right text-xs text-slate-500 shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100 w-full sm:w-auto">
           <span className="font-bold text-slate-800 block">
-            {isAdmin ? 'System Administrator Authority' : isRecruiterUser ? 'Talent Recruiter Access' : 'Candidate Portal Access'}
+            {isAdmin ? 'System Administrator Authority' : isRecruiterUser ? 'Talent Recruiter & Approvals Access' : 'Candidate Portal Access'}
           </span>
           <span className="text-[11px] text-slate-400 mt-0.5 block">
-            {isAdmin 
+            {hasApprovalAccess 
               ? 'User Approvals & Role Governance' 
-              : isRecruiterUser 
-              ? 'Candidate Pipeline & ATS Review' 
               : 'Skill Assessment & Voice Screening'}
           </span>
         </div>
@@ -1083,7 +1082,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           </div>
 
-          {/* 1. DEDICATED ADMINISTRATOR APPROVAL QUEUE CARD */}
+          {/* 1. DEDICATED APPROVAL QUEUE CARD */}
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div className="flex items-center gap-3">
@@ -1095,7 +1094,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="font-extrabold text-slate-900 text-base">
-                      Administrator Approval Queue
+                      Recruiter & Administrator Approval Queue
                     </h3>
                     <span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${
                       userAccounts.filter(u => u.status === 'PENDING').length > 0 
@@ -1106,17 +1105,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Review incoming access requests and assign roles directly upon verification.
+                    Review incoming access requests and assign roles directly upon verification (Recruiter & Administrator authority).
                   </p>
                 </div>
               </div>
             </div>
 
-            {userProfile?.userType !== 'ADMIN' ? (
+            {!hasApprovalAccess ? (
               <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl text-center space-y-2">
-                <span className="font-bold text-slate-900 text-xs block">Administrator Privileges Required</span>
+                <span className="font-bold text-slate-900 text-xs block">Approval Privileges Required</span>
                 <p className="text-xs text-slate-500 max-w-md mx-auto">
-                  You are logged in as a Recruiter. Approval queue decisions and role modifications are restricted to System Administrators.
+                  Approval queue decisions and role assignments are restricted to Recruiters and System Administrators.
                 </p>
               </div>
             ) : userAccounts.filter(u => u.status === 'PENDING').length === 0 ? (
@@ -1226,7 +1225,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                {userProfile?.userType === 'ADMIN' && (
+                {hasApprovalAccess && (
                   <button
                     type="button"
                     onClick={() => {
@@ -1245,11 +1244,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
             </div>
 
-            {userProfile?.userType !== 'ADMIN' ? (
+            {!hasApprovalAccess ? (
               <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl text-center space-y-2">
                 <span className="font-bold text-slate-900 text-xs block">Directory Administration Restricted</span>
                 <p className="text-xs text-slate-500 max-w-md mx-auto">
-                  Only System Administrators have authorization to modify roles, grant permissions, or revoke user accounts.
+                  Only Recruiters and System Administrators have authorization to modify roles, grant permissions, or revoke user accounts.
                 </p>
               </div>
             ) : (
@@ -1840,7 +1839,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        onApproveSkillRequest && onApproveSkillRequest(req.id, userProfile?.name || 'Administrator', 'Verified against uploaded resume.');
+                                        onApproveSkillRequest && onApproveSkillRequest(req.id, userProfile?.name || (isAdmin ? 'Administrator' : 'Recruiter'), 'Verified against uploaded resume.');
                                         alert(`Skill "${req.skillName}" approved & added to ${req.candidateName}'s profile!`);
                                       }}
                                       className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
@@ -2256,8 +2255,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                               if (onApproveSkillRequest) {
                                 onApproveSkillRequest(
                                   req.id,
-                                  userProfile?.name || 'Administrator',
-                                  isTruthful ? 'Verified via Resume Document Inspection' : 'Manually approved by Administrator'
+                                  userProfile?.name || (isAdmin ? 'Administrator' : 'Recruiter'),
+                                  isTruthful ? 'Verified via Resume Document Inspection' : `Manually approved by ${isAdmin ? 'Administrator' : 'Recruiter'}`
                                 );
                               }
                               setVerifyingSkillRequest(null);
@@ -2335,8 +2334,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       if (onRejectSkillRequest) {
                         onRejectSkillRequest(
                           rejectionTargetId,
-                          userProfile?.name || 'Administrator',
-                          rejectionReasonText || 'Declined by Administrator / Recruiter'
+                          userProfile?.name || (isAdmin ? 'Administrator' : 'Recruiter'),
+                          rejectionReasonText || 'Declined by Recruiter / Administrator'
                         );
                       }
                       setRejectionTargetId(null);

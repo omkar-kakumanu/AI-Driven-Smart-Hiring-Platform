@@ -79,13 +79,7 @@ export default function App() {
   // A user is a Candidate ONLY if they are NOT an Admin AND NOT a Recruiter!
   const isCandidateUser = Boolean(
     !isMainAdmin &&
-    !isRecruiterUser &&
-    store.userProfile?.userType !== 'ADMIN' &&
-    store.userProfile?.email?.toLowerCase() !== 'admin@copilot.com' &&
-    store.userProfile?.email?.toLowerCase() !== 'recruiter@copilot.com' && (
-      store.userProfile?.role?.toLowerCase().includes('candidate') ||
-      store.userProfile?.email?.toLowerCase().includes('candidate')
-    )
+    !isRecruiterUser
   );
 
   // Filter candidates based on Header Search Query
@@ -424,7 +418,7 @@ export default function App() {
               onClearSearch={() => setSearchQuery('')}
               isMainAdmin={isMainAdmin}
               isRecruiterUser={isRecruiterUser}
-              canEditSkills={isMainAdmin || isRecruiterUser || !isCandidateUser}
+              canEditSkills={isMainAdmin || isRecruiterUser}
               isCandidateUser={isCandidateUser}
               currentCandidateEmail={store.userProfile?.email || 'candidate@copilot.com'}
               userProfileName={store.userProfile?.name}
@@ -447,7 +441,7 @@ export default function App() {
               jobs={store.jobs}
               isMainAdmin={isMainAdmin}
               isRecruiterUser={isRecruiterUser}
-              canEditSkills={isMainAdmin || isRecruiterUser || !isCandidateUser}
+              canEditSkills={isMainAdmin || isRecruiterUser}
               isCandidateUser={isCandidateUser}
               onAddSkillToCandidate={store.addSkillToCandidate}
               onRemoveSkillFromCandidate={store.removeSkillFromCandidate}
