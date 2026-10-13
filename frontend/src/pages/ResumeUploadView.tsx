@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import type { Candidate, CandidateResumeDocument, SkillAdditionRequest } from '../types';
 import { EditCandidateSkillsModal } from '../components/EditCandidateSkillsModal';
 import { UserAvatar } from '../components/UserAvatar';
-import { Edit3, Sparkles, PlusCircle, AlertTriangle, CheckCircle2, X, FileText, Download, Eye, Lock, Search } from 'lucide-react';
+import { Edit3, Sparkles, PlusCircle, AlertTriangle, CheckCircle2, X, FileText, Download, Eye, Lock, Search, ArrowLeftRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
@@ -53,6 +53,7 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
   const canModifySkills = Boolean(isMainAdmin || isRecruiterUser);
   const canEditCandidateSkills = canEditSkills ?? canModifySkills;
   const [editingCandidate, setEditingCandidate] = useState<Candidate | null>(null);
+  const candidateTableRef = React.useRef<HTMLDivElement>(null);
   const [adminAddSkillCandId, setAdminAddSkillCandId] = useState<string | null>(null);
   const [adminSkillText, setAdminSkillText] = useState('');
   const [viewingResumeCandidate, setViewingResumeCandidate] = useState<Candidate | null>(null);
@@ -1043,9 +1044,44 @@ export const ResumeUploadView: React.FC<ResumeUploadViewProps> = ({
                   )}
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm border-collapse">
-                    <thead>
+                <div className="space-y-2">
+                  {/* Table View Controls Toolbar */}
+                  <div className="flex items-center justify-between px-3.5 py-2 bg-gradient-to-r from-slate-100 via-blue-50/40 to-slate-100 rounded-xl border border-slate-200 text-xs">
+                    <div className="flex items-center gap-2 text-slate-700 font-bold text-xs">
+                      <ArrowLeftRight className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span>Table View Controls:</span>
+                      <span className="text-[11px] text-slate-500 font-medium hidden sm:inline">
+                        Quick horizontal navigation — no need to scroll to the bottom of the list
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => candidateTableRef.current?.scrollBy({ left: -320, behavior: 'smooth' })}
+                        className="px-2.5 py-1 bg-white hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-bold text-slate-700 shadow-2xs flex items-center gap-1 cursor-pointer transition-colors active:scale-95"
+                        title="Scroll table view left"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                        <span>Scroll Left</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => candidateTableRef.current?.scrollBy({ left: 320, behavior: 'smooth' })}
+                        className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-2xs flex items-center gap-1 cursor-pointer transition-colors active:scale-95"
+                        title="Scroll table view right to see Resume, Status, and Actions"
+                      >
+                        <span>Scroll Right (Actions)</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div 
+                    ref={candidateTableRef}
+                    className="overflow-x-auto max-h-[580px] overflow-y-auto rounded-xl border border-slate-200 shadow-2xs relative scroll-smooth"
+                  >
+                    <table className="w-full text-left text-sm border-collapse min-w-[1020px]">
+                      <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-xs z-10 shadow-2xs border-b border-slate-200">
                       <tr className="border-b border-slate-200 text-xs font-bold text-slate-500 bg-slate-50/70">
                         <th className="py-3 px-3 text-center">Rank</th>
                         <th className="py-3 px-4">Candidate Name</th>

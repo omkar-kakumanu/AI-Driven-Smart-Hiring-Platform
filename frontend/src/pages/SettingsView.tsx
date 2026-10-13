@@ -26,7 +26,12 @@ import {
   AlertTriangle,
   Eye,
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  Lock,
+  ArrowLeftRight
 } from 'lucide-react';
 
 interface SettingsViewProps {
@@ -127,6 +132,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onRestoreDefaultJobs
 }) => {
   const [verifyingSkillRequest, setVerifyingSkillRequest] = useState<SkillAdditionRequest | null>(null);
+  const [skillDocViewTab, setSkillDocViewTab] = useState<'DETECTOR' | 'PREVIEW'>('DETECTOR');
+  const [docSearchKeyword, setDocSearchKeyword] = useState('');
+  const directoryTableRef = React.useRef<HTMLDivElement>(null);
+  const skillRequestsTableRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollDirectory = (left: boolean) => {
+    directoryTableRef.current?.scrollBy({ left: left ? -320 : 320, behavior: 'smooth' });
+  };
+
+  const scrollSkillRequests = (left: boolean) => {
+    skillRequestsTableRef.current?.scrollBy({ left: left ? -320 : 320, behavior: 'smooth' });
+  };
+
   const [rejectionTargetId, setRejectionTargetId] = useState<string | null>(null);
   const [rejectionReasonText, setRejectionReasonText] = useState('');
   const [skillRequestFilter, setSkillRequestFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
@@ -1166,19 +1184,21 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         <span>Approve as Recruiter</span>
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onMakeUserAdmin && onMakeUserAdmin(req.id);
-                          onApproveUser && onApproveUser(req.id);
-                          alert(`Approved "${req.name}" as Administrator.`);
-                        }}
-                        className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
-                        title="Approve request and grant Administrator rights"
-                      >
-                        <Shield className="w-3.5 h-3.5" />
-                        <span>Approve as Admin</span>
-                      </button>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onMakeUserAdmin && onMakeUserAdmin(req.id);
+                            onApproveUser && onApproveUser(req.id);
+                            alert(`Approved "${req.name}" as Administrator.`);
+                          }}
+                          className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                          title="Approve request and grant Administrator rights"
+                        >
+                          <Shield className="w-3.5 h-3.5" />
+                          <span>Approve as Admin</span>
+                        </button>
+                      )}
 
                       <button
                         type="button"
@@ -1326,11 +1346,39 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   </div>
                 </div>
 
+                {/* Horizontal scrollbar toolbar at top */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <ArrowLeftRight className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Scroll horizontally to view contact email, roles, and security actions:</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => scrollDirectory(true)}
+                      className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all flex items-center gap-1 cursor-pointer"
+                      title="Scroll table view left"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span>Scroll Left</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => scrollDirectory(false)}
+                      className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all flex items-center gap-1 cursor-pointer"
+                      title="Scroll table view right"
+                    >
+                      <span>Scroll Right (Actions)</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
                 {/* Directory Table */}
-                <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-2xs">
+                <div ref={directoryTableRef} className="overflow-x-auto max-h-[520px] overflow-y-auto rounded-xl border border-slate-200 shadow-2xs scroll-smooth">
                   <table className="w-full min-w-[960px] text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="border-b border-slate-200 font-bold text-slate-500 bg-slate-50/80">
+                    <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-xs">
+                      <tr className="border-b border-slate-200 font-bold text-slate-500">
                         <th className="py-3 px-3.5">User Identity</th>
                         <th className="py-3 px-3.5">Contact Email</th>
                         <th className="py-3 px-3.5">Current Role Tier</th>
@@ -1458,7 +1506,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                         {/* Make Admin Button */}
                                         <button
                                           type="button"
+                                          disabled={!isAdmin && !userIsAdmin}
                                           onClick={() => {
+                                            if (!isAdmin) {
+                                              alert('Access Denied: Only System Administrators can grant Admin privileges.');
+                                              return;
+                                            }
                                             if (!userIsAdmin) {
                                               if (onUpdateUserRole) {
                                                 onUpdateUserRole(user.id, 'Administrator & Hiring Director', 'ADMIN');
@@ -1468,14 +1521,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                               alert(`Promoted "${user.name}" to Administrator.`);
                                             }
                                           }}
-                                          className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                                          className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 ${
                                             userIsAdmin
                                               ? 'bg-purple-700 text-white shadow-2xs'
-                                              : 'text-slate-600 hover:text-purple-700 hover:bg-slate-200/60'
+                                              : !isAdmin
+                                              ? 'text-slate-400 bg-slate-100 opacity-60 cursor-not-allowed'
+                                              : 'text-slate-600 hover:text-purple-700 hover:bg-slate-200/60 cursor-pointer'
                                           }`}
-                                          title={userIsAdmin ? "Currently Administrator" : `Promote ${user.name} to Administrator`}
+                                          title={
+                                            !isAdmin
+                                              ? "Only System Administrators can grant Admin privileges"
+                                              : userIsAdmin
+                                              ? "Currently Administrator"
+                                              : `Promote ${user.name} to Administrator`
+                                          }
                                         >
-                                          <Shield className="w-2.5 h-2.5" />
+                                          {!isAdmin && !userIsAdmin ? (
+                                            <Lock className="w-2.5 h-2.5 opacity-60" />
+                                          ) : (
+                                            <Shield className="w-2.5 h-2.5" />
+                                          )}
                                           <span>Admin</span>
                                         </button>
 
@@ -1730,18 +1795,47 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               }
 
               return (
-                <div className="overflow-x-auto rounded-xl border border-slate-200">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
-                        <th className="py-3 px-3.5">Candidate</th>
-                        <th className="py-3 px-3.5">Requested Skill</th>
-                        <th className="py-3 px-3.5">Candidate Resume Claim</th>
-                        <th className="py-3 px-3.5">Lie Detector Scan</th>
-                        <th className="py-3 px-3.5">Status</th>
-                        <th className="py-3 px-3.5 text-right">Actions</th>
-                      </tr>
-                    </thead>
+                <div>
+                  {/* Top horizontal scrollbar controls */}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <ArrowLeftRight className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Scroll horizontally to inspect candidate resume claims & action buttons:</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => scrollSkillRequests(true)}
+                        className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all flex items-center gap-1 cursor-pointer"
+                        title="Scroll table left"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                        <span>Scroll Left</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => scrollSkillRequests(false)}
+                        className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all flex items-center gap-1 cursor-pointer"
+                        title="Scroll table right"
+                      >
+                        <span>Scroll Right (Actions)</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div ref={skillRequestsTableRef} className="overflow-x-auto max-h-[480px] overflow-y-auto rounded-xl border border-slate-200 scroll-smooth">
+                    <table className="w-full min-w-[900px] text-left text-xs border-collapse">
+                      <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-xs">
+                        <tr className="border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                          <th className="py-3 px-3.5">Candidate</th>
+                          <th className="py-3 px-3.5">Requested Skill</th>
+                          <th className="py-3 px-3.5">Candidate Resume Claim</th>
+                          <th className="py-3 px-3.5">Lie Detector Scan</th>
+                          <th className="py-3 px-3.5">Status</th>
+                          <th className="py-3 px-3.5 text-right">Actions</th>
+                        </tr>
+                      </thead>
                     <tbody className="divide-y divide-slate-100">
                       {filteredRequests.map(req => {
                         const cand = candidates.find(c => 
@@ -1826,12 +1920,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                               <div className="flex items-center justify-end gap-1.5">
                                 <button
                                   type="button"
-                                  onClick={() => setVerifyingSkillRequest(req)}
+                                  onClick={() => {
+                                    setVerifyingSkillRequest(req);
+                                    setSkillDocViewTab('PREVIEW');
+                                  }}
+                                  className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg text-xs transition-all flex items-center gap-1 cursor-pointer border border-blue-200 shadow-2xs"
+                                  title="Open original PDF / DOCX resume file to verify skill authenticity"
+                                >
+                                  <FileText className="w-3.5 h-3.5 text-blue-600" />
+                                  <span>Open Resume</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setVerifyingSkillRequest(req);
+                                    setSkillDocViewTab('DETECTOR');
+                                  }}
                                   className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs transition-all flex items-center gap-1 cursor-pointer"
                                   title="Inspect stored resume text & verify authenticity"
                                 >
                                   <Eye className="w-3.5 h-3.5 text-indigo-600" />
-                                  <span>Inspect</span>
+                                  <span>Scan</span>
                                 </button>
 
                                 {req.status === 'PENDING' && (
@@ -1871,7 +1981,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     </tbody>
                   </table>
                 </div>
-              );
+              </div>
+            );
             })()}
           </div>
 
