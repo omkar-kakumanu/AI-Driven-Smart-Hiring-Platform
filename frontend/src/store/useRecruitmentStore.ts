@@ -1057,9 +1057,18 @@ export function useRecruitmentStore() {
     localStorage.setItem('rc_name_sarah.johnson@example.com', 'Sarah Johnson');
     localStorage.setItem('rc_name_candidate@copilot.com', 'Sarah Johnson');
     localStorage.setItem('rc_name_cand-1', 'Sarah Johnson');
-    setCandidates(INITIAL_CANDIDATES);
+    setCandidates(prev => {
+      const initialIds = new Set(INITIAL_CANDIDATES.map(c => c.id));
+      const initialEmails = new Set(INITIAL_CANDIDATES.map(c => c.email.toLowerCase()));
+      // Preserve any custom candidates uploaded by user
+      const custom = prev.filter(c => !initialIds.has(c.id) && !initialEmails.has(c.email.toLowerCase()));
+      const merged = [...INITIAL_CANDIDATES, ...custom];
+      try {
+        localStorage.setItem('rc_candidates', JSON.stringify(merged));
+      } catch (e) {}
+      return merged;
+    });
     setActiveCandidateId(INITIAL_CANDIDATES[0]?.id || '');
-    localStorage.setItem('rc_candidates', JSON.stringify(INITIAL_CANDIDATES));
   };
 
   const clearAllUserAccounts = () => {
@@ -1067,8 +1076,21 @@ export function useRecruitmentStore() {
     localStorage.setItem('rc_name_recruiter@copilot.com', 'Sarah Jenkins (Recruiter)');
     localStorage.setItem('rc_name_sarah.johnson@example.com', 'Sarah Johnson (Candidate)');
     localStorage.setItem('rc_name_candidate@copilot.com', 'Sarah Johnson (Candidate)');
-    setUserAccounts(INITIAL_USERS);
-    localStorage.setItem('rc_user_accounts', JSON.stringify(INITIAL_USERS));
+    setUserAccounts(prev => {
+      // Restore default enterprise accounts without wiping pending registration requests or custom accounts
+      const initialEmails = new Set(INITIAL_USERS.map(u => u.email.toLowerCase()));
+      const customAndPending = prev.filter(u => !initialEmails.has(u.email.toLowerCase()) || u.status === 'PENDING');
+      const merged = [...INITIAL_USERS];
+      for (const item of customAndPending) {
+        if (!merged.some(m => m.id === item.id || m.email.toLowerCase() === item.email.toLowerCase())) {
+          merged.push(item);
+        }
+      }
+      try {
+        localStorage.setItem('rc_user_accounts', JSON.stringify(merged));
+      } catch (e) {}
+      return merged;
+    });
   };
 
   const registerUser = (name: string, email: string, role: string, password?: string) => {
@@ -1207,38 +1229,74 @@ export function useRecruitmentStore() {
     }
   };
 
-  const addSkillToCandidate = (candidateId: string, newSkill: string) => {
+  const addSkillToCandidate = (candidateIdOrEmail: string, newSkill: string) => {
     const trimmedSkill = newSkill.trim();
     if (!trimmedSkill) return;
 
     let targetEmail: string | undefined;
     let syncedSkills: string[] = [];
+    const normKey = candidateIdOrEmail.toLowerCase().trim();
 
-    setCandidates(prev => prev.map(cand => {
-      if (cand.id === candidateId) {
-        targetEmail = cand.email;
-        const existingSkills = cand.skills || [];
-        // Prevent duplicate skill addition (case-insensitive check)
-        if (existingSkills.some(s => s.toLowerCase() === trimmedSkill.toLowerCase())) {
-          return cand;
+    setCandidates(prev => {
+      let matched = false;
+      const updated = prev.map(cand => {
+        const isMatch = cand.id === candidateIdOrEmail ||
+          cand.email.toLowerCase() === normKey ||
+          (normKey === 'cand-1' && (cand.id === 'cand-1' || cand.email.toLowerCase() === 'sarah.johnson@example.com' || cand.email.toLowerCase() === 'candidate@copilot.com')) ||
+          ((normKey === 'sarah.johnson@example.com' || normKey === 'candidate@copilot.com') && (cand.id === 'cand-1' || cand.email.toLowerCase() === 'sarah.johnson@example.com' || cand.email.toLowerCase() === 'candidate@copilot.com'));
+
+        if (isMatch) {
+          matched = true;
+          targetEmail = cand.email;
+          const existingSkills = cand.skills || [];
+          if (existingSkills.some(s => s.toLowerCase() === trimmedSkill.toLowerCase())) {
+            return cand;
+          }
+          const updatedSkills = [...existingSkills, trimmedSkill];
+          syncedSkills = updatedSkills;
+          const activeJob = jobs.find(j => j.id === activeJobId) || jobs[0];
+          const newScore = calculateMatchScore(updatedSkills, activeJob?.requiredSkills || []);
+
+          return {
+            ...cand,
+            skills: updatedSkills,
+            matchScore: newScore,
+            headline: cand.headline ? cand.headline : `${cand.currentRole} with experience in ${updatedSkills.slice(0, 3).join(', ')}`
+          };
         }
-        const updatedSkills = [...existingSkills, trimmedSkill];
-        syncedSkills = updatedSkills;
-        const activeJob = jobs.find(j => j.id === activeJobId) || jobs[0];
-        const newScore = calculateMatchScore(updatedSkills, activeJob?.requiredSkills || []);
+        return cand;
+      });
 
-        return {
-          ...cand,
-          skills: updatedSkills,
-          matchScore: newScore,
-          headline: cand.headline ? cand.headline : `${cand.currentRole} with experience in ${updatedSkills.slice(0, 3).join(', ')}`
+      if (!matched) {
+        const newCand: Candidate = {
+          id: candidateIdOrEmail.includes('@') ? `cand-${Date.now()}` : candidateIdOrEmail,
+          fullName: 'Candidate Applicant',
+          email: candidateIdOrEmail.includes('@') ? candidateIdOrEmail : 'candidate@copilot.com',
+          phone: '+91 98765 43210',
+          location: 'Bengaluru, Karnataka (Hybrid)',
+          currentRole: 'Software Developer',
+          totalExperienceYears: 3,
+          headline: `Software Developer with skills in ${trimmedSkill}`,
+          skills: [trimmedSkill],
+          degree: 'B.Tech / Bachelor of Engineering',
+          institution: 'University',
+          status: 'Applied',
+          matchScore: 88,
+          interviewResponses: []
         };
+        updated.push(newCand);
+        syncedSkills = [trimmedSkill];
+        targetEmail = newCand.email;
       }
-      return cand;
-    }));
+
+      try {
+        localStorage.setItem('rc_candidates', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
 
     if (syncedSkills.length > 0) {
-      syncSkillsToBackend(candidateId, syncedSkills, targetEmail);
+      syncSkillsToBackend(candidateIdOrEmail, syncedSkills, targetEmail);
     }
   };
 
@@ -1450,9 +1508,15 @@ export function useRecruitmentStore() {
   };
 
   const approveSkillRequest = (requestId: string, reviewerName: string, reviewNote?: string) => {
+    let targetSkill = '';
+    let targetCandidateId = '';
+    let targetCandidateEmail = '';
+
     setSkillRequests(prev => prev.map(r => {
       if (r.id === requestId) {
-        addSkillToCandidate(r.candidateId, r.skillName);
+        targetSkill = r.skillName.trim();
+        targetCandidateId = r.candidateId;
+        targetCandidateEmail = r.candidateEmail;
         addCandidateNotification({
           candidateEmail: r.candidateEmail,
           title: `Skill Approved: ${r.skillName} Added!`,
@@ -1469,6 +1533,13 @@ export function useRecruitmentStore() {
       }
       return r;
     }));
+
+    if (targetSkill) {
+      addSkillToCandidate(targetCandidateId || targetCandidateEmail, targetSkill);
+      if (targetCandidateEmail && targetCandidateEmail !== targetCandidateId) {
+        addSkillToCandidate(targetCandidateEmail, targetSkill);
+      }
+    }
   };
 
   const rejectSkillRequest = (requestId: string, reviewerName: string, reason?: string) => {
@@ -1490,6 +1561,26 @@ export function useRecruitmentStore() {
       }
       return r;
     }));
+  };
+
+  const deleteSkillRequest = (requestId: string) => {
+    setSkillRequests(prev => {
+      const next = prev.filter(r => r.id !== requestId);
+      try {
+        localStorage.setItem('rc_skill_requests', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+  };
+
+  const clearCompletedSkillRequests = () => {
+    setSkillRequests(prev => {
+      const next = prev.filter(r => r.status === 'PENDING');
+      try {
+        localStorage.setItem('rc_skill_requests', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
   };
 
   return {
@@ -1541,6 +1632,8 @@ export function useRecruitmentStore() {
     requestSkillAddition,
     approveSkillRequest,
     rejectSkillRequest,
+    deleteSkillRequest,
+    clearCompletedSkillRequests,
 
     scheduledInterviews,
     scheduleInterview,

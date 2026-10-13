@@ -45,6 +45,9 @@ interface SettingsViewProps {
   skillRequests?: SkillAdditionRequest[];
   onApproveSkillRequest?: (requestId: string, reviewerName: string, reviewNote?: string) => void;
   onRejectSkillRequest?: (requestId: string, reviewerName: string, reason?: string) => void;
+  onAddSkillToCandidate?: (candidateIdOrEmail: string, newSkill: string) => void;
+  onDeleteSkillRequest?: (requestId: string) => void;
+  onClearCompletedSkillRequests?: () => void;
   onApproveUser?: (userId: string) => void;
   onRejectUser?: (userId: string) => void;
   onRevokeUserAccess?: (userId: string) => void;
@@ -117,6 +120,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   skillRequests = [],
   onApproveSkillRequest,
   onRejectSkillRequest,
+  onAddSkillToCandidate,
+  onDeleteSkillRequest,
+  onClearCompletedSkillRequests,
   onApproveUser,
   onRejectUser,
   onRevokeUserAccess,
@@ -134,6 +140,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [verifyingSkillRequest, setVerifyingSkillRequest] = useState<SkillAdditionRequest | null>(null);
   const [skillDocViewTab, setSkillDocViewTab] = useState<'DETECTOR' | 'PREVIEW'>('DETECTOR');
   const [docSearchKeyword, setDocSearchKeyword] = useState('');
+  const accessRequestsRef = React.useRef<HTMLDivElement>(null);
   const directoryTableRef = React.useRef<HTMLDivElement>(null);
   const skillRequestsTableRef = React.useRef<HTMLDivElement>(null);
 
@@ -1149,86 +1156,117 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="space-y-3">
-                {userAccounts.filter(u => u.status === 'PENDING').map(req => (
-                  <div 
-                    key={req.id}
-                    className="p-4 bg-amber-50/50 border border-amber-200/90 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <UserAvatar name={req.name} avatar={req.avatar} size="md" />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-slate-900 text-sm truncate">{req.name}</span>
-                          <span className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-200">
-                            Requested: {req.role || 'Access Request'}
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-600 mt-0.5 truncate">{req.email}</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">Submitted: {req.createdAt || 'Recent'}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-wrap shrink-0">
+              <div className="space-y-2">
+                {userAccounts.filter(u => u.status === 'PENDING').length > 2 && (
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 bg-amber-50/70 px-3 py-1.5 rounded-lg border border-amber-200/70">
+                    <span>
+                      <strong>{userAccounts.filter(u => u.status === 'PENDING').length}</strong> pending access requests awaiting review
+                    </span>
+                    <div className="flex items-center gap-1.5">
                       <button
                         type="button"
-                        onClick={() => {
-                          onMakeUserRecruiter && onMakeUserRecruiter(req.id);
-                          onApproveUser && onApproveUser(req.id);
-                          alert(`Approved "${req.name}" as Recruiter.`);
-                        }}
-                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
-                        title="Approve request and assign Recruiter role"
+                        onClick={() => accessRequestsRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+                        className="hover:text-slate-900 font-bold underline cursor-pointer text-amber-800"
+                        title="Scroll to top of approval queue"
                       >
-                        <Briefcase className="w-3.5 h-3.5" />
-                        <span>Approve as Recruiter</span>
+                        Top
                       </button>
-
-                      {isAdmin && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onMakeUserAdmin && onMakeUserAdmin(req.id);
-                            onApproveUser && onApproveUser(req.id);
-                            alert(`Approved "${req.name}" as Administrator.`);
-                          }}
-                          className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
-                          title="Approve request and grant Administrator rights"
-                        >
-                          <Shield className="w-3.5 h-3.5" />
-                          <span>Approve as Admin</span>
-                        </button>
-                      )}
-
+                      <span>•</span>
                       <button
                         type="button"
-                        onClick={() => {
-                          onMakeUserCandidate && onMakeUserCandidate(req.id);
-                          onApproveUser && onApproveUser(req.id);
-                          alert(`Approved "${req.name}" as Candidate.`);
-                        }}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
-                        title="Approve request as Candidate"
+                        onClick={() => accessRequestsRef.current?.scrollTo({ top: 99999, behavior: 'smooth' })}
+                        className="hover:text-slate-900 font-bold underline cursor-pointer text-amber-800"
+                        title="Scroll to bottom of approval queue"
                       >
-                        <UserCheck className="w-3.5 h-3.5" />
-                        <span>Approve as Candidate</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onRejectUser && onRejectUser(req.id);
-                          alert(`Access request rejected for "${req.name}".`);
-                        }}
-                        className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer"
-                        title="Decline request"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                        <span>Reject</span>
+                        Bottom
                       </button>
                     </div>
                   </div>
-                ))}
+                )}
+                <div 
+                  ref={accessRequestsRef}
+                  className="max-h-[380px] overflow-y-auto pr-1.5 space-y-3 scroll-smooth rounded-xl border border-transparent"
+                >
+                  {userAccounts.filter(u => u.status === 'PENDING').map(req => (
+                    <div 
+                      key={req.id}
+                      className="p-4 bg-amber-50/50 border border-amber-200/90 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:bg-amber-50/80"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <UserAvatar name={req.name} avatar={req.avatar} size="md" />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-slate-900 text-sm truncate">{req.name}</span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-200">
+                              Requested: {req.role || 'Access Request'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-600 mt-0.5 truncate">{req.email}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">Submitted: {req.createdAt || 'Recent'}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-wrap shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onMakeUserRecruiter && onMakeUserRecruiter(req.id);
+                            onApproveUser && onApproveUser(req.id);
+                            alert(`Approved "${req.name}" as Recruiter.`);
+                          }}
+                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                          title="Approve request and assign Recruiter role"
+                        >
+                          <Briefcase className="w-3.5 h-3.5" />
+                          <span>Approve as Recruiter</span>
+                        </button>
+
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onMakeUserAdmin && onMakeUserAdmin(req.id);
+                              onApproveUser && onApproveUser(req.id);
+                              alert(`Approved "${req.name}" as Administrator.`);
+                            }}
+                            className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                            title="Approve request and grant Administrator rights"
+                          >
+                            <Shield className="w-3.5 h-3.5" />
+                            <span>Approve as Admin</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onMakeUserCandidate && onMakeUserCandidate(req.id);
+                            onApproveUser && onApproveUser(req.id);
+                            alert(`Approved "${req.name}" as Candidate.`);
+                          }}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                          title="Approve request as Candidate"
+                        >
+                          <UserCheck className="w-3.5 h-3.5" />
+                          <span>Approve as Candidate</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onRejectUser && onRejectUser(req.id);
+                            alert(`Access request rejected for "${req.name}".`);
+                          }}
+                          className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                          title="Decline request"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>Reject</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -1249,16 +1287,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      if (window.confirm("Reset User Accounts queue back to default enterprise accounts?")) {
+                      if (window.confirm("Restore default enterprise system accounts? (Note: Your custom user accounts and pending access requests are preserved safely).")) {
                         onClearAllUserAccounts && onClearAllUserAccounts();
-                        alert("User accounts reset to default successfully.");
+                        alert("Default enterprise accounts restored successfully. Custom accounts and pending requests preserved.");
                       }
                     }}
                     className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all cursor-pointer flex items-center gap-1.5"
-                    title="Reset user accounts directory to default"
+                    title="Ensure default admin, recruiter, and candidate demo accounts exist without deleting your data"
                   >
                     <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-                    <span>Reset Directory</span>
+                    <span>Restore Default Accounts</span>
                   </button>
                 )}
               </div>
@@ -1346,8 +1384,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   </div>
                 </div>
 
-                {/* Horizontal scrollbar toolbar at top */}
-                <div className="flex items-center justify-between mb-2">
+                {/* Horizontal & vertical scrollbar toolbar at top */}
+                <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                   <div className="flex items-center gap-2 text-xs text-slate-500">
                     <ArrowLeftRight className="w-3.5 h-3.5 text-slate-400" />
                     <span>Scroll horizontally to view contact email, roles, and security actions:</span>
@@ -1360,7 +1398,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       title="Scroll table view left"
                     >
                       <ChevronLeft className="w-3.5 h-3.5" />
-                      <span>Scroll Left</span>
+                      <span>Left</span>
                     </button>
                     <button
                       type="button"
@@ -1368,8 +1406,25 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all flex items-center gap-1 cursor-pointer"
                       title="Scroll table view right"
                     >
-                      <span>Scroll Right (Actions)</span>
+                      <span>Right</span>
                       <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="text-slate-300">|</span>
+                    <button
+                      type="button"
+                      onClick={() => directoryTableRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+                      className="px-2 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all cursor-pointer"
+                      title="Scroll to top of user list"
+                    >
+                      <span>Top</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => directoryTableRef.current?.scrollTo({ top: 99999, behavior: 'smooth' })}
+                      className="px-2 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all cursor-pointer"
+                      title="Scroll to bottom of user list"
+                    >
+                      <span>Bottom</span>
                     </button>
                   </div>
                 </div>
@@ -1751,22 +1806,41 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 )}
               </div>
 
-              {/* Status Filter Buttons */}
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
-                {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map(tab => (
+              {/* Status Filter Buttons and Bulk Clear */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+                  {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map(tab => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setSkillRequestFilter(tab)}
+                      className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+                        skillRequestFilter === tab
+                          ? 'bg-white text-slate-900 shadow-2xs'
+                          : 'text-slate-500 hover:text-slate-900'
+                      }`}
+                    >
+                      {tab === 'ALL' ? 'All' : tab.charAt(0) + tab.slice(1).toLowerCase()}
+                    </button>
+                  ))}
+                </div>
+
+                {skillRequests.some(r => r.status !== 'PENDING') && onClearCompletedSkillRequests && (
                   <button
-                    key={tab}
                     type="button"
-                    onClick={() => setSkillRequestFilter(tab)}
-                    className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-                      skillRequestFilter === tab
-                        ? 'bg-white text-slate-900 shadow-2xs'
-                        : 'text-slate-500 hover:text-slate-900'
-                    }`}
+                    onClick={() => {
+                      const completedCount = skillRequests.filter(r => r.status !== 'PENDING').length;
+                      if (window.confirm(`Remove all ${completedCount} completed (approved & rejected) skill requests from the interface?`)) {
+                        onClearCompletedSkillRequests();
+                      }
+                    }}
+                    className="px-3 py-1.5 text-[11px] font-bold rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                    title="Remove all completed requests from queue"
                   >
-                    {tab === 'ALL' ? 'All' : tab.charAt(0) + tab.slice(1).toLowerCase()}
+                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                    <span>Clear Completed ({skillRequests.filter(r => r.status !== 'PENDING').length})</span>
                   </button>
-                ))}
+                )}
               </div>
             </div>
 
@@ -1796,8 +1870,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
               return (
                 <div>
-                  {/* Top horizontal scrollbar controls */}
-                  <div className="flex items-center justify-between mb-2">
+                  {/* Top horizontal & vertical scrollbar controls */}
+                  <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                     <div className="flex items-center gap-2 text-xs text-slate-500">
                       <ArrowLeftRight className="w-3.5 h-3.5 text-slate-400" />
                       <span>Scroll horizontally to inspect candidate resume claims & action buttons:</span>
@@ -1810,7 +1884,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         title="Scroll table left"
                       >
                         <ChevronLeft className="w-3.5 h-3.5" />
-                        <span>Scroll Left</span>
+                        <span>Left</span>
                       </button>
                       <button
                         type="button"
@@ -1818,8 +1892,25 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all flex items-center gap-1 cursor-pointer"
                         title="Scroll table right"
                       >
-                        <span>Scroll Right (Actions)</span>
+                        <span>Right</span>
                         <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="text-slate-300">|</span>
+                      <button
+                        type="button"
+                        onClick={() => skillRequestsTableRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+                        className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all cursor-pointer"
+                        title="Scroll to top of requests list"
+                      >
+                        <span>Top</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => skillRequestsTableRef.current?.scrollTo({ top: 99999, behavior: 'smooth' })}
+                        className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all cursor-pointer"
+                        title="Scroll to bottom of requests list"
+                      >
+                        <span>Bottom</span>
                       </button>
                     </div>
                   </div>
@@ -1950,6 +2041,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                       type="button"
                                       onClick={() => {
                                         onApproveSkillRequest && onApproveSkillRequest(req.id, userProfile?.name || (isAdmin ? 'Administrator' : 'Recruiter'), 'Verified against uploaded resume.');
+                                        onAddSkillToCandidate && onAddSkillToCandidate(req.candidateId || req.candidateEmail, req.skillName);
                                         alert(`Skill "${req.skillName}" approved & added to ${req.candidateName}'s profile!`);
                                       }}
                                       className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
@@ -1972,6 +2064,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                       <span>Reject</span>
                                     </button>
                                   </>
+                                )}
+
+                                {req.status !== 'PENDING' && onDeleteSkillRequest && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (window.confirm(`Remove completed request for "${req.skillName}" from the interface?`)) {
+                                        onDeleteSkillRequest(req.id);
+                                      }
+                                    }}
+                                    className="px-2.5 py-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 text-slate-600 font-bold rounded-lg text-xs transition-all flex items-center gap-1 cursor-pointer border border-slate-200 shadow-2xs"
+                                    title="Remove completed request from interface"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <span>Remove</span>
+                                  </button>
                                 )}
                               </div>
                             </td>
@@ -2609,6 +2717,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                   isTruthful ? 'Verified via Resume Document Inspection' : `Manually approved by ${isAdmin ? 'Administrator' : 'Recruiter'}`
                                 );
                               }
+                              if (onAddSkillToCandidate) {
+                                onAddSkillToCandidate(req.candidateId || req.candidateEmail, req.skillName);
+                              }
                               setVerifyingSkillRequest(null);
                               setDocSearchKeyword('');
                               alert(`Skill "${req.skillName}" successfully verified and appended to ${req.candidateName}'s candidate profile!`);
@@ -2620,8 +2731,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                           </button>
                         </>
                       ) : (
-                        <div className="text-xs font-bold text-slate-500">
-                          Request is already {req.status}
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-xs font-bold text-slate-500">
+                            Request is already {req.status}
+                          </span>
+                          {onDeleteSkillRequest && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(`Remove completed request for "${req.skillName}" from the interface?`)) {
+                                  onDeleteSkillRequest(req.id);
+                                  setVerifyingSkillRequest(null);
+                                }
+                              }}
+                              className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                              title="Remove completed request from interface"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Remove Request</span>
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -2712,14 +2841,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
               <button
                 onClick={() => {
-                  if (window.confirm("Are you sure you want to clear all candidate resume data?")) {
+                  if (window.confirm("Restore default candidate profiles? (Note: Custom candidate uploads and profiles are safely preserved).")) {
                     onClearAllCandidates && onClearAllCandidates();
-                    alert("Candidate resume database cleared successfully!");
+                    alert("Default candidate profiles restored successfully!");
                   }
                 }}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                title="Ensure default candidates exist without wiping custom data"
               >
-                Clear All Candidate Resumes
+                <RefreshCw className="w-3.5 h-3.5 text-slate-300" />
+                <span>Restore Default Candidates</span>
               </button>
             </div>
           </div>

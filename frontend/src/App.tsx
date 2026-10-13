@@ -527,6 +527,9 @@ export default function App() {
               skillRequests={store.skillRequests}
               onApproveSkillRequest={store.approveSkillRequest}
               onRejectSkillRequest={store.rejectSkillRequest}
+              onAddSkillToCandidate={store.addSkillToCandidate}
+              onDeleteSkillRequest={store.deleteSkillRequest}
+              onClearCompletedSkillRequests={store.clearCompletedSkillRequests}
               onApproveUser={store.approveUser}
               onRejectUser={store.rejectUser}
               onRevokeUserAccess={store.revokeUserAccess}
