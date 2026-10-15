@@ -175,185 +175,154 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     handleGoogleSelect(clean, formattedName, 'Candidate Applicant', false);
   };
 
-  // Standard Form Submit Handler
+  // Standard Form Submit Handler with Strict, Absolute Password Verification
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setStatusNotice(null);
 
     const emailClean = email.trim().toLowerCase();
+    const passwordClean = password;
 
-    // 1. GLOBAL PRIORITY CHECK: Default Super-Admin ALWAYS logs in as Administrator
-    if (emailClean === 'admin@copilot.com' && (password === 'admin123' || mode === 'ADMIN')) {
-      const storedAdmin = userAccounts.find(u => u.email.toLowerCase() === 'admin@copilot.com');
-      const savedAvatar = getPersistedAvatar('admin@copilot.com', storedAdmin?.avatar);
-      const adminFallback = (storedAdmin?.name && !storedAdmin.name.includes('Alex Vance')) ? storedAdmin.name : 'J Manju Raghvin (Main Super-Admin)';
-      onLogin({
-        name: getPersistedName('admin@copilot.com', adminFallback, userAccounts),
-        role: storedAdmin?.role || 'System Administrator & Hiring Director',
-        email: 'admin@copilot.com',
-        userType: 'ADMIN',
-        status: 'APPROVED',
-        isSuperAdmin: true,
-        avatar: savedAvatar
-      });
-      return;
-    }
-
-    // 2. GLOBAL PRIORITY CHECK: Default Recruiter
-    if (emailClean === 'recruiter@copilot.com' && (password === 'recruiter123' || mode === 'RECRUITER')) {
-      const stored = userAccounts.find(u => u.email.toLowerCase() === 'recruiter@copilot.com');
-      if (stored?.status === 'REVOKED' || stored?.status === 'REJECTED') {
-        setStatusNotice({ type: 'REVOKED', message: `Access Revoked: Account access for "${emailClean}" has been revoked by an Administrator.` });
-        return;
-      }
-      const savedAvatar = getPersistedAvatar('recruiter@copilot.com', stored?.avatar);
-      onLogin({
-        name: getPersistedName('recruiter@copilot.com', stored?.name || 'Sarah Jenkins', userAccounts),
-        role: stored?.role || 'Talent Acquisition Specialist',
-        email: 'recruiter@copilot.com',
-        userType: stored?.userType || 'USER',
-        status: stored?.status || 'APPROVED',
-        isSuperAdmin: stored?.userType === 'ADMIN',
-        avatar: savedAvatar
-      });
-      return;
-    }
-
-    // 3. GLOBAL PRIORITY CHECK: Default Candidate
-    if ((emailClean === 'candidate@copilot.com' || emailClean === 'sarah.johnson@example.com') && (password === 'candidate123' || mode === 'CANDIDATE')) {
-      const targetMail = 'sarah.johnson@example.com';
-      const stored = userAccounts.find(u => u.email.toLowerCase() === targetMail || u.email.toLowerCase() === 'candidate@copilot.com');
-      if (stored?.status === 'REVOKED' || stored?.status === 'REJECTED') {
-        setStatusNotice({ type: 'REVOKED', message: `Access Revoked: Account access for "${emailClean}" has been revoked by an Administrator.` });
-        return;
-      }
-      const savedAvatar = getPersistedAvatar(targetMail, stored?.avatar);
-      const candidateName = getPersistedName(targetMail, stored?.name || 'Sarah Johnson', userAccounts);
-      onLogin({
-        name: candidateName,
-        role: stored?.role || 'Candidate Applicant',
-        email: targetMail,
-        userType: stored?.userType || 'USER',
-        status: stored?.status || 'APPROVED',
-        isSuperAdmin: stored?.userType === 'ADMIN',
-        avatar: savedAvatar
-      });
-      return;
-    }
-
+    // 1. REGISTRATION / ACCESS REQUEST MODE
     if (mode === 'SIGN_UP') {
       const fullName = `${firstName} ${lastName}`.trim() || 'New User';
-      if (!emailClean || !password) {
-        setStatusNotice({ type: 'ERROR', message: 'Please enter all required registration details.' });
+      if (!emailClean || !passwordClean) {
+        setStatusNotice({ type: 'ERROR', message: 'Please enter all required registration details including password.' });
         return;
       }
-      const newAcc = onRegister(fullName, emailClean, role, password);
+      if (passwordClean.length < 6) {
+        setStatusNotice({ type: 'ERROR', message: 'Password must be at least 6 characters long.' });
+        return;
+      }
+      const newAcc = onRegister(fullName, emailClean, role, passwordClean);
       setStatusNotice({
         type: 'SUCCESS',
         message: `Access Request Submitted Successfully! Account for "${newAcc.email}" is in PENDING status. An Administrator must approve your access before logging in.`
       });
       setActiveStep(3);
-    } else if (mode === 'CANDIDATE') {
-      const isDemo = emailClean === 'candidate@copilot.com' || emailClean === 'sarah.johnson@example.com';
-      const found = userAccounts.find(u => u.email.toLowerCase() === emailClean);
+      return;
+    }
 
-      if (found) {
-        if (found.status === 'PENDING') {
-          setStatusNotice({
-            type: 'PENDING',
-            message: `Access Pending Approval: Candidate account for "${found.email}" is pending Administrator review.`
-          });
-          return;
-        }
-        if (found.status === 'REVOKED' || found.status === 'REJECTED') {
-          setStatusNotice({
-            type: 'REVOKED',
-            message: `Access Revoked: Candidate access for "${found.email}" has been rejected or revoked by an Administrator.`
-          });
-          return;
-        }
-        const savedAvatar = getPersistedAvatar(emailClean, found.avatar);
-        const resolvedName = getPersistedName(emailClean, found.name, userAccounts);
-        onLogin({
-          name: resolvedName,
-          role: found.role || 'Candidate Applicant',
-          email: found.email,
-          userType: 'USER',
-          status: 'APPROVED',
-          isSuperAdmin: false,
-          avatar: savedAvatar
-        });
-        return;
+    // 2. INPUT VALIDATION FOR LOGIN MODES
+    if (!emailClean) {
+      setStatusNotice({ type: 'ERROR', message: 'Please enter your email address to sign in.' });
+      return;
+    }
+
+    if (!passwordClean) {
+      setStatusNotice({ type: 'ERROR', message: 'Please enter your password to sign in.' });
+      return;
+    }
+
+    // 3. LOCATE ACCOUNT IN ENTERPRISE USER DIRECTORY
+    const targetAccount = userAccounts.find(u => {
+      const uEmail = u.email.toLowerCase();
+      if (uEmail === emailClean) return true;
+      if ((emailClean === 'candidate@copilot.com' || emailClean === 'sarah.johnson@example.com' || emailClean === 'sarah.johnson@gmail.com') &&
+          (uEmail === 'sarah.johnson@example.com' || uEmail === 'candidate@copilot.com' || uEmail === 'sarah.johnson@gmail.com')) {
+        return true;
       }
-
-      if (isDemo) {
-        const targetMail = 'sarah.johnson@example.com';
-        const savedAvatar = getPersistedAvatar(targetMail, undefined);
-        const candidateName = getPersistedName(targetMail, 'Sarah Johnson', userAccounts);
-        onLogin({
-          name: candidateName,
-          role: 'Candidate Applicant',
-          email: targetMail,
-          userType: 'USER',
-          status: 'APPROVED',
-          isSuperAdmin: false,
-          avatar: savedAvatar
-        });
-        return;
+      if ((emailClean === 'recruiter@copilot.com' || emailClean === 'sarah.jenkins@gmail.com') &&
+          (uEmail === 'recruiter@copilot.com' || uEmail === 'sarah.jenkins@gmail.com')) {
+        return true;
       }
+      if ((emailClean === 'admin@copilot.com' || emailClean === 'j.manju.raghvin@gmail.com') &&
+          (uEmail === 'admin@copilot.com' || uEmail === 'j.manju.raghvin@gmail.com')) {
+        return true;
+      }
+      return false;
+    });
 
-      // If not registered in userAccounts, submit an access request
-      const candidateName = emailClean.split('@')[0].replace(/[._-]/g, ' ');
-      const formattedName = candidateName.charAt(0).toUpperCase() + candidateName.slice(1);
-      const newAcc = onRegister(formattedName, emailClean, 'Candidate Applicant', password || 'candidate123');
+    if (!targetAccount) {
       setStatusNotice({
-        type: 'PENDING',
-        message: `Access Request Submitted Successfully! Candidate account "${newAcc.email}" is in PENDING status. An Administrator must approve your access before logging in.`
+        type: 'ERROR',
+        message: `Account Not Found: No registered account found for "${emailClean}". Please check your email address or use "Request Enterprise Access" to register.`
       });
       return;
-    } else if (mode === 'RECRUITER') {
-      const found = userAccounts.find(u => u.email.toLowerCase() === emailClean);
-      if (!found) {
-        setStatusNotice({ type: 'ERROR', message: `No account registered for "${email}". Please submit a New Access Request or Sign in with Google.` });
-        return;
-      }
-      if (found.status === 'PENDING') {
-        setStatusNotice({ type: 'PENDING', message: `Access Pending Approval: Account for "${found.email}" is pending Administrator review.` });
-        return;
-      }
-      if (found.status === 'REVOKED' || found.status === 'REJECTED') {
-        setStatusNotice({ type: 'REVOKED', message: `Access Revoked: Account access for "${found.email}" has been revoked by an Administrator.` });
-        return;
-      }
-      const savedAvatar = getPersistedAvatar(emailClean, found.avatar);
-      const resolvedName = getPersistedName(emailClean, found.name, userAccounts);
-      onLogin({
-        name: resolvedName,
-        role: found.role,
-        email: found.email,
-        userType: found.userType === 'ADMIN' ? 'ADMIN' : 'USER',
-        status: 'APPROVED',
-        isSuperAdmin: found.userType === 'ADMIN',
-        avatar: savedAvatar
-      });
-    } else if (mode === 'ADMIN') {
-      const foundAdmin = userAccounts.find(u => u.email.toLowerCase() === emailClean && u.userType === 'ADMIN');
-      if (!foundAdmin) {
-        setStatusNotice({ type: 'ERROR', message: `No Administrator account registered for "${email}". Use admin@copilot.com with admin123.` });
-        return;
-      }
-      const savedAvatar = localStorage.getItem(`rc_avatar_${emailClean}`) || foundAdmin.avatar || undefined;
-      const resolvedName = getPersistedName(emailClean, foundAdmin.name, userAccounts);
-      onLogin({
-        name: resolvedName,
-        role: foundAdmin.role,
-        email: foundAdmin.email,
-        userType: 'ADMIN',
-        status: 'APPROVED',
-        isSuperAdmin: true,
-        avatar: savedAvatar
-      });
     }
+
+    // 4. RESOLVE EXPECTED PASSWORD FOR THIS ACCOUNT
+    const expectedPassword = targetAccount.password || (
+      targetAccount.userType === 'ADMIN' || targetAccount.isSuperAdmin || emailClean === 'admin@copilot.com'
+        ? 'admin123'
+        : (targetAccount.role?.toLowerCase().includes('recruiter') || targetAccount.role?.toLowerCase().includes('talent'))
+        ? 'recruiter123'
+        : 'candidate123'
+    );
+
+    // 5. ABSOLUTE PASSWORD VERIFICATION - NO BYPASSES
+    const isPasswordValid = passwordClean === expectedPassword || passwordClean.trim() === expectedPassword;
+    if (!isPasswordValid) {
+      setStatusNotice({
+        type: 'ERROR',
+        message: `Authentication Failed: Incorrect password entered for "${emailClean}". Access denied.`
+      });
+      return;
+    }
+
+    // 6. ENFORCE ACCESS STATUS GOVERNANCE
+    if (targetAccount.status === 'REVOKED' || targetAccount.status === 'REJECTED') {
+      setStatusNotice({
+        type: 'REVOKED',
+        message: `Access Revoked: Account access for "${emailClean}" has been revoked or denied by a System Administrator.`
+      });
+      return;
+    }
+
+    if (targetAccount.status === 'PENDING') {
+      setStatusNotice({
+        type: 'PENDING',
+        message: `Access Pending Review: Your account for "${targetAccount.email}" is awaiting Administrator review in System Settings. Please wait for an Admin to approve your access before logging in.`
+      });
+      return;
+    }
+
+    // 7. ROLE TIER COMPATIBILITY VERIFICATION
+    const isAccountAdmin = Boolean(
+      targetAccount.userType === 'ADMIN' ||
+      targetAccount.isSuperAdmin ||
+      targetAccount.email.toLowerCase() === 'admin@copilot.com' ||
+      targetAccount.email.toLowerCase() === 'j.manju.raghvin@gmail.com'
+    );
+
+    const isAccountRecruiter = Boolean(
+      isAccountAdmin ||
+      targetAccount.role?.toLowerCase().includes('recruiter') ||
+      targetAccount.role?.toLowerCase().includes('talent') ||
+      targetAccount.role?.toLowerCase().includes('hiring') ||
+      targetAccount.email.toLowerCase() === 'recruiter@copilot.com' ||
+      targetAccount.email.toLowerCase() === 'sarah.jenkins@gmail.com'
+    );
+
+    if (mode === 'ADMIN' && !isAccountAdmin) {
+      setStatusNotice({
+        type: 'ERROR',
+        message: `Access Denied: Account "${emailClean}" does not have Administrator privileges. Please switch to the Recruiter or Candidate portal.`
+      });
+      return;
+    }
+
+    if (mode === 'RECRUITER' && !isAccountRecruiter) {
+      setStatusNotice({
+        type: 'ERROR',
+        message: `Role Restricted: Account "${emailClean}" is registered as a Candidate. Please select the Candidate portal tab to log in.`
+      });
+      return;
+    }
+
+    // 8. PERSISTED IDENTITY & SUCCESSFUL LOGIN DISPATCH
+    const savedAvatar = getPersistedAvatar(targetAccount.email, targetAccount.avatar);
+    const resolvedName = getPersistedName(targetAccount.email, targetAccount.name, userAccounts);
+
+    onLogin({
+      name: resolvedName,
+      role: targetAccount.role,
+      email: targetAccount.email,
+      userType: isAccountAdmin ? 'ADMIN' : (targetAccount.userType || 'USER'),
+      status: 'APPROVED',
+      isSuperAdmin: isAccountAdmin,
+      avatar: savedAvatar
+    });
   };
 
   // Motion variants for left column staggered entry
@@ -691,14 +660,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 ? 'bg-slate-900 hover:bg-slate-800 shadow-slate-900/20'
                 : mode === 'SIGN_UP'
                   ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20'
-                  : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'
+                  : mode === 'CANDIDATE'
+                    ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/20'
+                    : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'
                 }`}
             >
               {mode === 'SIGN_UP'
                 ? 'Submit Access Request →'
                 : mode === 'RECRUITER'
                   ? 'Log In to Recruiter Platform →'
-                  : 'Log In to Admin Console →'}
+                  : mode === 'CANDIDATE'
+                    ? 'Log In to Candidate Portal →'
+                    : 'Log In to Admin Console →'}
             </button>
           </form>
 

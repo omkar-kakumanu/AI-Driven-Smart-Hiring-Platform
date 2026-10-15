@@ -456,6 +456,11 @@ export function useRecruitmentStore() {
       return {
         ...u,
         name: (savedName && savedName.trim()) ? savedName.trim() : u.name,
+        password: u.password || (
+          u.userType === 'ADMIN' ? 'admin123' :
+          (u.role?.toLowerCase().includes('recruiter') || u.role?.toLowerCase().includes('talent')) ? 'recruiter123' :
+          'candidate123'
+        ),
         avatar: u.avatar || localStorage.getItem(`rc_avatar_${uMail}`) || undefined
       };
     });
