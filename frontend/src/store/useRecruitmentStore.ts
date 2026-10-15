@@ -469,6 +469,10 @@ export function useRecruitmentStore() {
     return accounts;
   });
 
+  useEffect(() => {
+    safeStorageSet('rc_user_accounts', JSON.stringify(userAccounts));
+  }, [userAccounts]);
+
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('rc_user_profile');
     if (saved) {
@@ -1113,7 +1117,11 @@ export function useRecruitmentStore() {
       password: password || 'pass123'
     };
 
-    setUserAccounts(prev => [...prev, newUser]);
+    setUserAccounts(prev => {
+      const updated = [...prev, newUser];
+      safeStorageSet('rc_user_accounts', JSON.stringify(updated));
+      return updated;
+    });
     return newUser;
   };
 
