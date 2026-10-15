@@ -31,7 +31,9 @@ import {
   ChevronRight,
   ExternalLink,
   Lock,
-  ArrowLeftRight
+  ArrowLeftRight,
+  Key,
+  EyeOff
 } from 'lucide-react';
 
 interface SettingsViewProps {
@@ -40,6 +42,7 @@ interface SettingsViewProps {
   theme?: 'light' | 'dark';
   onToggleTheme?: () => void;
   onUpdateUserProfile?: (updates: Partial<UserProfile>) => void;
+  onUpdatePassword?: (emailOrId: string, newPassword: string) => boolean;
   userAccounts?: UserAccount[];
   candidates?: Candidate[];
   skillRequests?: SkillAdditionRequest[];
@@ -115,6 +118,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   theme = 'light',
   onToggleTheme,
   onUpdateUserProfile,
+  onUpdatePassword,
   userAccounts = [],
   candidates = [],
   skillRequests = [],
@@ -270,6 +274,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [editRoleTier, setEditRoleTier] = useState<'ADMIN' | 'RECRUITER' | 'CANDIDATE'>('RECRUITER');
   const [editUserName, setEditUserName] = useState('');
 
+  // Self Password Change State
+  const [selfNewPassword, setSelfNewPassword] = useState('');
+  const [selfConfirmPassword, setSelfConfirmPassword] = useState('');
+  const [showSelfNewPassword, setShowSelfNewPassword] = useState(false);
+  const [showSelfConfirmPassword, setShowSelfConfirmPassword] = useState(false);
+  const [passwordUpdateNotice, setPasswordUpdateNotice] = useState<{ type: 'SUCCESS' | 'ERROR'; message: string } | null>(null);
+
+  // Admin User Password Reset Modal State
+  const [adminResettingUser, setAdminResettingUser] = useState<UserAccount | null>(null);
+  const [adminNewPassword, setAdminNewPassword] = useState('');
+  const [showAdminNewPassword, setShowAdminNewPassword] = useState(false);
+
   const INDIAN_TECH_HUBS = [
     'Bengaluru',
     'Hyderabad',
@@ -338,6 +354,63 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     }
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3500);
+  };
+
+  const handleSelfPasswordChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordUpdateNotice(null);
+
+    if (selfNewPassword.length < 6) {
+      setPasswordUpdateNotice({
+        type: 'ERROR',
+        message: 'New password must be at least 6 characters long.'
+      });
+      return;
+    }
+
+    if (selfNewPassword !== selfConfirmPassword) {
+      setPasswordUpdateNotice({
+        type: 'ERROR',
+        message: 'New password and confirmation password do not match.'
+      });
+      return;
+    }
+
+    const targetEmail = userProfile?.email || email;
+    if (onUpdatePassword) {
+      const success = onUpdatePassword(targetEmail, selfNewPassword);
+      if (success) {
+        setPasswordUpdateNotice({
+          type: 'SUCCESS',
+          message: `Password updated successfully for "${targetEmail}"! Next time you sign in, use your new password.`
+        });
+        setSelfNewPassword('');
+        setSelfConfirmPassword('');
+      } else {
+        setPasswordUpdateNotice({
+          type: 'ERROR',
+          message: 'Unable to update password. Account not found in active directory.'
+        });
+      }
+    }
+  };
+
+  const handleAdminPasswordChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminResettingUser) return;
+
+    if (adminNewPassword.length < 6) {
+      alert('Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (onUpdatePassword) {
+      onUpdatePassword(adminResettingUser.email, adminNewPassword);
+      alert(`Password updated successfully for "${adminResettingUser.name}" (${adminResettingUser.email}).`);
+    }
+
+    setAdminResettingUser(null);
+    setAdminNewPassword('');
   };
 
   const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -653,6 +726,105 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Account Security & Password Management Card (Accessible to All Users) */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div>
+            <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+              <Key className="w-4 h-4 text-blue-600 inline mr-1" />
+              <span>Account Security & Change Password</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200">
+                Active Account: {email}
+              </span>
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Update your account password to maintain system security. Passwords must be at least 6 characters long.
+            </p>
+          </div>
+        </div>
+
+        {passwordUpdateNotice && (
+          <div className={`p-3.5 rounded-xl border text-xs font-medium flex items-start gap-2.5 ${
+            passwordUpdateNotice.type === 'SUCCESS'
+              ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+              : 'bg-rose-50 border-rose-300 text-rose-900'
+          }`}>
+            {passwordUpdateNotice.type === 'SUCCESS' ? (
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 mt-0.5" />
+            ) : (
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+            )}
+            <div>
+              <span className="font-bold block mb-0.5">
+                {passwordUpdateNotice.type === 'SUCCESS' ? 'Password Changed Successfully' : 'Password Error'}
+              </span>
+              {passwordUpdateNotice.message}
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleSelfPasswordChange} className="space-y-4 max-w-xl">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">New Password</label>
+              <div className="relative flex items-center">
+                <input
+                  type={showSelfNewPassword ? 'text' : 'password'}
+                  value={selfNewPassword}
+                  onChange={(e) => setSelfNewPassword(e.target.value)}
+                  placeholder="Min. 6 characters"
+                  required
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl h-10 px-3.5 pr-10 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSelfNewPassword(!showSelfNewPassword)}
+                  tabIndex={-1}
+                  className="absolute right-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  {showSelfNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">Confirm New Password</label>
+              <div className="relative flex items-center">
+                <input
+                  type={showSelfConfirmPassword ? 'text' : 'password'}
+                  value={selfConfirmPassword}
+                  onChange={(e) => setSelfConfirmPassword(e.target.value)}
+                  placeholder="Re-type new password"
+                  required
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl h-10 px-3.5 pr-10 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSelfConfirmPassword(!showSelfConfirmPassword)}
+                  tabIndex={-1}
+                  className="absolute right-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  {showSelfConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 pt-1">
+            <button
+              type="submit"
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Update Password</span>
+            </button>
+            <span className="text-[11px] text-slate-400">
+              New password will be stored securely and required at next login.
+            </span>
+          </div>
+        </form>
       </div>
 
       {/* Interface Appearance & Theme Toggle Card (Accessible to All Users) */}
@@ -1734,6 +1906,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                       </button>
                                     )}
 
+                                    {/* Change Password for User */}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setAdminResettingUser(user);
+                                        setAdminNewPassword('');
+                                      }}
+                                      className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                      title={`Change / Reset Password for ${user.name}`}
+                                    >
+                                      <Key className="w-3.5 h-3.5 text-blue-600" />
+                                    </button>
+
                                     {/* Delete Account */}
                                     <button
                                       type="button"
@@ -2256,6 +2441,88 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     >
                       <Save className="w-3.5 h-3.5" />
                       <span>Save Role</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Admin Change/Reset Password for User */}
+          {adminResettingUser && (
+            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 font-bold overflow-hidden">
+                      <Key className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-slate-900">
+                        Set Password: {adminResettingUser.name}
+                      </h3>
+                      <p className="text-[11px] text-slate-400 font-mono">
+                        {adminResettingUser.email}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdminResettingUser(null);
+                      setAdminNewPassword('');
+                    }}
+                    className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-all cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleAdminPasswordChange} className="space-y-4 pt-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      New Password for User
+                    </label>
+                    <div className="relative flex items-center">
+                      <input
+                        type={showAdminNewPassword ? 'text' : 'password'}
+                        value={adminNewPassword}
+                        onChange={(e) => setAdminNewPassword(e.target.value)}
+                        placeholder="Enter new password (min. 6 chars)"
+                        required
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-medium pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAdminNewPassword(!showAdminNewPassword)}
+                        tabIndex={-1}
+                        className="absolute right-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      >
+                        {showAdminNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      The user will be required to use this updated password to sign in.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdminResettingUser(null);
+                        setAdminNewPassword('');
+                      }}
+                      className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-1.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Save Password</span>
                     </button>
                   </div>
                 </form>

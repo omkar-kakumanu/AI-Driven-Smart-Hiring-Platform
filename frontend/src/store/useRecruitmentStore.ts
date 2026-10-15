@@ -1062,6 +1062,41 @@ export function useRecruitmentStore() {
     }));
   };
 
+  const updateUserPassword = (userEmailOrId: string, newPassword: string): boolean => {
+    const clean = userEmailOrId.trim().toLowerCase();
+    let found = false;
+
+    setUserAccounts(prev => {
+      const next = prev.map(u => {
+        const uEmail = u.email.toLowerCase().trim();
+        const isTarget = u.id === userEmailOrId || uEmail === clean ||
+          ((clean === 'candidate@copilot.com' || clean === 'sarah.johnson@example.com' || clean === 'sarah.johnson@gmail.com') &&
+           (uEmail === 'sarah.johnson@example.com' || uEmail === 'candidate@copilot.com' || uEmail === 'sarah.johnson@gmail.com')) ||
+          ((clean === 'recruiter@copilot.com' || clean === 'sarah.jenkins@gmail.com') &&
+           (uEmail === 'recruiter@copilot.com' || uEmail === 'sarah.jenkins@gmail.com')) ||
+          ((clean === 'admin@copilot.com' || clean === 'j.manju.raghvin@gmail.com') &&
+           (uEmail === 'admin@copilot.com' || uEmail === 'j.manju.raghvin@gmail.com'));
+
+        if (isTarget) {
+          found = true;
+          safeStorageSet(`rc_password_${uEmail}`, newPassword);
+          return {
+            ...u,
+            password: newPassword
+          };
+        }
+        return u;
+      });
+
+      if (found) {
+        safeStorageSet('rc_user_accounts', JSON.stringify(next));
+      }
+      return next;
+    });
+
+    return found;
+  };
+
   const clearAllCandidates = () => {
     localStorage.setItem('rc_name_sarah.johnson@example.com', 'Sarah Johnson');
     localStorage.setItem('rc_name_candidate@copilot.com', 'Sarah Johnson');
@@ -1613,6 +1648,7 @@ export function useRecruitmentStore() {
     makeUserCandidate,
     removeUserRecruiter,
     updateUserRole,
+    updateUserPassword,
     registerUser,
     clearAllCandidates,
     clearAllUserAccounts,

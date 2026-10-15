@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, AlertCircle, Eye, EyeOff, Sparkles, ArrowRight, ArrowLeft, X, Mail } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Eye, EyeOff, Sparkles, ArrowRight, ArrowLeft, X, Mail, Key } from 'lucide-react';
 import type { UserProfile, UserAccount } from '../types';
 
 const GoogleIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
@@ -16,6 +16,7 @@ interface LoginPageProps {
   userAccounts: UserAccount[];
   onLogin: (profile: UserProfile & { userType: 'ADMIN' | 'USER'; status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'REVOKED'; isSuperAdmin?: boolean }) => void;
   onRegister: (name: string, email: string, role: string, password?: string) => UserAccount;
+  onUpdatePassword?: (emailOrId: string, newPassword: string) => boolean;
   theme?: 'light' | 'dark';
   onToggleTheme?: () => void;
 }
@@ -62,6 +63,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   userAccounts,
   onLogin,
   onRegister,
+  onUpdatePassword,
   theme = 'light',
   onToggleTheme
 }) => {
@@ -88,6 +90,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [googlePassword, setGooglePassword] = useState('');
   const [showGooglePassword, setShowGooglePassword] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
+
+  // Forgot Password Modal State
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotStep, setForgotStep] = useState<'REQUEST' | 'VERIFY'>('REQUEST');
+  const [forgotCode, setForgotCode] = useState('');
+  const [generatedCode, setGeneratedCode] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
+  const [showForgotConfirmPassword, setShowForgotConfirmPassword] = useState(false);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const [codeSentAlert, setCodeSentAlert] = useState<string | null>(null);
 
   // Active step state for Hero column
   const [activeStep, setActiveStep] = useState<number>(1);
@@ -231,6 +246,73 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     setGoogleTargetAccount(null);
     setGooglePassword('');
     setGoogleError(null);
+  };
+
+  // Forgot Password: Step 1 Send Confirmation Email Handler
+  const handleSendResetEmail = (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError(null);
+    const cleanMail = forgotEmail.trim().toLowerCase();
+    if (!cleanMail || !cleanMail.includes('@')) {
+      setForgotError('Please enter a valid email address.');
+      return;
+    }
+
+    const stored = userAccounts.find(u => {
+      const uEmail = u.email.toLowerCase().trim();
+      return uEmail === cleanMail ||
+        ((cleanMail === 'candidate@copilot.com' || cleanMail === 'sarah.johnson@example.com' || cleanMail === 'sarah.johnson@gmail.com') &&
+         (uEmail === 'sarah.johnson@example.com' || uEmail === 'candidate@copilot.com' || uEmail === 'sarah.johnson@gmail.com')) ||
+        ((cleanMail === 'recruiter@copilot.com' || cleanMail === 'sarah.jenkins@gmail.com') &&
+         (uEmail === 'recruiter@copilot.com' || uEmail === 'sarah.jenkins@gmail.com')) ||
+        ((cleanMail === 'admin@copilot.com' || cleanMail === 'j.manju.raghvin@gmail.com') &&
+         (uEmail === 'admin@copilot.com' || uEmail === 'j.manju.raghvin@gmail.com'));
+    });
+
+    if (!stored) {
+      setForgotError(`No registered account found for "${cleanMail}". Please check the email address or register via Request Access.`);
+      return;
+    }
+
+    // Generate random 6-digit verification code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedCode(code);
+    setCodeSentAlert(`Confirmation email sent to ${cleanMail}! For this simulated environment, your 6-digit confirmation code is: ${code}`);
+    setForgotStep('VERIFY');
+  };
+
+  // Forgot Password: Step 2 Confirm Code & Set New Password Handler
+  const handleResetPasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError(null);
+    const cleanMail = forgotEmail.trim().toLowerCase();
+
+    if (forgotCode.trim() !== generatedCode) {
+      setForgotError('Invalid confirmation code. Please enter the 6-digit code sent to your email.');
+      return;
+    }
+
+    if (forgotNewPassword.length < 6) {
+      setForgotError('New password must be at least 6 characters long.');
+      return;
+    }
+
+    if (forgotNewPassword !== forgotConfirmPassword) {
+      setForgotError('New password and confirmation password do not match.');
+      return;
+    }
+
+    if (onUpdatePassword) {
+      onUpdatePassword(cleanMail, forgotNewPassword);
+    }
+
+    setShowForgotModal(false);
+    setEmail(cleanMail);
+    setPassword('');
+    setStatusNotice({
+      type: 'SUCCESS',
+      message: `Password changed successfully for "${cleanMail}"! Please sign in using your new password.`
+    });
   };
 
   // Standard Form Submit Handler with Strict, Absolute Password Verification
@@ -692,6 +774,26 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
             <InputGroup
               label="Password"
+              labelRight={
+                mode !== 'SIGN_UP' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForgotModal(true);
+                      setForgotEmail(email);
+                      setForgotStep('REQUEST');
+                      setForgotError(null);
+                      setCodeSentAlert(null);
+                      setForgotCode('');
+                      setForgotNewPassword('');
+                      setForgotConfirmPassword('');
+                    }}
+                    className="text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
+                  >
+                    Forgot password?
+                  </button>
+                )
+              }
               placeholder="••••••••"
               type={showPassword ? 'text' : 'password'}
               value={password}
@@ -995,6 +1097,165 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           </motion.div>
         </div>
       )}
+
+      {/* FORGOT PASSWORD / CONFIRMATION MODAL */}
+      {showForgotModal && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl space-y-5 relative text-slate-900"
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => {
+                setShowForgotModal(false);
+                setForgotError(null);
+                setCodeSentAlert(null);
+              }}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Modal Header */}
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center mx-auto text-blue-600">
+                <Key className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-extrabold text-slate-900">
+                {forgotStep === 'REQUEST' ? 'Reset Your Password' : 'Confirm Password Change'}
+              </h3>
+              <p className="text-xs text-slate-500 font-medium max-w-xs mx-auto">
+                {forgotStep === 'REQUEST' 
+                  ? 'Enter your registered email address to receive an email confirmation code.'
+                  : `Enter the 6-digit confirmation code sent to ${forgotEmail} and choose your new password.`}
+              </p>
+            </div>
+
+            {/* Error Message */}
+            {forgotError && (
+              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs font-medium flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+                <span>{forgotError}</span>
+              </div>
+            )}
+
+            {/* Confirmation Email Sent Simulation Banner */}
+            {codeSentAlert && (
+              <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs font-medium space-y-1">
+                <div className="flex items-center gap-1.5 font-bold text-blue-700">
+                  <Mail className="w-4 h-4 text-blue-600" />
+                  <span>Email Confirmation Dispatched!</span>
+                </div>
+                <p className="text-[11px] text-blue-800 leading-relaxed">
+                  {codeSentAlert}
+                </p>
+              </div>
+            )}
+
+            {forgotStep === 'REQUEST' ? (
+              <form onSubmit={handleSendResetEmail} className="space-y-4">
+                <InputGroup
+                  label="Registered Email Address"
+                  placeholder="e.g. recruiter@copilot.com"
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  required
+                />
+
+                <div className="pt-1 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(false)}
+                    className="flex-1 h-11 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-500/20 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <span>Send Code</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleResetPasswordSubmit} className="space-y-3.5">
+                <InputGroup
+                  label="6-Digit Confirmation Code"
+                  placeholder="Enter 6-digit code (e.g. 849201)"
+                  type="text"
+                  value={forgotCode}
+                  onChange={(e) => setForgotCode(e.target.value)}
+                  required
+                  helperText="Check the simulated email notification box above."
+                />
+
+                <InputGroup
+                  label="New Password"
+                  placeholder="At least 6 characters"
+                  type={showForgotNewPassword ? 'text' : 'password'}
+                  value={forgotNewPassword}
+                  onChange={(e) => setForgotNewPassword(e.target.value)}
+                  required
+                  rightElement={
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
+                      tabIndex={-1}
+                      className="focus:outline-none"
+                    >
+                      {showForgotNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  }
+                />
+
+                <InputGroup
+                  label="Confirm New Password"
+                  placeholder="Re-enter new password"
+                  type={showForgotConfirmPassword ? 'text' : 'password'}
+                  value={forgotConfirmPassword}
+                  onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                  required
+                  rightElement={
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotConfirmPassword(!showForgotConfirmPassword)}
+                      tabIndex={-1}
+                      className="focus:outline-none"
+                    >
+                      {showForgotConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  }
+                />
+
+                <div className="pt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotStep('REQUEST');
+                      setForgotError(null);
+                    }}
+                    className="flex-1 h-11 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md shadow-emerald-500/20 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <span>Confirm & Reset</span>
+                    <CheckCircle2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </form>
+            )}
+          </motion.div>
+        </div>
+      )}
     </main>
   );
 };
@@ -1042,6 +1303,7 @@ interface InputGroupProps {
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   rightElement?: React.ReactNode;
+  labelRight?: React.ReactNode;
   helperText?: string;
   required?: boolean;
 }
@@ -1053,12 +1315,16 @@ export const InputGroup: React.FC<InputGroupProps> = ({
   value,
   onChange,
   rightElement,
+  labelRight,
   helperText,
   required
 }) => {
   return (
     <div className="space-y-1 w-full text-left">
-      <label className="text-xs font-bold text-slate-700 block">{label}</label>
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-bold text-slate-700 block">{label}</label>
+        {labelRight}
+      </div>
       <div className="relative flex items-center">
         <input
           type={type}

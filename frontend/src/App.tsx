@@ -304,6 +304,7 @@ export default function App() {
         userAccounts={store.userAccounts} 
         onLogin={handleLogin} 
         onRegister={store.registerUser} 
+        onUpdatePassword={store.updateUserPassword}
         theme={theme}
         onToggleTheme={toggleTheme}
       />
@@ -537,6 +538,7 @@ export default function App() {
               onMakeUserCandidate={store.makeUserCandidate}
               onRemoveUserRecruiter={store.removeUserRecruiter}
               onUpdateUserRole={store.updateUserRole}
+              onUpdatePassword={store.updateUserPassword}
               onClearAllCandidates={store.clearAllCandidates}
               onClearAllUserAccounts={store.clearAllUserAccounts}
               onRestoreDefaultJobs={store.restoreDefaultJobs}
