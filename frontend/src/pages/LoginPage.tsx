@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, AlertCircle, Eye, EyeOff, Sparkles, ArrowRight, X, Mail } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Eye, EyeOff, Sparkles, ArrowRight, ArrowLeft, X, Mail } from 'lucide-react';
 import type { UserProfile, UserAccount } from '../types';
 
 const GoogleIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
@@ -72,13 +72,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('recruiter@copilot.com');
-  const [password, setPassword] = useState('recruiter123');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState('Talent Acquisition Specialist');
 
   // Google OAuth Modal state
   const [showGoogleModal, setShowGoogleModal] = useState(false);
   const [customGmail, setCustomGmail] = useState('');
+  const [googleTargetAccount, setGoogleTargetAccount] = useState<{
+    email: string;
+    name: string;
+    role: string;
+    isAdmin: boolean;
+  } | null>(null);
+  const [googlePassword, setGooglePassword] = useState('');
+  const [showGooglePassword, setShowGooglePassword] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
 
   // Active step state for Hero column
   const [activeStep, setActiveStep] = useState<number>(1);
@@ -86,84 +95,60 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   // Status Alerts
   const [statusNotice, setStatusNotice] = useState<{ type: 'PENDING' | 'REVOKED' | 'ERROR' | 'SUCCESS'; message: string } | null>(null);
 
-  // Google SSO Login Handler (Enforces Administrator Approval & Account Registration)
-  const handleGoogleSelect = (selectedEmail: string, selectedName: string, userRole: string, isAdmin = false) => {
+  // Google SSO Step 1: Account Selection Handler
+  const handleGoogleAccountSelect = (selectedEmail: string, selectedName: string, userRole: string, isAdmin = false) => {
     const cleanMail = selectedEmail.trim().toLowerCase();
-    const isPreApprovedDemo =
-      cleanMail === 'admin@copilot.com' ||
-      cleanMail === 'recruiter@copilot.com' ||
-      cleanMail === 'candidate@copilot.com' ||
-      cleanMail === 'sarah.johnson@example.com' ||
-      cleanMail === 'sarah.jenkins@gmail.com' ||
-      cleanMail === 'j.manju.raghvin@gmail.com' ||
-      cleanMail === 'omkar.kakumanu17@gmail.com' ||
-      cleanMail === 'sailathakakumanu@gmail.com';
+    setGoogleError(null);
 
-    const stored = userAccounts.find(u => u.email.toLowerCase() === cleanMail);
-
-    if (stored) {
-      if (stored.status === 'PENDING') {
-        setStatusNotice({
-          type: 'PENDING',
-          message: `Access Pending Approval: Your account for "${cleanMail}" has been submitted and is awaiting Administrator review. Please wait for an Admin to approve your access.`
-        });
-        setShowGoogleModal(false);
-        return;
+    const stored = userAccounts.find(u => {
+      const uEmail = u.email.toLowerCase().trim();
+      if (uEmail === cleanMail) return true;
+      if ((cleanMail === 'candidate@copilot.com' || cleanMail === 'sarah.johnson@example.com' || cleanMail === 'sarah.johnson@gmail.com') &&
+          (uEmail === 'sarah.johnson@example.com' || uEmail === 'candidate@copilot.com' || uEmail === 'sarah.johnson@gmail.com')) {
+        return true;
       }
-      if (stored.status === 'REVOKED' || stored.status === 'REJECTED') {
-        setStatusNotice({
-          type: 'REVOKED',
-          message: `Access Denied: Account access for "${cleanMail}" has been rejected or revoked by a System Administrator.`
-        });
-        setShowGoogleModal(false);
-        return;
+      if ((cleanMail === 'recruiter@copilot.com' || cleanMail === 'sarah.jenkins@gmail.com') &&
+          (uEmail === 'recruiter@copilot.com' || uEmail === 'sarah.jenkins@gmail.com')) {
+        return true;
       }
-      // Approved account login:
-      const savedAvatar = getPersistedAvatar(cleanMail, stored.avatar);
-      const finalName = getPersistedName(cleanMail, stored.name || selectedName, userAccounts);
-      onLogin({
-        name: finalName,
-        role: stored.role || userRole,
-        email: stored.email,
-        userType: stored.userType || (isAdmin ? 'ADMIN' : 'USER'),
-        status: 'APPROVED',
-        isSuperAdmin: stored.isSuperAdmin || isAdmin,
-        avatar: savedAvatar
-      });
-      setShowGoogleModal(false);
-      return;
-    }
-
-    if (isPreApprovedDemo) {
-      const savedAvatar = getPersistedAvatar(cleanMail, undefined);
-      const finalName = getPersistedName(cleanMail, selectedName, userAccounts);
-      onLogin({
-        name: finalName,
-        role: userRole,
-        email: selectedEmail,
-        userType: isAdmin ? 'ADMIN' : 'USER',
-        status: 'APPROVED',
-        isSuperAdmin: isAdmin,
-        avatar: savedAvatar
-      });
-      setShowGoogleModal(false);
-      return;
-    }
-
-    // New unknown user attempting Google / Gmail sign in:
-    // DO NOT allow direct access! Create an access request with status PENDING!
-    const newAcc = onRegister(selectedName, cleanMail, userRole, 'google_sso_verified');
-    setStatusNotice({
-      type: 'PENDING',
-      message: `Access Request Submitted Successfully! Account for "${newAcc.email}" is in PENDING status. An Administrator must approve your access request in Settings before you can log in.`
+      if ((cleanMail === 'admin@copilot.com' || cleanMail === 'j.manju.raghvin@gmail.com') &&
+          (uEmail === 'admin@copilot.com' || uEmail === 'j.manju.raghvin@gmail.com')) {
+        return true;
+      }
+      return false;
     });
-    setShowGoogleModal(false);
+
+    if (!stored) {
+      setGoogleError(`Account Not Found: No registered account found for "${cleanMail}". Please close and use "Request Enterprise Access" to register.`);
+      return;
+    }
+
+    if (stored.status === 'PENDING') {
+      setGoogleError(`Access Pending Approval: Your account for "${cleanMail}" is awaiting Administrator review in System Settings.`);
+      return;
+    }
+
+    if (stored.status === 'REVOKED' || stored.status === 'REJECTED') {
+      setGoogleError(`Access Denied: Account access for "${cleanMail}" has been revoked or denied by a System Administrator.`);
+      return;
+    }
+
+    // Advance to Step 2: Password entry
+    const finalName = getPersistedName(cleanMail, stored.name || selectedName, userAccounts);
+    setGoogleTargetAccount({
+      email: stored.email,
+      name: finalName,
+      role: stored.role || userRole,
+      isAdmin: stored.userType === 'ADMIN' || stored.isSuperAdmin || isAdmin
+    });
+    setGooglePassword('');
+    setGoogleError(null);
   };
 
   const handleCustomGmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customGmail.trim() || !customGmail.includes('@')) {
-      alert("Please enter a valid Gmail address.");
+      setGoogleError("Please enter a valid Gmail address.");
       return;
     }
     const clean = customGmail.trim().toLowerCase();
@@ -172,7 +157,80 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       .split(' ')
       .map(part => part.charAt(0).toUpperCase() + part.slice(1))
       .join(' ') || 'Applicant';
-    handleGoogleSelect(clean, formattedName, 'Candidate Applicant', false);
+    handleGoogleAccountSelect(clean, formattedName, 'Candidate Applicant', false);
+  };
+
+  // Google SSO Step 2: Strict Password Verification Handler
+  const handleGooglePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!googleTargetAccount) return;
+
+    const emailClean = googleTargetAccount.email.toLowerCase().trim();
+    const passwordClean = googlePassword.trim();
+
+    if (!passwordClean) {
+      setGoogleError('Please enter your password to sign in.');
+      return;
+    }
+
+    const stored = userAccounts.find(u => {
+      const uEmail = u.email.toLowerCase().trim();
+      return uEmail === emailClean ||
+        ((emailClean === 'candidate@copilot.com' || emailClean === 'sarah.johnson@example.com') &&
+         (uEmail === 'candidate@copilot.com' || uEmail === 'sarah.johnson@example.com')) ||
+        ((emailClean === 'recruiter@copilot.com' || emailClean === 'sarah.jenkins@gmail.com') &&
+         (uEmail === 'recruiter@copilot.com' || uEmail === 'sarah.jenkins@gmail.com')) ||
+        ((emailClean === 'admin@copilot.com' || emailClean === 'j.manju.raghvin@gmail.com') &&
+         (uEmail === 'admin@copilot.com' || uEmail === 'j.manju.raghvin@gmail.com'));
+    });
+
+    if (!stored) {
+      setGoogleError(`Account "${emailClean}" not found.`);
+      return;
+    }
+
+    const expectedPassword = stored.password || (
+      stored.userType === 'ADMIN' || stored.isSuperAdmin || emailClean === 'admin@copilot.com'
+        ? 'admin123'
+        : (stored.role?.toLowerCase().includes('recruiter') || stored.role?.toLowerCase().includes('talent'))
+        ? 'recruiter123'
+        : 'candidate123'
+    );
+
+    // ABSOLUTE PASSWORD VERIFICATION - NO BYPASSES
+    if (passwordClean !== expectedPassword) {
+      setGoogleError(`Authentication Failed: Incorrect password entered for "${emailClean}". Access denied.`);
+      return;
+    }
+
+    // Enforce status
+    if (stored.status === 'REVOKED' || stored.status === 'REJECTED') {
+      setGoogleError(`Access Denied: Account access for "${emailClean}" has been revoked.`);
+      return;
+    }
+
+    if (stored.status === 'PENDING') {
+      setGoogleError(`Access Pending Review: Account for "${emailClean}" is awaiting Administrator review.`);
+      return;
+    }
+
+    const savedAvatar = getPersistedAvatar(emailClean, stored.avatar);
+    const finalName = getPersistedName(emailClean, stored.name || googleTargetAccount.name, userAccounts);
+
+    onLogin({
+      name: finalName,
+      role: stored.role,
+      email: stored.email,
+      userType: googleTargetAccount.isAdmin ? 'ADMIN' : (stored.userType || 'USER'),
+      status: 'APPROVED',
+      isSuperAdmin: googleTargetAccount.isAdmin,
+      avatar: savedAvatar
+    });
+
+    setShowGoogleModal(false);
+    setGoogleTargetAccount(null);
+    setGooglePassword('');
+    setGoogleError(null);
   };
 
   // Standard Form Submit Handler with Strict, Absolute Password Verification
@@ -251,8 +309,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     );
 
     // 5. ABSOLUTE PASSWORD VERIFICATION - NO BYPASSES
-    const isPasswordValid = passwordClean === expectedPassword || passwordClean.trim() === expectedPassword;
-    if (!isPasswordValid) {
+    if (passwordClean !== expectedPassword) {
       setStatusNotice({
         type: 'ERROR',
         message: `Authentication Failed: Incorrect password entered for "${emailClean}". Access denied.`
@@ -462,7 +519,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-slate-100 p-1 rounded-xl flex-1">
               <button
                 type="button"
-                onClick={() => { setMode('RECRUITER'); setEmail('recruiter@copilot.com'); setPassword('recruiter123'); setStatusNotice(null); }}
+                onClick={() => { setMode('RECRUITER'); setEmail('recruiter@copilot.com'); setPassword(''); setStatusNotice(null); }}
                 className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all text-center truncate ${mode === 'RECRUITER'
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
@@ -472,7 +529,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => { setMode('CANDIDATE'); setEmail('candidate@copilot.com'); setPassword('candidate123'); setStatusNotice(null); }}
+                onClick={() => { setMode('CANDIDATE'); setEmail('candidate@copilot.com'); setPassword(''); setStatusNotice(null); }}
                 className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all text-center truncate ${mode === 'CANDIDATE'
                   ? 'bg-purple-600 text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
@@ -482,7 +539,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => { setMode('ADMIN'); setEmail('admin@copilot.com'); setPassword('admin123'); setStatusNotice(null); }}
+                onClick={() => { setMode('ADMIN'); setEmail('admin@copilot.com'); setPassword(''); setStatusNotice(null); }}
                 className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all text-center truncate ${mode === 'ADMIN'
                   ? 'bg-slate-900 text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
@@ -640,7 +697,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              helperText={mode === 'SIGN_UP' ? 'Must be at least 8 characters with numbers.' : undefined}
+              helperText={
+                mode === 'SIGN_UP'
+                  ? 'Must be at least 6 characters.'
+                  : mode === 'ADMIN'
+                  ? 'Password required. Default: admin123'
+                  : mode === 'RECRUITER'
+                  ? 'Password required. Default: recruiter123'
+                  : 'Password required. Default: candidate123'
+              }
               rightElement={
                 <button
                   type="button"
@@ -682,7 +747,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 Already registered?{' '}
                 <button
                   type="button"
-                  onClick={() => { setMode('RECRUITER'); setEmail('recruiter@copilot.com'); setPassword('recruiter123'); setStatusNotice(null); }}
+                  onClick={() => { setMode('RECRUITER'); setEmail('recruiter@copilot.com'); setPassword(''); setStatusNotice(null); }}
                   className="text-blue-600 font-bold hover:underline cursor-pointer"
                 >
                   Log in here
@@ -714,7 +779,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           >
             {/* Close Button */}
             <button
-              onClick={() => setShowGoogleModal(false)}
+              onClick={() => {
+                setShowGoogleModal(false);
+                setGoogleTargetAccount(null);
+                setGooglePassword('');
+                setGoogleError(null);
+              }}
               className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition-colors"
             >
               <X className="w-5 h-5" />
@@ -727,103 +797,201 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               </div>
               <h3 className="text-xl font-extrabold text-slate-900">Sign in with Google</h3>
               <p className="text-xs text-slate-500 font-medium">
-                Choose an account or enter your Gmail to continue to <span className="font-bold text-slate-800">AI Recruitment Copilot</span>
+                {googleTargetAccount 
+                  ? 'Verify your password to complete sign in' 
+                  : 'Choose an account or enter your Gmail to continue to AI Recruitment Copilot'}
               </p>
             </div>
 
-            {/* Predefined Approved Account Chooser */}
-            <div className="space-y-2 pt-1">
-              <button
-                type="button"
-                onClick={() => handleGoogleSelect('sarah.jenkins@gmail.com', 'Sarah Jenkins', 'Talent Acquisition Lead', false)}
-                className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-2xl hover:border-blue-500 hover:bg-blue-50/50 transition-all text-left cursor-pointer group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center">
-                    SJ
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 block group-hover:text-blue-600">Sarah Jenkins (Recruiter)</span>
-                    <span className="text-[10px] text-slate-500 font-medium">sarah.jenkins@gmail.com</span>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
-              </button>
+            {/* Error Message if any */}
+            {googleError && (
+              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs font-medium flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+                <span>{googleError}</span>
+              </div>
+            )}
 
-              {(() => {
-                const candName = getPersistedName('sarah.johnson@example.com', 'Sarah Johnson', userAccounts);
-                const candInitials = candName.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'SJ';
-                return (
+            {!googleTargetAccount ? (
+              <>
+                {/* Predefined Approved Account Chooser */}
+                <div className="space-y-2 pt-1">
                   <button
                     type="button"
-                    onClick={() => handleGoogleSelect('sarah.johnson@example.com', candName, 'Candidate Applicant', false)}
-                    className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-2xl hover:border-purple-500 hover:bg-purple-50/50 transition-all text-left cursor-pointer group"
+                    onClick={() => handleGoogleAccountSelect('sarah.jenkins@gmail.com', 'Sarah Jenkins', 'Talent Acquisition Lead', false)}
+                    className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-2xl hover:border-blue-500 hover:bg-blue-50/50 transition-all text-left cursor-pointer group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-purple-600 text-white font-extrabold text-xs flex items-center justify-center">
-                        {candInitials}
+                      <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center">
+                        SJ
                       </div>
                       <div>
-                        <span className="text-xs font-bold text-slate-900 block group-hover:text-purple-600">{candName} (Candidate)</span>
-                        <span className="text-[10px] text-slate-500 font-medium">sarah.johnson@example.com</span>
+                        <span className="text-xs font-bold text-slate-900 block group-hover:text-blue-600">Sarah Jenkins (Recruiter)</span>
+                        <span className="text-[10px] text-slate-500 font-medium">sarah.jenkins@gmail.com</span>
                       </div>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
                   </button>
-                );
-              })()}
 
-              <button
-                type="button"
-                onClick={() => handleGoogleSelect('j.manju.raghvin@gmail.com', 'J Manju Raghvin', 'System Administrator & Hiring Director', true)}
-                className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-2xl hover:border-slate-900 hover:bg-slate-50 transition-all text-left cursor-pointer group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center">
-                    JM
+                  {(() => {
+                    const candName = getPersistedName('sarah.johnson@example.com', 'Sarah Johnson', userAccounts);
+                    const candInitials = candName.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'SJ';
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => handleGoogleAccountSelect('sarah.johnson@example.com', candName, 'Candidate Applicant', false)}
+                        className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-2xl hover:border-purple-500 hover:bg-purple-50/50 transition-all text-left cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-purple-600 text-white font-extrabold text-xs flex items-center justify-center">
+                            {candInitials}
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-slate-900 block group-hover:text-purple-600">{candName} (Candidate)</span>
+                            <span className="text-[10px] text-slate-500 font-medium">sarah.johnson@example.com</span>
+                          </div>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
+                      </button>
+                    );
+                  })()}
+
+                  <button
+                    type="button"
+                    onClick={() => handleGoogleAccountSelect('j.manju.raghvin@gmail.com', 'J Manju Raghvin', 'System Administrator & Hiring Director', true)}
+                    className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-2xl hover:border-slate-900 hover:bg-slate-50 transition-all text-left cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center">
+                        JM
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 block group-hover:text-slate-900">J Manju Raghvin (Admin)</span>
+                        <span className="text-[10px] text-slate-500 font-medium">j.manju.raghvin@gmail.com</span>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />
+                  </button>
+                </div>
+
+                <div className="relative flex items-center justify-center my-2">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-slate-200" />
                   </div>
+                  <div className="relative bg-white px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    Or Use Another Gmail Account
+                  </div>
+                </div>
+
+                {/* Custom Gmail Input Form */}
+                <form onSubmit={handleCustomGmailSubmit} className="space-y-3">
                   <div>
-                    <span className="text-xs font-bold text-slate-900 block group-hover:text-slate-900">J Manju Raghvin (Admin)</span>
-                    <span className="text-[10px] text-slate-500 font-medium">j.manju.raghvin@gmail.com</span>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">Enter Gmail Address</label>
+                    <div className="relative flex items-center">
+                      <input
+                        type="email"
+                        value={customGmail}
+                        onChange={(e) => setCustomGmail(e.target.value)}
+                        placeholder="your.name@gmail.com"
+                        required
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl h-11 px-3.5 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
+                      />
+                      <Mail className="absolute right-3.5 w-4 h-4 text-slate-400" />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    Continue with Gmail →
+                  </button>
+                </form>
+              </>
+            ) : (
+              /* Step 2: Strict Password Verification Screen */
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGoogleTargetAccount(null);
+                      setGooglePassword('');
+                      setGoogleError(null);
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                    title="Choose a different account"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold text-slate-800 truncate max-w-[280px]">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span className="truncate">{googleTargetAccount.email}</span>
                   </div>
                 </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />
-              </button>
-            </div>
 
-            <div className="relative flex items-center justify-center my-2">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200" />
-              </div>
-              <div className="relative bg-white px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                Or Use Another Gmail Account
-              </div>
-            </div>
-
-            {/* Custom Gmail Input Form */}
-            <form onSubmit={handleCustomGmailSubmit} className="space-y-3">
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Enter Gmail Address</label>
-                <div className="relative flex items-center">
-                  <input
-                    type="email"
-                    value={customGmail}
-                    onChange={(e) => setCustomGmail(e.target.value)}
-                    placeholder="your.name@gmail.com"
-                    required
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl h-11 px-3.5 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
-                  />
-                  <Mail className="absolute right-3.5 w-4 h-4 text-slate-400" />
+                <div className="space-y-1">
+                  <h4 className="text-base font-extrabold text-slate-900">
+                    Welcome, {googleTargetAccount.name}
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    To continue, please enter the password for this account.
+                  </p>
                 </div>
-              </div>
 
-              <button
-                type="submit"
-                className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                Continue with Gmail →
-              </button>
-            </form>
+                <form onSubmit={handleGooglePasswordSubmit} className="space-y-3.5">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 block">Password</label>
+                    <div className="relative flex items-center">
+                      <input
+                        type={showGooglePassword ? 'text' : 'password'}
+                        value={googlePassword}
+                        onChange={(e) => setGooglePassword(e.target.value)}
+                        placeholder="Enter password"
+                        autoFocus
+                        required
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl h-11 px-3.5 pr-10 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowGooglePassword(!showGooglePassword)}
+                        tabIndex={-1}
+                        className="absolute right-3.5 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                      >
+                        {showGooglePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      {googleTargetAccount.isAdmin
+                        ? 'Demo Admin password: admin123'
+                        : googleTargetAccount.role.toLowerCase().includes('recruiter')
+                        ? 'Demo Recruiter password: recruiter123'
+                        : 'Demo Candidate password: candidate123'}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setGoogleTargetAccount(null);
+                        setGooglePassword('');
+                        setGoogleError(null);
+                      }}
+                      className="flex-1 h-11 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-500/20 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <span>Sign In</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
           </motion.div>
         </div>
       )}
